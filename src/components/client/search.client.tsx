@@ -1,5 +1,5 @@
 import { Button, Col, Form, Row, Select, notification } from 'antd';
-import { EnvironmentOutlined, MonitorOutlined } from '@ant-design/icons';
+import { EnvironmentOutlined, MonitorOutlined, AppstoreOutlined, DollarCircleOutlined } from '@ant-design/icons';
 import { LOCATION_LIST } from '@/config/utils';
 import { ProForm } from '@ant-design/pro-components';
 import { useEffect, useState } from 'react';
@@ -17,17 +17,51 @@ const SearchClient = () => {
         value: string;
     }[]>([]);
 
+    // Danh sách nghề nghiệp
+    const optionsJobs = [
+        { label: 'Frontend Developer', value: 'frontend' },
+        { label: 'Backend Developer', value: 'backend' },
+        { label: 'Full Stack Developer', value: 'fullstack' },
+        { label: 'Mobile Developer', value: 'mobile' },
+        { label: 'DevOps Engineer', value: 'devops' },
+        { label: 'QA/Tester', value: 'qa' },
+        { label: 'UI/UX Designer', value: 'uiux' },
+        { label: 'Data Engineer', value: 'data' },
+        { label: 'AI/ML Engineer', value: 'ai' },
+        { label: 'Security Engineer', value: 'security' },
+    ];
+
+    // Danh sách mức lương
+    const optionsSalary = [
+        { label: 'Dưới 10 triệu', value: '0-10' },
+        { label: '10 - 15 triệu', value: '10-15' },
+        { label: '15 - 20 triệu', value: '15-20' },
+        { label: '20 - 30 triệu', value: '20-30' },
+        { label: '30 - 50 triệu', value: '30-50' },
+        { label: 'Trên 50 triệu', value: '50-999' },
+        { label: 'Thỏa thuận', value: 'negotiable' },
+    ];
+
     const [searchParams, setSearchParams] = useSearchParams();
 
     useEffect(() => {
         if (location.search) {
             const queryLocation = searchParams.get("location");
-            const querySkills = searchParams.get("skills")
+            const querySkills = searchParams.get("skills");
+            const queryJobs = searchParams.get("jobs");
+            const querySalary = searchParams.get("salary");
+            
             if (queryLocation) {
                 form.setFieldValue("location", queryLocation.split(","))
             }
             if (querySkills) {
                 form.setFieldValue("skills", querySkills.split(","))
+            }
+            if (queryJobs) {
+                form.setFieldValue("jobs", queryJobs.split(","))
+            }
+            if (querySalary) {
+                form.setFieldValue("salary", querySalary.split(","))
             }
         }
     }, [location.search])
@@ -52,15 +86,22 @@ const SearchClient = () => {
     }
 
     const onFinish = async (values: any) => {
-        let query = "";
+        const queryParams: string[] = [];
+        
         if (values?.location?.length) {
-            query = `location=${values?.location?.join(",")}`;
+            queryParams.push(`location=${values.location.join(",")}`);
         }
         if (values?.skills?.length) {
-            query = values.location?.length ? query + `&skills=${values?.skills?.join(",")}`
-                :
-                `skills=${values?.skills?.join(",")}`;
+            queryParams.push(`skills=${values.skills.join(",")}`);
         }
+        if (values?.jobs?.length) {
+            queryParams.push(`jobs=${values.jobs.join(",")}`);
+        }
+        if (values?.salary?.length) {
+            queryParams.push(`salary=${values.salary.join(",")}`);
+        }
+
+        const query = queryParams.join("&");
 
         if (!query) {
             notification.error({
@@ -84,10 +125,8 @@ const SearchClient = () => {
         >
             <Row gutter={[20, 20]}>
                 <Col span={24}><h2>Việc Làm IT Cho Developer</h2></Col>
-                <Col span={24} md={16}>
-                    <ProForm.Item
-                        name="skills"
-                    >
+                <Col span={24} md={12}>
+                    <ProForm.Item name="skills">
                         <Select
                             mode="multiple"
                             allowClear
@@ -95,7 +134,7 @@ const SearchClient = () => {
                             style={{ width: '100%' }}
                             placeholder={
                                 <>
-                                    <MonitorOutlined /> Tìm công việc theo kỹ năng...
+                                    <MonitorOutlined /> Tìm theo kỹ năng...
                                 </>
                             }
                             optionLabelProp="label"
@@ -103,10 +142,25 @@ const SearchClient = () => {
                         />
                     </ProForm.Item>
                 </Col>
-                <Col span={12} md={4}>
-                    <ProForm.Item
-                        name="location"
-                    >
+                <Col span={24} md={12}>
+                    <ProForm.Item name="jobs">
+                        <Select
+                            mode="multiple"
+                            allowClear
+                            suffixIcon={null}
+                            style={{ width: '100%' }}
+                            placeholder={
+                                <>
+                                    <AppstoreOutlined /> Tìm theo nghề nghiệp...
+                                </>
+                            }
+                            optionLabelProp="label"
+                            options={optionsJobs}
+                        />
+                    </ProForm.Item>
+                </Col>
+                <Col span={12} md={8}>
+                    <ProForm.Item name="location">
                         <Select
                             mode="multiple"
                             allowClear
@@ -122,8 +176,27 @@ const SearchClient = () => {
                         />
                     </ProForm.Item>
                 </Col>
-                <Col span={12} md={4}>
-                    <Button type='primary' onClick={() => form.submit()}>Search</Button>
+                <Col span={12} md={8}>
+                    <ProForm.Item name="salary">
+                        <Select
+                            mode="multiple"
+                            allowClear
+                            suffixIcon={null}
+                            style={{ width: '100%' }}
+                            placeholder={
+                                <>
+                                    <DollarCircleOutlined /> Mức lương...
+                                </>
+                            }
+                            optionLabelProp="label"
+                            options={optionsSalary}
+                        />
+                    </ProForm.Item>
+                </Col>
+                <Col span={24} md={8}>
+                    <Button type='primary' onClick={() => form.submit()} style={{ width: '100%' }}>
+                        Search
+                    </Button>
                 </Col>
             </Row>
         </ProForm>

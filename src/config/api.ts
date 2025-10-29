@@ -267,3 +267,36 @@ export const callAskAI = (prompt: string) => {
 export const callGetJobByEmail = () => {
     return axios.get<IBackendRes<string>>(`/api/v1/email`);
 }
+
+// Thêm interface cho thống kê
+export interface IJobStatistics {
+    level?: string;
+    location?: string;
+    companyName?: string;
+    jobCount: number;
+    averageSalary: number;
+}
+
+/**
+ * Module Statistics
+ */
+export const callGetJobStatisticsByLevel = () => {
+    return axios.get<IBackendRes<IJobStatistics[]>>('/api/v1/jobs/statistics/level');
+}
+
+export const callGetJobStatisticsByLocation = () => {
+    return axios.get<IBackendRes<IJobStatistics[]>>('/api/v1/jobs/statistics/location');
+}
+
+export const callGetJobStatisticsByCompany = () => {
+    return axios.get<IBackendRes<IJobStatistics[]>>('/api/v1/jobs/statistics/company');
+}
+
+export const callGetJobStatisticsOverview = () => {
+    return axios.get<IBackendRes<{
+        totalJobs: number;
+        totalCompanies: number;
+        totalCandidates: number;
+        averageSalary: number;
+    }>>('/api/v1/jobs/statistics/overview');
+}

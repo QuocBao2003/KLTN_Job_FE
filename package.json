@@ -9,11 +9,11 @@
     "dev": "vite",
     "start": "vite",
     "build": "tsc && vite build",
-   
     "preview": "vite preview"
   },
   "dependencies": {
     "@ant-design/icons": "4.8.0",
+    "@ant-design/plots": "^2.6.6",
     "@ant-design/pro-components": "2.6.46",
     "@ant-design/pro-layout": "7.17.19",
     "@reduxjs/toolkit": "1.9.3",
