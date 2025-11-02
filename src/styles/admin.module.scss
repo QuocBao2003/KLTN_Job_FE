@@ -1,5 +1,5 @@
 .upsert-job-container {
-    background-color: white;
+    background-color: #e3eef8;
     padding: 10px 30px;
     border-radius: 5px;
     min-height: 100vh;
@@ -8,4 +8,42 @@
     .title {
         padding: 10px 0 20px 0;
     }
+}
+
+// Admin overall background and content card styling
+.layout-admin {
+    background-color: #e3eef8; // workspace background color
+
+    // Let nested Ant Layouts inherit and show the blue background
+    :global(.ant-layout) {
+        background: transparent !important;
+    }
+    :global(.ant-layout-content) {
+        background: transparent !important;
+    }
+}
+
+.admin-header {
+    background: transparent;
+}
+
+.admin-content-card {
+    background: #fff;
+    border-radius: 8px;
+    padding: 16px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.06);
+}
+
+.job-preview {
+    margin-left: 20px;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.06);
+}
+
+.form-card {
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.06);
+    padding: 16px;
 }
