@@ -50,6 +50,14 @@ export interface ICompany {
     updatedAt?: string;
 }
 
+export interface ISaveJob {
+    id?: string;
+    name?: string;
+    companyName?:string;
+    location: string;
+    saveTime : Date;
+}
+
 export interface ISkill {
     id?: string;
     name?: string;

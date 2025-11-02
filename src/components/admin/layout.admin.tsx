@@ -20,6 +20,7 @@ import { isMobile } from 'react-device-detect';
 import type { MenuProps } from 'antd';
 import { setLogoutAction } from '@/redux/slice/accountSlide';
 import { ALL_PERMISSIONS } from '@/config/permissions';
+import styles from '@/styles/admin.module.scss';
 
 const { Content, Sider } = Layout;
 
@@ -161,7 +162,7 @@ const LayoutAdmin = () => {
         <>
             <Layout
                 style={{ minHeight: '100vh' }}
-                className="layout-admin"
+                className={styles['layout-admin']}
             >
                 {!isMobile ?
                     <Sider
@@ -190,7 +191,7 @@ const LayoutAdmin = () => {
 
                 <Layout>
                     {!isMobile &&
-                        <div className='admin-header' style={{ display: "flex", justifyContent: "space-between", marginRight: 20 }}>
+                        <div className={styles['admin-header']} style={{ display: "flex", justifyContent: "space-between", marginRight: 20 }}>
                             <Button
                                 type="text"
                                 icon={collapsed ? React.createElement(MenuUnfoldOutlined) : React.createElement(MenuFoldOutlined)}
@@ -212,7 +213,9 @@ const LayoutAdmin = () => {
                         </div>
                     }
                     <Content style={{ padding: '15px' }}>
-                        <Outlet />
+                        <div className={styles['admin-content-card']}>
+                            <Outlet />
+                        </div>
                     </Content>
                     {/* <Footer style={{ padding: 10, textAlign: 'center' }}>
                         React Typescript series Nest.JS &copy; Hỏi Dân IT - Made with <HeartTwoTone />

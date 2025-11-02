@@ -1,4 +1,4 @@
-import { IBackendRes, ICompany, IAccount, IUser, IModelPaginate, IGetAccount, IJob, IResume, IPermission, IRole, ISkill, ISubscribers } from '@/types/backend';
+import { IBackendRes, ICompany, IAccount, IUser, IModelPaginate, IGetAccount, IJob, IResume, IPermission, IRole, ISkill, ISubscribers, ISaveJob } from '@/types/backend';
 import axios from 'config/axios-customize';
 
 /**
@@ -145,6 +145,12 @@ export const callFetchJobById = (id: string) => {
     return axios.get<IBackendRes<IJob>>(`/api/v1/jobs/${id}`);
 }
 
+export const callGetSavedJobByUser=()=>{
+    return axios.get<IBackendRes<ISaveJob>>(`/api/v1/save-jobs`);
+}
+export const callSavedJob = (id? : string) =>{
+    return axios.post<IBackendRes<ISaveJob[]>>(`/api/v1/save-jobs/${id}`);
+}
 /**
  * 
 Module Resume

@@ -1,4 +1,4 @@
-import { Breadcrumb, Col, ConfigProvider, Divider, Form, Row, message, notification } from "antd";
+import { Breadcrumb, Col, ConfigProvider, Divider, Form, Row, message, notification, Card, Tag, Button } from "antd";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { DebounceSelect } from "../user/debouce.select";
 import { FooterToolbar, ProForm, ProFormDatePicker, ProFormDigit, ProFormSelect, ProFormSwitch, ProFormText } from "@ant-design/pro-components";
@@ -32,6 +32,18 @@ const ViewUpsertJob = (props: any) => {
     const id = params?.get("id"); // job id
     const [dataUpdate, setDataUpdate] = useState<IJob | null>(null);
     const [form] = Form.useForm();
+    const [preview, setPreview] = useState<any>({
+        name: '',
+        location: '',
+        salary: undefined,
+        quantity: undefined,
+        level: '',
+        startDate: undefined,
+        endDate: undefined,
+        active: true,
+        skills: [],
+        companyLogo: ''
+    });
 
     useEffect(() => {
         const init = async () => {
@@ -67,6 +79,18 @@ const ViewUpsertJob = (props: any) => {
                             key: res.data.company?.id
                         },
                         skills: temp
+                    })
+                    setPreview({
+                        name: res.data.name,
+                        location: res.data.location,
+                        salary: res.data.salary,
+                        quantity: res.data.quantity,
+                        level: res.data.level,
+                        startDate: res.data.startDate,
+                        endDate: res.data.endDate,
+                        active: res.data.active,
+                        skills: temp,
+                        companyLogo: res.data.company?.logo || ''
                     })
                 }
             }
@@ -200,25 +224,35 @@ const ViewUpsertJob = (props: any) => {
             <div >
 
                 <ConfigProvider locale={enUS}>
-                    <ProForm
-                        form={form}
-                        onFinish={onFinish}
-                        submitter={
-                            {
-                                searchConfig: {
-                                    resetText: "Hủy",
-                                    submitText: <>{dataUpdate?.id ? "Cập nhật Job" : "Tạo mới Job"}</>
-                                },
-                                onReset: () => navigate('/admin/job'),
-                                render: (_: any, dom: any) => <FooterToolbar>{dom}</FooterToolbar>,
-                                submitButtonProps: {
-                                    icon: <CheckSquareOutlined />
-                                },
-                            }
-                        }
-                    >
-                        <Row gutter={[20, 20]}>
-                            <Col span={24} md={12}>
+                    <Row gutter={[20, 20]}>
+                        <Col span={24} md={12}>
+                            <Card className={styles['form-card']}>
+                            <ProForm
+                                form={form}
+                                onFinish={onFinish}
+                                layout="vertical"
+                                onValuesChange={(_, allValues) => {
+                                    setPreview((prev: any) => ({
+                                        ...prev,
+                                        ...allValues,
+                                        skills: allValues?.skills || prev.skills,
+                                        companyLogo: (allValues?.company?.value?.split?.('@#$')?.[1]) || prev.companyLogo
+                                    }))
+                                }}
+                                submitter={{
+                                    searchConfig: {
+                                        resetText: "Hủy",
+                                        submitText: <>{dataUpdate?.id ? "Cập nhật Job" : "Tạo mới Job"}</>
+                                    },
+                                    onReset: () => navigate('/admin/job'),
+                                    render: (_: any, dom: any) => <FooterToolbar>{dom}</FooterToolbar>,
+                                    submitButtonProps: {
+                                        icon: <CheckSquareOutlined />
+                                    },
+                                }}
+                            >
+                                <Row gutter={[16, 16]}>
+                            <Col span={24}>
                                 <ProFormText
                                     label="Tên Job"
                                     name="name"
@@ -228,7 +262,7 @@ const ViewUpsertJob = (props: any) => {
                                     placeholder="Nhập tên job"
                                 />
                             </Col>
-                            <Col span={24} md={6}>
+                            <Col span={24}>
                                 <ProFormSelect
                                     name="skills"
                                     label="Kỹ năng yêu cầu"
@@ -243,7 +277,7 @@ const ViewUpsertJob = (props: any) => {
                                 />
                             </Col>
 
-                            <Col span={24} md={6}>
+                            <Col span={24}>
                                 <ProFormSelect
                                     name="location"
                                     label="Địa điểm"
@@ -252,7 +286,7 @@ const ViewUpsertJob = (props: any) => {
                                     rules={[{ required: true, message: 'Vui lòng chọn địa điểm!' }]}
                                 />
                             </Col>
-                            <Col span={24} md={6}>
+                            <Col span={24}>
                                 <ProFormDigit
                                     label="Mức lương"
                                     name="salary"
@@ -265,7 +299,7 @@ const ViewUpsertJob = (props: any) => {
                                     }}
                                 />
                             </Col>
-                            <Col span={24} md={6}>
+                            <Col span={24}>
                                 <ProFormDigit
                                     label="Số lượng"
                                     name="quantity"
@@ -273,7 +307,7 @@ const ViewUpsertJob = (props: any) => {
                                     placeholder="Nhập số lượng"
                                 />
                             </Col>
-                            <Col span={24} md={6}>
+                            <Col span={24}>
                                 <ProFormSelect
                                     name="level"
                                     label="Trình độ"
@@ -315,9 +349,9 @@ const ViewUpsertJob = (props: any) => {
                                 </Col>
                             }
 
-                        </Row>
-                        <Row gutter={[20, 20]}>
-                            <Col span={24} md={6}>
+                                </Row>
+                                <Row gutter={[16, 16]}>
+                            <Col span={24}>
                                 <ProFormDatePicker
                                     label="Ngày bắt đầu"
                                     name="startDate"
@@ -330,7 +364,7 @@ const ViewUpsertJob = (props: any) => {
                                     placeholder="dd/mm/yyyy"
                                 />
                             </Col>
-                            <Col span={24} md={6}>
+                            <Col span={24}>
                                 <ProFormDatePicker
                                     label="Ngày kết thúc"
                                     name="endDate"
@@ -344,7 +378,7 @@ const ViewUpsertJob = (props: any) => {
                                     placeholder="dd/mm/yyyy"
                                 />
                             </Col>
-                            <Col span={24} md={6}>
+                            <Col span={24}>
                                 <ProFormSwitch
                                     label="Trạng thái"
                                     name="active"
@@ -369,9 +403,42 @@ const ViewUpsertJob = (props: any) => {
                                     />
                                 </ProForm.Item>
                             </Col>
-                        </Row>
-                        <Divider />
-                    </ProForm>
+                                </Row>
+                                <Divider />
+                            </ProForm>
+                            </Card>
+                        </Col>
+
+                        <Col span={24} md={12}>
+                            <Card className={styles['job-preview']}>
+                                <div style={{display: 'flex',justifyContent: 'center'}}>
+                                    <h1>Xem trước</h1>
+                                </div>
+                                <Divider />
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <h2 style={{ margin: 0 }}>{preview.name || 'Tên job'}</h2>
+                                    {preview.companyLogo && <img src={preview.companyLogo} alt="logo" style={{ width: 80, height: 40, objectFit: 'contain' }} />}
+                                </div>
+                                <div style={{ marginTop: 12, display: 'flex', gap: 24, flexWrap: 'wrap' }}>
+                                    <div><strong>Ngày đăng</strong><div>{preview.startDate ? dayjs(preview.startDate).format('DD/MM/YYYY') : '-'}</div></div>
+                                    <div><strong>Số lượng tuyển</strong><div>{preview.quantity || '-'}</div></div>
+                                    <div><strong>Cấp bậc</strong><div>{preview.level || '-'}</div></div>
+                                </div>
+                                <Button type="primary" style={{ marginTop: 16, background: '#197bcd' }}>Ứng tuyển</Button>
+                                <Divider />
+                                <h3>Kỹ năng yêu cầu</h3>
+                                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                                    {(preview.skills || []).map((s: any) => (
+                                        <Tag key={s.value || s} color="blue">{s.label || s}</Tag>
+                                    ))}
+                                </div>
+                                <Divider />
+                                <h3>Mô tả công việc</h3>
+                                <div dangerouslySetInnerHTML={{ __html: value || '' }} />
+                            </Card>
+                        </Col> 
+                    </Row>
+                    
                 </ConfigProvider>
 
             </div>

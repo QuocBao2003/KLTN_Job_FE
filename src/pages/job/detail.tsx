@@ -1,10 +1,10 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { useState, useEffect } from 'react';
 import { IJob } from "@/types/backend";
-import { callFetchJobById } from "@/config/api";
+import { callFetchJobById, callSavedJob } from "@/config/api";
 import styles from 'styles/client.module.scss';
 import parse from 'html-react-parser';
-import { Col, Divider, Row, Skeleton, Tag } from "antd";
+import { Col, Divider, message, Row, Skeleton, Tag } from "antd";
 import { DollarOutlined, EnvironmentOutlined, HistoryOutlined } from "@ant-design/icons";
 import { getLocationName } from "@/config/utils";
 import dayjs from 'dayjs';
@@ -41,7 +41,18 @@ const ClientJobDetailPage = (props: any) => {
         }
         init();
     }, [id]);
-
+    const handleClickSaveJob= async ()=>{
+        if (!jobDetail?.id) {
+            message.error("Không tìm thấy ID việc làm");
+            return;
+          }
+        const res = await callSavedJob(jobDetail.id);
+        if(res.data){
+            message.success("Lưu việc làm thành công");
+        }else{
+            message.error("Lưu việc làm thất bại");
+        }
+    }
     return (
         <div className={`${styles["container"]} ${styles["detail-job-section"]}`}>
             {isLoading ?
@@ -96,6 +107,14 @@ const ClientJobDetailPage = (props: any) => {
                                 >
                                     <CheckCircleOutlined style={{ marginRight: 8 }} />
                                     Ứng tuyển
+                                </button>
+                                <button
+                                    onClick={() => handleClickSaveJob()}
+                                    className={styles["btn-apply"]}
+                                    style={{ marginLeft: 10,width: '300px',backgroundColor: 'green' }}
+                                >
+                                    <CheckCircleOutlined style={{ marginRight: 8 }} />
+                                   Lưu việc làm
                                 </button>
                             </div>
 
