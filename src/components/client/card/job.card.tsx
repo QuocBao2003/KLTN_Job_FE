@@ -114,7 +114,7 @@ const JobCard = (props: IProps) => {
                                             <div className={styles["card-job-left"]}>
                                                 <img
                                                     alt="example"
-                                                    src={`${import.meta.env.VITE_BACKEND_URL}/storage/company/${item?.company?.logo}`}
+                                                    src={item?.company?.logo || "https://via.placeholder.com/200x200?text=No+Logo"}
                                                 />
                                             </div>
                                             <div className={styles["card-job-right"]}>

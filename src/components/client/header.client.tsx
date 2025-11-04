@@ -8,7 +8,7 @@ import {
   RiseOutlined,
   TwitterOutlined,
 } from "@ant-design/icons";
-import { Avatar, Drawer, Dropdown, MenuProps, Space, message } from "antd";
+import { Avatar, Drawer, Dropdown, MenuProps, Space, message, Badge } from "antd";
 import { Menu, ConfigProvider } from "antd";
 import styles from "@/styles/client.module.scss";
 import { isMobile } from "react-device-detect";
@@ -16,9 +16,8 @@ import { FaFacebook } from "react-icons/fa";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Link } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
-import { callLogout } from "@/config/api";
+import { callLogout, callFetchResumeByUser } from "@/config/api";
 import { setLogoutAction } from "@/redux/slice/accountSlide";
-import ManageAccount from "./modal/manage.account";
 import images from "@/img/Logo-I.png";
 
 const Header = (props: any) => {
@@ -30,15 +29,33 @@ const Header = (props: any) => {
   );
   const user = useAppSelector((state) => state.account.user);
   const [openMobileMenu, setOpenMobileMenu] = useState<boolean>(false);
+  const [appliedJobsCount, setAppliedJobsCount] = useState<number>(0);
 
   const [current, setCurrent] = useState("home");
   const location = useLocation();
 
-  const [openMangeAccount, setOpenManageAccount] = useState<boolean>(false);
-
   useEffect(() => {
     setCurrent(location.pathname);
   }, [location]);
+
+  // Fetch số lượng việc làm đã ứng tuyển
+  useEffect(() => {
+    if (isAuthenticated && user && user.role?.name === 'NORMAL_USER') {
+      fetchAppliedJobsCount();
+    }
+  }, [isAuthenticated, user]);
+
+  const fetchAppliedJobsCount = async () => {
+    try {
+      const res = await callFetchResumeByUser();
+      if (res && res.data) {
+        const list = Array.isArray(res.data.result) ? res.data.result : [];
+        setAppliedJobsCount(list.length);
+      }
+    } catch (error) {
+      console.error('Error fetching applied jobs count:', error);
+    }
+  };
 
   const items: MenuProps["items"] = [
     {
@@ -60,10 +77,6 @@ const Header = (props: any) => {
       label: <Link to={"/listCV"}>Tạo CV</Link>,
       key: "/listCV",
     },
-    {
-      label: <Link to={"/savejob"}>Việc làm đã lưu</Link>,
-      key:"/savejob"
-    }
   ];
 
   const onClick: MenuProps["onClick"] = (e) => {
@@ -79,39 +92,69 @@ const Header = (props: any) => {
     }
   };
 
-  const itemsDropdown = [
-    {
-      label: (
-        <label
-          style={{ cursor: "pointer" }}
-          onClick={() => setOpenManageAccount(true)}
-        >
-          Quản lý tài khoản
-        </label>
-      ),
-      key: "manage-account",
-      icon: <ContactsOutlined />,
-    },
-    ...(user.role?.permissions?.length
-      ? [
-          {
-            label: <Link to={"/admin"}>Trang Quản Trị</Link>,
-            key: "admin",
-            icon: <FireOutlined />,
-          },
-        ]
-      : []),
+  // Kiểm tra nếu user là admin hoặc hr (không phải NORMAL_USER)
+  const isAdminOrHr = user?.role?.name && user.role.name !== 'NORMAL_USER';
 
-    {
-      label: (
-        <label style={{ cursor: "pointer" }} onClick={() => handleLogout()}>
-          Đăng xuất
-        </label>
-      ),
-      key: "logout",
-      icon: <LogoutOutlined />,
-    },
-  ];
+  const itemsDropdown = isAdminOrHr
+    ? [
+        // Chỉ hiển thị Trang Quản Trị và Đăng xuất cho admin/hr
+        {
+          label: <Link to={"/admin"}>Trang Quản Trị</Link>,
+          key: "admin",
+          icon: <FireOutlined />,
+        },
+        {
+          label: (
+            <label style={{ cursor: "pointer" }} onClick={() => handleLogout()}>
+              Đăng xuất
+            </label>
+          ),
+          key: "logout",
+          icon: <LogoutOutlined />,
+        },
+      ]
+    : [
+        // Hiển thị đầy đủ menu cho user thường
+        {
+          label: <Link to={"/savejob"}>Việc làm đã lưu</Link>,
+          key: "savejob",
+          icon: <ContactsOutlined />,
+        },
+        {
+          label: appliedJobsCount > 0 ? (
+            <Badge count={appliedJobsCount} size="small" offset={[8, 0]}>
+              <Link to={"/jobapply"}>Việc làm đã ứng tuyển</Link>
+            </Badge>
+          ) : (
+            <Link to={"/jobapply"}>Việc làm đã ứng tuyển</Link>
+          ),
+          key: "jobapply",
+          icon: <ContactsOutlined />,
+        },
+        {
+          label: <Link to={"/profile"}>Cập nhật thông tin</Link>,
+          key: "/profile",
+          icon: <ContactsOutlined />,
+        },
+        ...(user?.role?.permissions?.length
+          ? [
+              {
+                label: <Link to={"/admin"}>Trang Quản Trị</Link>,
+                key: "admin",
+                icon: <FireOutlined />,
+              },
+            ]
+          : []),
+        {
+          label: (
+            <label style={{ cursor: "pointer" }} onClick={() => handleLogout()}>
+              Đăng xuất
+            </label>
+          ),
+          key: "logout",
+          icon: <LogoutOutlined />,
+        },
+      ];
 
   const itemsMobiles = [...items, ...itemsDropdown];
 
@@ -194,7 +237,6 @@ const Header = (props: any) => {
           items={itemsMobiles}
         />
       </Drawer>
-      <ManageAccount open={openMangeAccount} onClose={setOpenManageAccount} />
     </>
   );
 };

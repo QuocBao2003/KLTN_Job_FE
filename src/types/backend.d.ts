@@ -68,7 +68,28 @@ export interface ISkill {
     updatedAt?: string;
 }
 
-
+export interface IMessageRoom {
+    id: string; // UUID
+    candidateId: number;
+    employerId: number;
+    jobId: number;
+}
+export interface IMessageContent {
+    id: string;
+    content: string;
+    dateSent: string;
+    messageType: 'TEXT';
+    sender: IUser;
+    messageRoom: IMessageRoom;
+}
+export interface IMessageResponse {
+    id: string;
+    content: string;
+    dateSent: string;
+    senderId: number;
+    senderUsername: string;
+    senderAvatarUrl: string | null;
+}
 
 export interface IUser {
     id?: string;

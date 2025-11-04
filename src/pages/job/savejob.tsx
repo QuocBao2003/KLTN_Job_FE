@@ -1,29 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { Row, Col, Card, Button, Tag, Typography, Empty, Spin, message } from 'antd';
-import { HeartOutlined, HeartFilled, DeleteOutlined, CheckCircleOutlined } from '@ant-design/icons';
+import { DeleteOutlined, CheckCircleOutlined } from '@ant-design/icons';
 import { IJob, ISaveJob } from '@/types/backend';
-import { callFetchJob, callGetSavedJobByUser } from '@/config/api';
+import { callGetSavedJobByUser } from '@/config/api';
 import { convertSlug } from '@/config/utils';
 import { useNavigate } from 'react-router-dom';
-import dayjs from 'dayjs';
-import relativeTime from 'dayjs/plugin/relativeTime';
-import styles from 'styles/client.module.scss';
 import savejobStyles from '@/styles/savejob.module.scss';
-import SuggestedJobCard from '@/components/client/card/suggested-job.card';
-
-dayjs.extend(relativeTime);
 
 const { Title, Text } = Typography;
 
 const SaveJob = () => {
     const navigate = useNavigate();
     const [savedJobs, setSavedJobs] = useState<ISaveJob[]>([]);
-    const [suggestedJobs, setSuggestedJobs] = useState<IJob[]>([]);
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
         fetchSavedJobs();
-        fetchSuggestedJobs();
     }, []);
 
     const fetchSavedJobs = async () => {
@@ -31,7 +23,7 @@ const SaveJob = () => {
         try {
           const res = await callGetSavedJobByUser();
           console.log(res.data);
-          const list = res?.data ?? [];
+          const list: ISaveJob[] = Array.isArray(res?.data) ? res.data : [];
           setSavedJobs(list);
         } catch (error) {
           console.error('Error fetching saved jobs:', error);
@@ -39,17 +31,6 @@ const SaveJob = () => {
         }
         setLoading(false);
       };
-
-    const fetchSuggestedJobs = async () => {
-        try {
-            const res = await callFetchJob('page=1&size=5&sort=updatedAt,desc');
-            if (res && res.data) {
-                setSuggestedJobs(res.data.result);
-            }
-        } catch (error) {
-            console.error('Error fetching suggested jobs:', error);
-        }
-    };
 
     const handleViewJob = (job: Partial<IJob & ISaveJob>) => {
         if (!job?.id || !job?.name) {
@@ -70,8 +51,7 @@ const SaveJob = () => {
     return (
         <div className={savejobStyles['savejob-container']}>
             <Row gutter={[24, 24]}>
-                {/* Cột trái: Việc làm đã lưu */}
-                <Col xs={24} lg={12}>
+                <Col xs={24} lg={24}>
                     <div className={savejobStyles['saved-jobs-section']}>
                         {/* Header với banner xanh */}
                         <div className={savejobStyles['saved-jobs-header']}>
@@ -109,17 +89,18 @@ const SaveJob = () => {
                                                 </div>
                                                 <div className={savejobStyles['job-right']}>
                                                     <div className={savejobStyles['job-title-row']}>
-                                                        <Title level={4} className={savejobStyles['job-title']}>
-                                                            {job.name}
+                                                        <div className={savejobStyles['job-title']}>
+                                                            <Title level={4} style={{ margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
+                                                                {job.name}
+                                                            </Title>
                                                             <CheckCircleOutlined className={savejobStyles['verified-icon']} />
-                                                        </Title>
-                                                       
+                                                        </div>
                                                     </div>
                                                     <Text className={savejobStyles['company-name']}>
                                                         {job.companyName}
                                                     </Text>
                                                     <Text className={savejobStyles['saved-time']}>
-                                                        Đã lưu: {job.saveTime}
+                                                        Đã lưu: {job.saveTime instanceof Date ? job.saveTime.toLocaleDateString('vi-VN') : job.saveTime}
                                                     </Text>
                                                     <div className={savejobStyles['job-tags']}>
                                                         <Tag color="default">{job.location}</Tag>
@@ -152,26 +133,6 @@ const SaveJob = () => {
                                 />
                             )}
                         </Spin>
-                    </div>
-                </Col>
-
-                {/* Cột phải: Gợi ý việc làm */}
-                <Col xs={24} lg={12}>
-                    <div className={savejobStyles['suggested-jobs-section']}>
-                        <Title level={2} className={savejobStyles['suggested-title']}>
-                            Gợi ý việc làm phù hợp
-                        </Title>
-                        
-                        <div className={savejobStyles['suggested-jobs-list']}>
-                            {suggestedJobs.map((job) => (
-                                <SuggestedJobCard
-                                    key={job.id}
-                                    job={job}
-                                    onSave={() => message.success('Đã lưu gợi ý (demo)')}
-                                    onView={handleViewJob}
-                                />
-                            ))}
-                        </div>
                     </div>
                 </Col>
             </Row>

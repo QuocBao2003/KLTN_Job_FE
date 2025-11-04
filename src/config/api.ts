@@ -1,4 +1,4 @@
-import { IBackendRes, ICompany, IAccount, IUser, IModelPaginate, IGetAccount, IJob, IResume, IPermission, IRole, ISkill, ISubscribers, ISaveJob } from '@/types/backend';
+import { IBackendRes, ICompany, IAccount, IUser, IModelPaginate, IGetAccount, IJob, IResume, IPermission, IRole, ISkill, ISubscribers, ISaveJob, IMessageRoom, IMessageContent, IMessageResponse } from '@/types/backend';
 import axios from 'config/axios-customize';
 
 /**
@@ -151,8 +151,25 @@ export const callGetSavedJobByUser=()=>{
 export const callSavedJob = (id? : string) =>{
     return axios.post<IBackendRes<ISaveJob[]>>(`/api/v1/save-jobs/${id}`);
 }
+// tạo room chat
+export const createRoomMessage = (jobId: string, otherUserId?: string) => {
+    const params: Record<string, any> = { jobId: Number(jobId) };
+
+    if (otherUserId) {
+        params.otherUserId = Number(otherUserId);
+    }
+
+    return axios.post<IBackendRes<IMessageRoom>>('/api/v1/chat/room', null, { params });
+};
+
+export const getMessagesInRoom = (roomId: string) => {
+    return axios.get<IBackendRes<IMessageResponse[]>>(`/api/v1/chat/room/${roomId}/messages`);
+}
+export const getMyRooms = () => {
+    return axios.get<IBackendRes<IMessageRoom[]>>(`/api/v1/chat/rooms`);
+}
 /**
- * 
+
 Module Resume
  */
 export const callCreateResume = (url: string, jobId: any, email: string, userId: string | number) => {
