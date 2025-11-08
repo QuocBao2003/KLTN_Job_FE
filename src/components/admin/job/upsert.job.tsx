@@ -50,6 +50,8 @@ const ViewUpsertJob = (props: any) => {
     });
     const user = useAppSelector(state => state.account.user);
     const permissions = user?.role?.permissions ?? [];
+    const role=user?.role?.name==="SUPER_ADMIN";
+    console.log(role);
     const approJob = permissions.some(
         item => item.apiPath===ALL_PERMISSIONS.JOBS.APPROVE.apiPath && item.method===ALL_PERMISSIONS.JOBS.APPROVE.method
     )
@@ -260,7 +262,7 @@ const ViewUpsertJob = (props: any) => {
                                     onReset: () => navigate('/admin/job'),
                                     render: (_: any, dom: any) => {
                                         // Nếu có quyền approJob và rejectJob và job đang PENDING: chỉ hiển thị approve/reject
-                                        const hasApproveRejectPermission = approJob && rejectJob && dataUpdate?.id && dataUpdate?.status === "PENDING";
+                                        const hasApproveRejectPermission = role && dataUpdate?.id && dataUpdate?.status === "PENDING";
                                         
                                         return (
                                             <FooterToolbar>

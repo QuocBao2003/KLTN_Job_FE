@@ -1,4 +1,4 @@
-import { IBackendRes, ICompany, IAccount, IUser, IModelPaginate, IGetAccount, IJob, IResume, IPermission, IRole, ISkill, ISubscribers, ISaveJob, IMessageRoom, IMessageContent, IMessageResponse } from '@/types/backend';
+import { IBackendRes, ICompany, IAccount, IUser, IModelPaginate, IGetAccount, IJob, IResume, IPermission, IRole, ISkill, ISubscribers, ISaveJob, IMessageRoom, IMessageContent, IMessageResponse, IChatResponse } from '@/types/backend';
 import axios from 'config/axios-customize';
 
 /**
@@ -294,8 +294,21 @@ export const callFetchSubscriberById = (id: string) => {
     return axios.get<IBackendRes<ISubscribers>>(`/api/v1/subscribers/${id}`);
 }
 
-export const callAskAI = (prompt: string) => {
-    return axios.get<string>(`/api/v1/ask?question=${prompt}`); // Kiểu trả về là string thay vì IBackendRes<string>
+export const callAskAI = (message: string) => {
+    return axios.post<IChatResponse>(`/api/v1/messageAi`, { message });
+};
+export const callAskAIWithFile = (file: File, message?: string) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    if (message) {
+        formData.append('message', message);
+    }
+    
+    return axios.post<IChatResponse>(`/api/v1/fileAi`, formData, {
+        headers: {
+            'Content-Type': 'multipart/form-data',
+        },
+    });
 };
 
 

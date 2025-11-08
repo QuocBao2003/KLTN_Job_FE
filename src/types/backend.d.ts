@@ -209,3 +209,16 @@ export interface ISubscribers {
     createdAt?: string;
     updatedAt?: string;
 }
+
+export interface IChatResponse {
+    type: string;
+    message: string;
+    jobs?: IJobSuggestion[];
+} 
+export interface IJobSuggestion {
+    id: number;
+    name: string;
+    companyName: string;
+    location: string;
+    logo: string;
+}
