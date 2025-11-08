@@ -36,6 +36,8 @@ import SaveJob from "./pages/job/savejob";
 import JobApply from "./pages/job/jobapply";
 import MessageJobApply from "./pages/job/messageJobApply";
 import Profile from "./pages/profile/profile";
+import CvManagement from "./pages/CV/myCv";
+
 
 const LayoutClient = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -88,6 +90,7 @@ export default function App() {
         { path: "company", element: <ClientCompanyPage /> },
         { path: "company/:id", element: <ClientCompanyDetailPage /> },
         { path: "listCV", element: <PageListCV /> },
+        { path: "myCv", element: <CvManagement /> },
         { path: "authenticate", element: <Authenticate /> },
         { path: "savejob", element: <SaveJob /> },
         { path: "jobapply", element: <JobApply /> },

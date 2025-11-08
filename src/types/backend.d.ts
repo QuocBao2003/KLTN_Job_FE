@@ -207,3 +207,19 @@ export interface ISubscribers {
     createdAt?: string;
     updatedAt?: string;
 }
+
+export interface ICv {
+  id: number;
+  fullName: string;
+  email: string;
+  phone: string;
+  address: string;
+  objective: string;
+  experience: string;
+  education: string;
+  skills: string;
+  photoUrl?: string;
+  cvTemplate?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}

@@ -34,5 +34,6 @@ export default defineConfig(({ command, mode }) => {
         pages: `${path.resolve(__dirname, "./src/pages/")}`,
       },
     },
+    
   }
 })

@@ -1,4 +1,4 @@
-import { IBackendRes, ICompany, IAccount, IUser, IModelPaginate, IGetAccount, IJob, IResume, IPermission, IRole, ISkill, ISubscribers, ISaveJob, IMessageRoom, IMessageContent, IMessageResponse } from '@/types/backend';
+import { IBackendRes, ICompany, IAccount, IUser, IModelPaginate, IGetAccount, IJob, IResume, IPermission, IRole, ISkill, ISubscribers, ISaveJob, IMessageRoom, IMessageContent, IMessageResponse, ICv } from '@/types/backend';
 import axios from 'config/axios-customize';
 
 /**
@@ -289,4 +289,99 @@ export const callAskAI = (prompt: string) => {
 // 
 export const callGetJobByEmail = () => {
     return axios.get<IBackendRes<string>>(`/api/v1/email`);
+}
+
+// Thêm interface cho thống kê
+export interface IJobStatistics {
+    level?: string;
+    location?: string;
+    companyName?: string;
+    jobCount: number;
+    averageSalary: number;
+}
+
+/**
+ * Module Statistics
+ */
+export const callGetJobStatisticsByLevel = () => {
+    return axios.get<IBackendRes<IJobStatistics[]>>('/api/v1/jobs/statistics/level');
+}
+
+export const callGetJobStatisticsByLocation = () => {
+    return axios.get<IBackendRes<IJobStatistics[]>>('/api/v1/jobs/statistics/location');
+}
+
+export const callGetJobStatisticsByCompany = () => {
+    return axios.get<IBackendRes<IJobStatistics[]>>('/api/v1/jobs/statistics/company');
+}
+
+export const callGetJobStatisticsOverview = () => {
+    return axios.get<IBackendRes<{
+        totalJobs: number;
+        totalCompanies: number;
+        totalCandidates: number;
+        averageSalary: number;
+    }>>('/api/v1/jobs/statistics/overview');
+}
+
+
+export const callSubmitCv = (data: {
+    fullName: string;
+    email: string;
+    phone: string;
+    address: string;
+    objective: string;
+    experience: string;
+    education: string;
+    skills: string;
+    photoUrl: string;
+    cvTemplate: string;
+}) => {
+    return axios.post<IBackendRes<ICv>>('/api/v1/submit-cv', data);
+}
+
+export const callCreateCv = (data: {
+    fullName: string;
+    email: string;
+    phone: string;
+    address: string;
+    objective: string;
+    experience: string;
+    education: string;
+    skills: string;
+    photoUrl: string;
+    cvTemplate: string;
+}) => {
+    return axios.post<IBackendRes<ICv>>('/api/v1/cvs', data);
+}
+
+export const callUpdateCv = (id: string, data: {
+    fullName?: string;
+    email?: string;
+    phone?: string;
+    address?: string;
+    objective?: string;
+    experience?: string;
+    education?: string;
+    skills?: string;
+    photoUrl?: string;
+    cvTemplate?: string;
+}) => {
+    return axios.put<IBackendRes<ICv>>(`/api/v1/cvs/${id}`, data);
+}
+
+export const callFetchCvById = (id: string) => {
+    return axios.get<IBackendRes<ICv>>(`/api/v1/cvs/${id}`);
+}
+
+export const callDeleteCv = (id: string) => {
+    return axios.delete<IBackendRes<ICv>>(`/api/v1/cvs/${id}`);
+}
+
+export const callFetchCvByUser = () => {
+    return axios.post<IBackendRes<IModelPaginate<ICv>>>(`/api/v1/cvs/by-user`);
+}
+
+export const callFetchAllCv = (query: string) => {
+    return axios.get<IBackendRes<IModelPaginate<ICv>>>(`/api/v1/cvs?${query}`);
 }
