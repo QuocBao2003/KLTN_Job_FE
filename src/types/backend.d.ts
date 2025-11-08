@@ -55,6 +55,7 @@ export interface ISaveJob {
     name?: string;
     companyName?:string;
     location: string;
+    logo?:string;
     saveTime : Date;
 }
 
@@ -131,7 +132,7 @@ export interface IJob {
     description: string;
     startDate: Date;
     endDate: Date;
-    active: boolean;
+    status: "PENDING" | "APPROVED" | "REJECTED";
 
     createdBy?: string;
     isDeleted?: boolean;
@@ -146,10 +147,11 @@ export interface IResume {
     userId: string;
     url: string;
     status: string;
+    logo: string;
     companyId: string | {
         id: string;
         name: string;
-        logo: string;
+        
     };
     jobId: string | {
         id: string;

@@ -6,13 +6,15 @@ import styles from 'styles/admin.module.scss';
 import { LOCATION_LIST, SKILLS_LIST } from "@/config/utils";
 import { ICompanySelect } from "../user/modal.user";
 import { useState, useEffect } from 'react';
-import { callCreateJob, callFetchAllSkill, callFetchCompany, callFetchJobById, callUpdateJob } from "@/config/api";
+import { callCreateJob, callFetchAllSkill, callFetchCompany, callFetchJobById, callUpdateJob, updateJobApprove, updateJobReject } from "@/config/api";
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 import { CheckSquareOutlined } from "@ant-design/icons";
 import enUS from 'antd/lib/locale/en_US';
 import dayjs from 'dayjs';
 import { IJob, ISkill } from "@/types/backend";
+import { useAppSelector } from "@/redux/hooks";
+import { ALL_PERMISSIONS } from "@/config/permissions";
 
 interface ISkillSelect {
     label: string;
@@ -26,6 +28,8 @@ const ViewUpsertJob = (props: any) => {
 
     const navigate = useNavigate();
     const [value, setValue] = useState<string>("");
+
+
 
     let location = useLocation();
     let params = new URLSearchParams(location.search);
@@ -44,8 +48,17 @@ const ViewUpsertJob = (props: any) => {
         skills: [],
         companyLogo: ''
     });
-
+    const user = useAppSelector(state => state.account.user);
+    const permissions = user?.role?.permissions ?? [];
+    const approJob = permissions.some(
+        item => item.apiPath===ALL_PERMISSIONS.JOBS.APPROVE.apiPath && item.method===ALL_PERMISSIONS.JOBS.APPROVE.method
+    )
+    const rejectJob = permissions.some(
+        item => item.apiPath===ALL_PERMISSIONS.JOBS.REJECT.apiPath && item.method===ALL_PERMISSIONS.JOBS.REJECT.method
+    )
+   
     useEffect(() => {
+        console.log(approJob,rejectJob);
         const init = async () => {
             const temp = await fetchSkillList();
             setSkills(temp);
@@ -88,7 +101,7 @@ const ViewUpsertJob = (props: any) => {
                         level: res.data.level,
                         startDate: res.data.startDate,
                         endDate: res.data.endDate,
-                        active: res.data.active,
+                        
                         skills: temp,
                         companyLogo: res.data.company?.logo || ''
                     })
@@ -245,7 +258,77 @@ const ViewUpsertJob = (props: any) => {
                                         submitText: <>{dataUpdate?.id ? "Cập nhật Job" : "Tạo mới Job"}</>
                                     },
                                     onReset: () => navigate('/admin/job'),
-                                    render: (_: any, dom: any) => <FooterToolbar>{dom}</FooterToolbar>,
+                                    render: (_: any, dom: any) => {
+                                        // Nếu có quyền approJob và rejectJob và job đang PENDING: chỉ hiển thị approve/reject
+                                        const hasApproveRejectPermission = approJob && rejectJob && dataUpdate?.id && dataUpdate?.status === "PENDING";
+                                        
+                                        return (
+                                            <FooterToolbar>
+                                                {hasApproveRejectPermission ? (
+                                                    <>
+                                                        <Button onClick={() => navigate('/admin/job')}>
+                                                            Hủy
+                                                        </Button>
+                                                        <Button
+                                                            type="primary"
+                                                            style={{ marginLeft: 10 }}
+                                                            onClick={async () => {
+                                                                try {
+                                                                    const res = await updateJobApprove(dataUpdate.id!);
+                                                                    if (res.statusCode===200) {
+                                                                        message.success("Duyệt job thành công");
+                                                                        navigate('/admin/job');
+                                                                    } else {
+                                                                        notification.error({
+                                                                            message: 'Có lỗi xảy ra'
+                                                                            
+                                                                        });
+                                                                    }
+                                                                } catch (error: any) {
+                                                                    notification.error({
+                                                                        message: 'Có lỗi xảy ra'
+                                                                
+                                                                    });
+                                                                }
+                                                            }}
+                                                        >
+                                                            Chấp nhận
+                                                        </Button>
+                                                        <Button
+                                                            danger
+                                                            type="primary"
+                                                            style={{ marginLeft: 10 }}
+                                                            onClick={async () => {
+                                                                try {
+                                                                    const res = await updateJobReject(dataUpdate.id!);
+                                                                   
+                                                                    if (res.statusCode===200) {
+                                                                        message.success("Từ chối job thành công");
+                                                                        navigate('/admin/job');
+                                                                    } else {
+                                                                        notification.error({
+                                                                            message: 'Có lỗi xảy ra'
+                                                                           
+                                                                        });
+                                                                    }
+                                                                } catch (error: any) {
+                                                                    notification.error({
+                                                                        message: 'Có lỗi xảy ra'
+                                                                      
+                                                                    });
+                                                                }
+                                                            }}
+                                                        >
+                                                            ❌ Từ chối
+                                                        </Button>
+                                                    </>
+                                                ) : (
+                                                    // Nếu không có quyền: hiển thị nút submit và hủy
+                                                    dom
+                                                )}
+                                            </FooterToolbar>
+                                        );
+                                    },
                                     submitButtonProps: {
                                         icon: <CheckSquareOutlined />
                                     },
@@ -378,18 +461,7 @@ const ViewUpsertJob = (props: any) => {
                                     placeholder="dd/mm/yyyy"
                                 />
                             </Col>
-                            <Col span={24}>
-                                <ProFormSwitch
-                                    label="Trạng thái"
-                                    name="active"
-                                    checkedChildren="ACTIVE"
-                                    unCheckedChildren="INACTIVE"
-                                    initialValue={true}
-                                    fieldProps={{
-                                        defaultChecked: true,
-                                    }}
-                                />
-                            </Col>
+                            
                             <Col span={24}>
                                 <ProForm.Item
                                     name="description"
@@ -405,6 +477,7 @@ const ViewUpsertJob = (props: any) => {
                             </Col>
                                 </Row>
                                 <Divider />
+                               
                             </ProForm>
                             </Card>
                         </Col>

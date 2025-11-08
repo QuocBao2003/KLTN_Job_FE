@@ -23,7 +23,7 @@ const SuggestedJobCard: React.FC<IProps> = ({ job, onSave, onView }) => {
             <div className={savejobStyles['suggested-job-content']}>
                 <div className={savejobStyles['job-left']}>
                     <img
-                        src={`${import.meta.env.VITE_BACKEND_URL}/storage/company/${job.company?.logo}`}
+                        src={job?.company?.logo || "https://via.placeholder.com/200x200?text=No+Logo"}
                         alt={job.company?.name}
                         className={savejobStyles['company-logo-small']}
                     />

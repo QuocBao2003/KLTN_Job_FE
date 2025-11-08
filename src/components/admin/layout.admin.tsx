@@ -71,6 +71,11 @@ const LayoutAdmin = () => {
                 && item.method === ALL_PERMISSIONS.USERS.GET_PAGINATE.method
             )
 
+            const viewSkill = permissions?.find(item =>
+                item.apiPath === ALL_PERMISSIONS.SKILLS.GET_PAGINATE.apiPath
+                && item.method === ALL_PERMISSIONS.SKILLS.GET_PAGINATE.method
+            )
+
             const full = [
                 {
                     label: <Link to='/admin'>Dashboard</Link>,
@@ -108,6 +113,11 @@ const LayoutAdmin = () => {
                 ...(viewRole || ACL_ENABLE === 'false' ? [{
                     label: <Link to='/admin/role'>Role</Link>,
                     key: '/admin/role',
+                    icon: <ExceptionOutlined />
+                }] : []),
+                ...(viewSkill || ACL_ENABLE === 'false' ? [{
+                    label: <Link to='/admin/skill'>Skill</Link>,
+                    key: '/admin/skill',
                     icon: <ExceptionOutlined />
                 }] : []),
 

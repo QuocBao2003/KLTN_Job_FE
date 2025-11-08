@@ -10,6 +10,9 @@ export const ALL_PERMISSIONS = {
         CREATE: { method: "POST", apiPath: '/api/v1/jobs', module: "JOBS" },
         UPDATE: { method: "PUT", apiPath: '/api/v1/jobs', module: "JOBS" },
         DELETE: { method: "DELETE", apiPath: '/api/v1/jobs/{id}', module: "JOBS" },
+        
+        APPROVE: { method: "PUT", apiPath: '/api/v1/jobs/{id}/approve', module: "JOBS" },
+        REJECT: { method: "PUT", apiPath: '/api/v1/jobs/{id}/reject', module: "JOBS" },
     },
     PERMISSIONS: {
         GET_PAGINATE: { method: "GET", apiPath: '/api/v1/permissions', module: "PERMISSIONS" },
@@ -35,6 +38,12 @@ export const ALL_PERMISSIONS = {
         UPDATE: { method: "PUT", apiPath: '/api/v1/users', module: "USERS" },
         DELETE: { method: "DELETE", apiPath: '/api/v1/users/{id}', module: "USERS" },
     },
+    SKILLS: {
+        GET_PAGINATE: { method: "GET", apiPath: '/api/v1/skills', module: "SKILLS" },
+        CREATE: { method: "POST", apiPath: '/api/v1/skills', module: "SKILLS" },
+        UPDATE: { method: "PUT", apiPath: '/api/v1/skills', module: "SKILLS" },
+        DELETE: { method: "DELETE", apiPath: '/api/v1/skills/{id}', module: "SKILLS" },
+    },
 }
 
 export const ALL_MODULES = {
@@ -45,5 +54,6 @@ export const ALL_MODULES = {
     RESUMES: 'RESUMES',
     ROLES: 'ROLES',
     USERS: 'USERS',
-    SUBSCRIBERS: 'SUBSCRIBERS'
+    SUBSCRIBERS: 'SUBSCRIBERS',
+    SKILLS: 'SKILLS',
 }

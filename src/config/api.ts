@@ -65,6 +65,10 @@ export const callDeleteCompany = (id: string) => {
 export const callFetchCompany = (query: string) => {
     return axios.get<IBackendRes<IModelPaginate<ICompany>>>(`/api/v1/companies?${query}`);
 }
+export const callFetchCompanyByRole = (query: string) => {
+    return axios.get<IBackendRes<IModelPaginate<ICompany>>>(`/api/v1/companies/role?${query}`);
+}
+
 
 export const callFetchCompanyById = (id: string) => {
     return axios.get<IBackendRes<ICompany>>(`/api/v1/companies/${id}`);
@@ -125,6 +129,12 @@ export const callChangePassword = (
  * 
 Module Job
  */
+export const updateJobApprove = (id:string) =>{
+    return axios.put<IBackendRes<void>>(`/api/v1/jobs/${id}/approve`);
+}
+export const updateJobReject = (id:string) =>{
+    return axios.put<IBackendRes<void>>(`/api/v1/jobs/${id}/reject`);
+}
 export const callCreateJob = (job: IJob) => {
     return axios.post<IBackendRes<IJob>>('/api/v1/jobs', { ...job })
 }
@@ -141,6 +151,9 @@ export const callFetchJob = (query: string) => {
     return axios.get<IBackendRes<IModelPaginate<IJob>>>(`/api/v1/jobs?${query}`);
 }
 
+export const callFetchJobByUserRole = (query: string) => {
+    return axios.get<IBackendRes<IModelPaginate<IJob>>>(`/api/v1/jobs/role?${query}`);
+}
 export const callFetchJobById = (id: string) => {
     return axios.get<IBackendRes<IJob>>(`/api/v1/jobs/${id}`);
 }
@@ -202,7 +215,7 @@ export const callFetchResumeById = (id: string) => {
 }
 
 export const callFetchResumeByUser = () => {
-    return axios.post<IBackendRes<IModelPaginate<IResume>>>(`/api/v1/resumes/by-user`);
+    return axios.get<IBackendRes<IModelPaginate<IResume>>>(`/api/v1/resumes/by-user`);
 }
 
 /**

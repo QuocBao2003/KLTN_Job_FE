@@ -148,8 +148,7 @@ const ClientJobDetailPage = (props: any) => {
                                         <img
                                             width={"200px"}
                                             alt="example"
-                                            src={`${import.meta.env.VITE_BACKEND_URL}/storage/company/${jobDetail.company?.logo}`}
-                                        />
+                                            src={jobDetail?.company?.logo || "https://via.placeholder.com/200x200?text=No+Logo"}></img>
                                     </div>
                                     <div>
                                         {jobDetail.company?.name}

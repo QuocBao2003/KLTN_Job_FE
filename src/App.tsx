@@ -36,6 +36,7 @@ import SaveJob from "./pages/job/savejob";
 import JobApply from "./pages/job/jobapply";
 import MessageJobApply from "./pages/job/messageJobApply";
 import Profile from "./pages/profile/profile";
+import SkillPage from "./pages/admin/job/skill";
 
 const LayoutClient = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -173,6 +174,14 @@ export default function App() {
           element: (
             <ProtectedRoute>
               <RolePage />
+            </ProtectedRoute>
+          ),
+        },
+        {
+          path: "skill",
+          element: (
+            <ProtectedRoute>
+              <SkillPage />
             </ProtectedRoute>
           ),
         },

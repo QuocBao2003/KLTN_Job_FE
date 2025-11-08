@@ -93,7 +93,7 @@ const Header = (props: any) => {
   };
 
   // Kiểm tra nếu user là admin hoặc hr (không phải NORMAL_USER)
-  const isAdminOrHr = user?.role?.name && user.role.name !== 'NORMAL_USER';
+  const isAdminOrHr = user?.role?.name === 'SUPER_ADMIN' || user?.role?.name === 'HR';
 
   const itemsDropdown = isAdminOrHr
     ? [
@@ -136,15 +136,6 @@ const Header = (props: any) => {
           key: "/profile",
           icon: <ContactsOutlined />,
         },
-        ...(user?.role?.permissions?.length
-          ? [
-              {
-                label: <Link to={"/admin"}>Trang Quản Trị</Link>,
-                key: "admin",
-                icon: <FireOutlined />,
-              },
-            ]
-          : []),
         {
           label: (
             <label style={{ cursor: "pointer" }} onClick={() => handleLogout()}>
