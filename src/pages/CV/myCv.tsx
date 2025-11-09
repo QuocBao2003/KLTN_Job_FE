@@ -309,6 +309,223 @@ const CvTemplateRenderer = React.memo(({
     );
   }
 
+  if (template === 'Upload CV' || (cv.skills && cv.skills.includes('[CV_FILE_URL]'))) {
+    // Extract file URL from skills field
+    const fileUrlMatch = cv.skills?.match(/\[CV_FILE_URL\](.*?)\[\/CV_FILE_URL\]/);
+    const fileUrl = fileUrlMatch ? fileUrlMatch[1] : '';
+    const fileName = fileUrl ? fileUrl.split('/').pop() : 'CV file';
+    const fileExtension = fileName?.split('.').pop()?.toUpperCase() || 'PDF';
+    
+    // Construct full URL for image preview
+    const imageUrl = fileUrl ? `${import.meta.env.VITE_BACKEND_URL}/images/resume/${fileUrl}` : '';
+    
+    return (
+      <div style={{
+        width: 800,
+        minHeight: 1120,
+        background: '#ffffff',
+        borderRadius: 16,
+        boxShadow: '0 20px 40px rgba(0,0,0,0.1)',
+        overflow: 'hidden',
+        border: '1px solid #f0f0f0'
+      }}>
+        {/* Header */}
+        <div style={{
+          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          padding: '32px 40px',
+          color: '#fff'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
+            <div style={{
+              width: 80,
+              height: 80,
+              borderRadius: '50%',
+              background: 'rgba(255,255,255,0.2)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              border: '3px solid #fff'
+            }}>
+              <FileText size={40} color="#fff" />
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 28, fontWeight: 800, marginBottom: 8 }}>
+                {cv.fullName || 'CV đã upload'}
+              </div>
+              <div style={{ fontSize: 14, opacity: 0.9 }}>
+                {cv.email || 'Không có email'} {cv.phone && `• ${cv.phone}`}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* File Info Banner */}
+        <div style={{
+          background: 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)',
+          padding: '20px 40px',
+          borderBottom: '2px solid #0ea5e9'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+            <div style={{
+              width: 48,
+              height: 48,
+              borderRadius: 8,
+              background: '#0ea5e9',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontWeight: 800,
+              fontSize: 14,
+              color: '#fff'
+            }}>
+              {fileExtension}
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 15, fontWeight: 700, color: '#0c4a6e', marginBottom: 4 }}>
+                CV File đã được upload
+              </div>
+              <div style={{ fontSize: 13, color: '#0369a1' }}>
+                {fileName}
+              </div>
+            </div>
+            <div style={{
+              padding: '8px 16px',
+              background: '#52c41a',
+              color: '#fff',
+              borderRadius: 20,
+              fontSize: 13,
+              fontWeight: 600
+            }}>
+              ✓ Có file
+            </div>
+          </div>
+        </div>
+
+        {/* Preview Area */}
+        <div style={{ padding: 40 }}>
+          {fileExtension === 'PDF' ? (
+            <div style={{
+              background: '#f9fafb',
+              borderRadius: 12,
+              padding: 40,
+              textAlign: 'center',
+              border: '2px dashed #d1d5db'
+            }}>
+              <div style={{
+                width: 120,
+                height: 120,
+                margin: '0 auto 24px',
+                borderRadius: 16,
+                background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 8px 24px rgba(239, 68, 68, 0.3)'
+              }}>
+                <FileText size={60} color="#fff" />
+              </div>
+              <div style={{ fontSize: 20, fontWeight: 700, color: '#111827', marginBottom: 8 }}>
+                File PDF CV
+              </div>
+              <div style={{ fontSize: 14, color: '#6b7280', marginBottom: 24 }}>
+                CV của bạn đang được lưu dưới dạng file PDF. <br/>
+                Bạn có thể tải xuống để xem chi tiết.
+              </div>
+              {imageUrl && (
+                <a 
+                  href={imageUrl} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  style={{
+                    display: 'inline-block',
+                    padding: '12px 32px',
+                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    color: '#fff',
+                    borderRadius: 8,
+                    fontWeight: 600,
+                    textDecoration: 'none',
+                    boxShadow: '0 4px 12px rgba(102, 126, 234, 0.3)'
+                  }}
+                >
+                  Xem file PDF
+                </a>
+              )}
+            </div>
+          ) : (
+            // For image files (if uploaded as image)
+            imageUrl && (
+              <div style={{
+                borderRadius: 12,
+                overflow: 'hidden',
+                boxShadow: '0 8px 24px rgba(0,0,0,0.1)',
+                border: '1px solid #e5e7eb'
+              }}>
+                <img 
+                  src={imageUrl} 
+                  alt="CV Preview" 
+                  style={{
+                    width: '100%',
+                    height: 'auto',
+                    display: 'block'
+                  }}
+                  onError={(e) => {
+                    // Fallback if image fails to load
+                    e.currentTarget.style.display = 'none';
+                    const parent = e.currentTarget.parentElement;
+                    if (parent) {
+                      parent.innerHTML = `
+                        <div style="padding: 60px; text-align: center; background: #f9fafb;">
+                          <div style="font-size: 18px; font-weight: 600; color: #ef4444; margin-bottom: 8px;">
+                            ⚠️ Không thể hiển thị preview
+                          </div>
+                          <div style="font-size: 14px; color: #6b7280;">
+                            Vui lòng tải file xuống để xem
+                          </div>
+                        </div>
+                      `;
+                    }
+                  }}
+                />
+              </div>
+            )
+          )}
+
+          {/* Additional Info */}
+          <div style={{
+            marginTop: 32,
+            padding: 24,
+            background: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)',
+            borderRadius: 12,
+            border: '2px solid #fbbf24'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+              <div style={{
+                width: 32,
+                height: 32,
+                borderRadius: '50%',
+                background: '#f59e0b',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: 18
+              }}>
+                ℹ️
+              </div>
+              <div style={{ fontSize: 16, fontWeight: 700, color: '#92400e' }}>
+                Lưu ý về CV đã upload
+              </div>
+            </div>
+            <div style={{ fontSize: 14, color: '#78350f', lineHeight: 1.6, paddingLeft: 44 }}>
+              • CV này không thể chỉnh sửa trực tiếp trên hệ thống<br/>
+              • Để cập nhật, vui lòng upload file CV mới<br/>
+              • Bạn có thể sử dụng CV này để ứng tuyển công việc
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // Template Hiện Đại (default)
   return (
     <div style={{
