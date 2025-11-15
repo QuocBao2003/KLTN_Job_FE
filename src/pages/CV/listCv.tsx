@@ -1,9 +1,13 @@
 import styles from 'styles/client.module.scss';
 import { Breadcrumb, Row, Col, Card, Tag, Divider, Button, Input, message, Upload, Tooltip, Space } from 'antd';
-import { ThunderboltOutlined, CheckCircleOutlined, CloseOutlined, PlusOutlined, UploadOutlined, EditOutlined, EyeOutlined, SaveOutlined, CameraOutlined } from '@ant-design/icons';
+import { ThunderboltOutlined, CheckCircleOutlined, CloseOutlined, PlusOutlined, UploadOutlined, EditOutlined, EyeOutlined, SaveOutlined, CameraOutlined, DownloadOutlined, FilePdfOutlined, FileExcelOutlined } from '@ant-design/icons';
 import { Link } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { callSubmitCv } from 'config/api';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
+import * as XLSX from 'xlsx';
+import type { UploadProps } from 'antd';
 
 
 interface CvData {
@@ -459,6 +463,11 @@ const PageListCV = () => {
     const [formValues, setFormValues] = useState<CvFormValues>({});
     const [isEditing, setIsEditing] = useState<boolean>(false);
     const [saving, setSaving] = useState<boolean>(false);
+    const [exportingPdf, setExportingPdf] = useState<boolean>(false);
+    const [exportingExcel, setExportingExcel] = useState<boolean>(false);
+    const [exportingTemplate, setExportingTemplate] = useState<boolean>(false);
+    const [uploadingExcel, setUploadingExcel] = useState<boolean>(false);
+    const cvTemplateRef = useRef<HTMLDivElement>(null);
 
     const handleSubmit = async () => {
         if (!selectedCV) return;
@@ -508,18 +517,375 @@ const PageListCV = () => {
         }
     };
 
+    // Export CV to PDF
+    const handleExportPDF = async () => {
+        if (!cvTemplateRef.current) {
+            message.error('Không tìm thấy CV để xuất PDF!');
+            return;
+        }
+
+        try {
+            setExportingPdf(true);
+            message.loading({ content: 'Đang tạo file PDF...', key: 'export-pdf', duration: 0 });
+
+            // Capture the CV template as canvas
+            const canvas = await html2canvas(cvTemplateRef.current, {
+                scale: 2,
+                useCORS: true,
+                logging: false,
+                backgroundColor: '#ffffff'
+            });
+
+            const imgData = canvas.toDataURL('image/png');
+            const pdf = new jsPDF('p', 'mm', 'a4');
+            const pdfWidth = pdf.internal.pageSize.getWidth();
+            const pdfHeight = pdf.internal.pageSize.getHeight();
+            const imgWidth = canvas.width;
+            const imgHeight = canvas.height;
+            const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
+            const imgScaledWidth = imgWidth * ratio;
+            const imgScaledHeight = imgHeight * ratio;
+            const marginX = (pdfWidth - imgScaledWidth) / 2;
+            const marginY = (pdfHeight - imgScaledHeight) / 2;
+
+            pdf.addImage(imgData, 'PNG', marginX, marginY, imgScaledWidth, imgScaledHeight);
+            
+            const fileName = `CV_${formValues.fullName || 'CV'}_${new Date().getTime()}.pdf`;
+            pdf.save(fileName);
+            
+            message.success({ content: 'Xuất PDF thành công!', key: 'export-pdf' });
+        } catch (error: any) {
+            console.error('Error exporting PDF:', error);
+            message.error({ content: 'Có lỗi xảy ra khi xuất PDF!', key: 'export-pdf' });
+        } finally {
+            setExportingPdf(false);
+        }
+    };
+
+    // Export CV to Excel
+    const handleExportExcel = () => {
+        try {
+            setExportingExcel(true);
+            
+            // Prepare data for Excel
+            const excelData = {
+                fullName: formValues.fullName || '',
+                email: formValues.email || '',
+                phone: formValues.phone || '',
+                address: formValues.address || '',
+                objective: formValues.objective || '',
+                experience: formValues.experience || '',
+                education: formValues.education || '',
+                skills: formValues.skills || '',
+                photoUrl: formValues.photoUrl || '',
+                cvTemplate: selectedCV?.title || 'Tiêu chuẩn'
+            };
+
+            // Extract TOEIC and IELTS from skills if present
+            const skillsText = excelData.skills || '';
+            let toeic = '';
+            let ielts = '';
+            
+            const toeicMatch = skillsText.match(/TOEIC:\s*([^\n]+)/i);
+            const ieltsMatch = skillsText.match(/IELTS:\s*([^\n]+)/i);
+            
+            if (toeicMatch) {
+                toeic = toeicMatch[1].trim();
+                excelData.skills = skillsText.replace(/TOEIC:\s*[^\n]+/i, '').trim();
+            }
+            if (ieltsMatch) {
+                ielts = ieltsMatch[1].trim();
+                excelData.skills = skillsText.replace(/IELTS:\s*[^\n]+/i, '').trim();
+            }
+
+            // Split multiline fields into separate rows
+            const splitIntoLines = (text: string): string[] => {
+                if (!text) return [''];
+                return text.split('\n').filter(line => line.trim() !== '');
+            };
+
+            const skillsLines = splitIntoLines(excelData.skills);
+            const experienceLines = splitIntoLines(excelData.experience);
+            const educationLines = splitIntoLines(excelData.education);
+            const objectiveLines = splitIntoLines(excelData.objective);
+            
+            // Find max number of lines to create that many rows
+            const maxLines = Math.max(
+                skillsLines.length,
+                experienceLines.length,
+                educationLines.length,
+                objectiveLines.length,
+                1
+            );
+
+            // Create worksheet data with multiple rows
+            const worksheetData: any[] = [];
+            for (let i = 0; i < maxLines; i++) {
+                worksheetData.push({
+                    'Họ và tên': i === 0 ? excelData.fullName : '',
+                    'Email': i === 0 ? excelData.email : '',
+                    'Số điện thoại': i === 0 ? excelData.phone : '',
+                    'Địa chỉ': i === 0 ? excelData.address : '',
+                    'Mục tiêu': objectiveLines[i] || '',
+                    'Kinh nghiệm': experienceLines[i] || '',
+                    'Học vấn': educationLines[i] || '',
+                    'Kỹ năng': skillsLines[i] || '',
+                    'Ảnh': i === 0 ? excelData.photoUrl : '',
+                    'TOEIC': i === 0 ? toeic : '',
+                    'IELTS': i === 0 ? ielts : ''
+                });
+            }
+
+            // Create workbook and worksheet
+            const workbook = XLSX.utils.book_new();
+            const worksheet = XLSX.utils.json_to_sheet(worksheetData);
+            
+            // Set column widths
+            const columnWidths = [
+                { wch: 15 }, // Họ và tên
+                { wch: 25 }, // Email
+                { wch: 15 }, // Số điện thoại
+                { wch: 30 }, // Địa chỉ
+                { wch: 40 }, // Mục tiêu
+                { wch: 50 }, // Kinh nghiệm
+                { wch: 40 }, // Học vấn
+                { wch: 40 }, // Kỹ năng
+                { wch: 30 }, // Ảnh
+                { wch: 10 }, // TOEIC
+                { wch: 10 }  // IELTS
+            ];
+            worksheet['!cols'] = columnWidths;
+
+            // Set row heights for all data rows
+            const range = XLSX.utils.decode_range(worksheet['!ref'] || 'A1');
+            if (!worksheet['!rows']) worksheet['!rows'] = [];
+            
+            // Set row height for header row
+            worksheet['!rows'][0] = { hpt: 30 };
+            
+            // Set row height for all data rows
+            for (let R = 1; R <= range.e.r; R++) {
+                worksheet['!rows'][R] = { hpt: 25 };
+            }
+
+            XLSX.utils.book_append_sheet(workbook, worksheet, 'CV Data');
+            
+            // Generate Excel file
+            const fileName = `CV_${excelData.fullName || 'CV'}_${new Date().getTime()}.xlsx`;
+            XLSX.writeFile(workbook, fileName);
+            
+            message.success('Xuất Excel thành công!');
+        } catch (error: any) {
+            console.error('Error exporting Excel:', error);
+            message.error('Có lỗi xảy ra khi xuất Excel!');
+        } finally {
+            setExportingExcel(false);
+        }
+    };
+
+    // Export Excel Template (empty template with headers)
+    const handleExportExcelTemplate = () => {
+        try {
+            setExportingTemplate(true);
+            
+            // Create empty template with headers
+            const templateData = [
+                {
+                    'Họ và tên': '',
+                    'Email': '',
+                    'Số điện thoại': '',
+                    'Địa chỉ': '',
+                    'Mục tiêu': '',
+                    'Kinh nghiệm': '',
+                    'Học vấn': '',
+                    'Kỹ năng': '',
+                    'Ảnh': '',
+                    'TOEIC': '',
+                    'IELTS': ''
+                }
+            ];
+
+            // Create workbook and worksheet
+            const workbook = XLSX.utils.book_new();
+            const worksheet = XLSX.utils.json_to_sheet(templateData);
+            
+            // Set column widths
+            const columnWidths = [
+                { wch: 15 }, // Họ và tên
+                { wch: 25 }, // Email
+                { wch: 15 }, // Số điện thoại
+                { wch: 30 }, // Địa chỉ
+                { wch: 40 }, // Mục tiêu
+                { wch: 50 }, // Kinh nghiệm
+                { wch: 40 }, // Học vấn
+                { wch: 40 }, // Kỹ năng
+                { wch: 30 }, // Ảnh
+                { wch: 10 }, // TOEIC
+                { wch: 10 }  // IELTS
+            ];
+            worksheet['!cols'] = columnWidths;
+
+            XLSX.utils.book_append_sheet(workbook, worksheet, 'CV Template');
+            
+            // Generate Excel file
+            const fileName = `CV_Template_Mau_${new Date().getTime()}.xlsx`;
+            XLSX.writeFile(workbook, fileName);
+            
+            message.success('Đã tải file Excel template mẫu thành công!');
+        } catch (error: any) {
+            console.error('Error exporting Excel template:', error);
+            message.error('Có lỗi xảy ra khi xuất Excel template!');
+        } finally {
+            setExportingTemplate(false);
+        }
+    };
+
+    // Parse Excel file and fill form values
+    const parseExcelAndFillForm = async (file: File) => {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const data = e.target?.result;
+                    const workbook = XLSX.read(data, { type: 'binary' });
+                    const sheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[sheetName];
+                    const jsonData = XLSX.utils.sheet_to_json(worksheet);
+                    
+                    if (!jsonData || jsonData.length === 0) {
+                        throw new Error('File Excel không có dữ liệu hoặc định dạng không đúng!');
+                    }
+                    
+                    // Combine all rows into single CV data (merge multiline fields)
+                    let cvData: any = {
+                        fullName: '',
+                        email: '',
+                        phone: '',
+                        address: '',
+                        objective: '',
+                        experience: '',
+                        education: '',
+                        skills: '',
+                        photoUrl: '',
+                        toeic: '',
+                        ielts: ''
+                    };
+                    
+                    // Process all rows
+                    jsonData.forEach((row: any, index: number) => {
+                        // First row contains basic info
+                        if (index === 0) {
+                            cvData.fullName = row['Họ và tên'] || row.fullName || row['Full Name'] || '';
+                            cvData.email = row['Email'] || row.email || '';
+                            cvData.phone = row['Số điện thoại'] || row.phone || row['Phone'] || '';
+                            cvData.address = row['Địa chỉ'] || row.address || row['Address'] || '';
+                            cvData.photoUrl = row['Ảnh'] || row.photoUrl || row['Photo'] || '';
+                            cvData.toeic = row['TOEIC'] || row.toeic || '';
+                            cvData.ielts = row['IELTS'] || row.ielts || '';
+                        }
+                        
+                        // Merge multiline fields
+                        if (row['Mục tiêu'] || row.objective || row['Objective']) {
+                            const obj = row['Mục tiêu'] || row.objective || row['Objective'] || '';
+                            if (obj.trim()) {
+                                cvData.objective += (cvData.objective ? '\n' : '') + obj;
+                            }
+                        }
+                        
+                        if (row['Kinh nghiệm'] || row.experience || row['Experience']) {
+                            const exp = row['Kinh nghiệm'] || row.experience || row['Experience'] || '';
+                            if (exp.trim()) {
+                                cvData.experience += (cvData.experience ? '\n' : '') + exp;
+                            }
+                        }
+                        
+                        if (row['Học vấn'] || row.education || row['Education']) {
+                            const edu = row['Học vấn'] || row.education || row['Education'] || '';
+                            if (edu.trim()) {
+                                cvData.education += (cvData.education ? '\n' : '') + edu;
+                            }
+                        }
+                        
+                        if (row['Kỹ năng'] || row.skills || row['Skills']) {
+                            const skill = row['Kỹ năng'] || row.skills || row['Skills'] || '';
+                            if (skill.trim()) {
+                                cvData.skills += (cvData.skills ? '\n' : '') + skill;
+                            }
+                        }
+                    });
+                    
+                    // Add TOEIC and IELTS to skills if available
+                    if (cvData.toeic) {
+                        cvData.skills += (cvData.skills ? '\n' : '') + `TOEIC: ${cvData.toeic}`;
+                    }
+                    if (cvData.ielts) {
+                        cvData.skills += (cvData.skills ? '\n' : '') + `IELTS: ${cvData.ielts}`;
+                    }
+                    
+                    // Fill form values
+                    setFormValues({
+                        fullName: cvData.fullName,
+                        email: cvData.email,
+                        phone: cvData.phone,
+                        address: cvData.address,
+                        objective: cvData.objective,
+                        experience: cvData.experience,
+                        education: cvData.education,
+                        skills: cvData.skills,
+                        photoUrl: cvData.photoUrl
+                    });
+                    
+                    // Auto-select template if not selected
+                    if (!selectedCV) {
+                        setSelectedCV(cvTemplates[0]);
+                        setIsEditing(true);
+                    } else {
+                        setIsEditing(true);
+                    }
+                    
+                    message.success('Đã tải dữ liệu từ Excel thành công!');
+                    resolve(cvData);
+                } catch (error: any) {
+                    console.error('❌ Error parsing Excel:', error);
+                    reject(error);
+                }
+            };
+            reader.onerror = (error) => reject(error);
+            reader.readAsBinaryString(file);
+        });
+    };
+
+    const propsUploadExcel: UploadProps = {
+        maxCount: 1,
+        multiple: false,
+        accept: ".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel",
+        async customRequest({ file, onSuccess, onError }: any) {
+            setUploadingExcel(true);
+            try {
+                await parseExcelAndFillForm(file);
+                if (onSuccess) onSuccess('ok');
+            } catch (error: any) {
+                console.error('❌ Excel upload error:', error);
+                const errorMsg = new Error(error?.message || "Đã có lỗi xảy ra khi xử lý file Excel.");
+                if (onError) onError({ event: errorMsg });
+                message.error(error?.message || "Đã có lỗi xảy ra khi xử lý file Excel.");
+            } finally {
+                setUploadingExcel(false);
+            }
+        },
+        onChange(info) {
+            if (info.file.status === 'done') {
+                // Message already shown in customRequest
+            } else if (info.file.status === 'error') {
+                message.error(info?.file?.error?.event?.message ?? "Đã có lỗi xảy ra khi xử lý file Excel.")
+            }
+        },
+    };
+
     const cvTemplates = [
         {
             title: 'Tiêu chuẩn',
-            description: 'Thiết kế chuyên nghiệp với thanh bên màu gradient, phù hợp với mọi ngành nghề'
-        },
-        {
-            title: 'Thanh Lịch',
-            description: 'Phong cách tối giản và tinh tế, tạo ấn tượng mạnh mẽ với nhà tuyển dụng'
-        },
-        {
-            title: 'Hiện đại',
-            description: 'Bố cục cân đối và hiện đại với điểm nhấn màu xanh, dễ đọc và thu hút'
+            description: 'Thiết kế chuyên nghiệp với thanh bên màu gradient, phù hợp với mọi ngành nghề. Template này được tối ưu để tạo CV từ file Excel.'
         }
     ];
 
@@ -571,11 +937,72 @@ const PageListCV = () => {
                     marginBottom: 24,
                     color: '#1a1a1a'
                 }}>
-                    Chọn mẫu CV phù hợp với bạn
+                    Mẫu CV Tiêu chuẩn
                 </h2>
-                <Row gutter={[24, 24]}>
+                <div style={{ 
+                    marginBottom: 24, 
+                    padding: 16,
+                    background: '#f0f9ff',
+                    borderRadius: 12,
+                    border: '1px solid #91d5ff'
+                }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+                        <div style={{ flex: 1 }}>
+                            <div style={{ fontSize: 15, color: '#0050b3', marginBottom: 8, fontWeight: 600 }}>
+                                💡 Gợi ý: Bạn có thể upload file Excel để tự động tạo CV
+                            </div>
+                            <div style={{ fontSize: 13, color: '#666', lineHeight: 1.6 }}>
+                                Thay vì nhập thủ công, bạn có thể tạo file Excel với các cột: fullName, email, phone, address, objective, experience, education, skills, photoUrl, toeic, ielts 
+                                và upload lên hệ thống. Hệ thống sẽ tự động điền thông tin vào form.
+                            </div>
+                        </div>
+                        <div style={{ display: 'flex', gap: 12, marginLeft: 16, flexShrink: 0 }}>
+                            <Upload {...propsUploadExcel} disabled={uploadingExcel}>
+                                <Button
+                                    type="default"
+                                    icon={<UploadOutlined />}
+                                    loading={uploadingExcel}
+                                    disabled={uploadingExcel}
+                                    style={{
+                                        background: 'linear-gradient(135deg, #1890ff 0%, #0050b3 100%)',
+                                        border: 'none',
+                                        color: '#fff',
+                                        borderRadius: 8,
+                                        height: 40,
+                                        padding: '0 20px',
+                                        fontWeight: 600,
+                                        boxShadow: '0 2px 8px rgba(24, 144, 255, 0.3)',
+                                        whiteSpace: 'nowrap'
+                                    }}
+                                >
+                                    Upload Excel
+                                </Button>
+                            </Upload>
+                            <Button
+                                type="default"
+                                icon={<FileExcelOutlined />}
+                                loading={exportingTemplate}
+                                onClick={handleExportExcelTemplate}
+                                style={{
+                                    background: 'linear-gradient(135deg, #52c41a 0%, #389e0d 100%)',
+                                    border: 'none',
+                                    color: '#fff',
+                                    borderRadius: 8,
+                                    height: 40,
+                                    padding: '0 20px',
+                                    fontWeight: 600,
+                                    boxShadow: '0 2px 8px rgba(82, 196, 26, 0.3)',
+                                    whiteSpace: 'nowrap'
+                                }}
+                            >
+                                Tải Excel Template
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+                <Row gutter={[24, 24]} justify="center">
                     {cvTemplates.map((template) => (
-                        <Col xs={24} sm={12} lg={8} key={template.title}>
+                        <Col xs={24} sm={16} lg={10} key={template.title}>
                             <CvCard
                                 title={template.title}
                                 description={template.description}
@@ -653,10 +1080,13 @@ const PageListCV = () => {
                                 alignItems: 'flex-start',
                                 minHeight: 600
                             }}>
-                                <div style={{
-                                    transform: 'scale(0.95)',
-                                    transformOrigin: 'top center'
-                                }}>
+                                <div 
+                                    ref={cvTemplateRef}
+                                    style={{
+                                        transform: 'scale(0.95)',
+                                        transformOrigin: 'top center'
+                                    }}
+                                >
                                     <CvTemplateRenderer
                                         template={selectedCV.title}
                                         data={formValues}
@@ -724,23 +1154,61 @@ const PageListCV = () => {
                                         </Button>
                                     </>
                                 ) : (
-                                    <Button
-                                        type="primary"
-                                        size="large"
-                                        icon={<EditOutlined />}
-                                        onClick={() => setIsEditing(true)}
-                                        style={{
-                                            background: 'linear-gradient(135deg, #1e88e5 0%, #1565c0 100%)',
-                                            border: 'none',
-                                            borderRadius: 8,
-                                            height: 44,
-                                            padding: '0 24px',
-                                            fontWeight: 600,
-                                            boxShadow: '0 4px 12px rgba(30, 136, 229, 0.35)'
-                                        }}
-                                    >
-                                        Chỉnh sửa
-                                    </Button>
+                                    <>
+                                        <Button
+                                            type="primary"
+                                            size="large"
+                                            icon={<EditOutlined />}
+                                            onClick={() => setIsEditing(true)}
+                                            style={{
+                                                background: 'linear-gradient(135deg, #1e88e5 0%, #1565c0 100%)',
+                                                border: 'none',
+                                                borderRadius: 8,
+                                                height: 44,
+                                                padding: '0 24px',
+                                                fontWeight: 600,
+                                                boxShadow: '0 4px 12px rgba(30, 136, 229, 0.35)'
+                                            }}
+                                        >
+                                            Chỉnh sửa
+                                        </Button>
+                                        <Button
+                                            size="large"
+                                            icon={<FilePdfOutlined />}
+                                            loading={exportingPdf}
+                                            onClick={handleExportPDF}
+                                            style={{
+                                                background: 'linear-gradient(135deg, #f5222d 0%, #cf1322 100%)',
+                                                border: 'none',
+                                                color: '#fff',
+                                                borderRadius: 8,
+                                                height: 44,
+                                                padding: '0 24px',
+                                                fontWeight: 600,
+                                                boxShadow: '0 4px 12px rgba(245, 34, 45, 0.35)'
+                                            }}
+                                        >
+                                            Tải PDF
+                                        </Button>
+                                        <Button
+                                            size="large"
+                                            icon={<FileExcelOutlined />}
+                                            loading={exportingExcel}
+                                            onClick={handleExportExcel}
+                                            style={{
+                                                background: 'linear-gradient(135deg, #52c41a 0%, #389e0d 100%)',
+                                                border: 'none',
+                                                color: '#fff',
+                                                borderRadius: 8,
+                                                height: 44,
+                                                padding: '0 24px',
+                                                fontWeight: 600,
+                                                boxShadow: '0 4px 12px rgba(82, 196, 26, 0.35)'
+                                            }}
+                                        >
+                                            Tải Excel
+                                        </Button>
+                                    </>
                                 )}
                             </div>
                         </Col>

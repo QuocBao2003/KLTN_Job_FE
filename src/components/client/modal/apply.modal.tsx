@@ -6,8 +6,9 @@ import { useNavigate } from "react-router-dom";
 import enUS from 'antd/lib/locale/en_US';
 import { UploadOutlined, FileTextOutlined } from '@ant-design/icons';
 import type { UploadProps } from 'antd';
-import { callCreateResume, callUploadSingleFile, callFetchCvByUser, callCreateCv, callGetUserById } from "@/config/api";
+import { callCreateResume, callUploadSingleFile, callFetchCvByUser, callCreateCv, callGetUserById, callUploadExcelCv, callUpdateCv } from "@/config/api";
 import { useState, useEffect } from 'react';
+import * as XLSX from 'xlsx';
 
 interface IProps {
     isModalOpen: boolean;
@@ -22,9 +23,10 @@ const ApplyModal = (props: IProps) => {
     const [urlCV, setUrlCV] = useState<string>("");
     const [cvList, setCvList] = useState<ICv[]>([]);
     const [selectedCvId, setSelectedCvId] = useState<string | number | null>(null);
-    const [cvSelectionMode, setCvSelectionMode] = useState<'existing' | 'upload'>('existing');
+    const [cvSelectionMode, setCvSelectionMode] = useState<'existing' | 'upload' | 'excel'>('existing');
     const [loadingCvList, setLoadingCvList] = useState<boolean>(false);
     const [uploading, setUploading] = useState<boolean>(false);
+    const [uploadingExcel, setUploadingExcel] = useState<boolean>(false);
 
     const navigate = useNavigate();
 
@@ -43,7 +45,8 @@ const ApplyModal = (props: IProps) => {
         const hasTemplate = cv.cvTemplate && 
             (cv.cvTemplate === 'Tiêu chuẩn' || 
              cv.cvTemplate === 'Thanh Lịch' || 
-             cv.cvTemplate === 'Hiện Đại');
+             cv.cvTemplate === 'Hiện Đại' ||
+             cv.cvTemplate === 'Hiện đại');
         
         if (hasTemplate) {
             // Return special marker to indicate this CV can be converted to PDF
@@ -214,12 +217,28 @@ const ApplyModal = (props: IProps) => {
                     finalUrlCV = fileUrl;
                 }
             }
-        } else {
+        } else if (cvSelectionMode === 'upload') {
             if (!urlCV) {
                 message.error("Vui lòng upload CV!");
                 return;
             }
             finalUrlCV = urlCV;
+        } else if (cvSelectionMode === 'excel') {
+            // Excel mode: CV should already be created/updated, find it in cvList
+            const excelCv = cvList.find(cv => cv.cvTemplate === 'Tiêu chuẩn' && cv.email === user.email);
+            if (!excelCv) {
+                message.error("Vui lòng upload file Excel để tạo CV!");
+                return;
+            }
+            // CV from Excel is always a template CV, so use CV_ID format
+            finalUrlCV = `CV_ID:${excelCv.id}`;
+            console.log('📌 Using Excel CV, sending CV_ID:', finalUrlCV);
+            
+            // Show info message
+            message.info({
+                content: 'Đang xử lý CV từ Excel của bạn...',
+                duration: 2
+            });
         }
 
         console.log('📌 Final URL CV:', finalUrlCV);
@@ -251,6 +270,90 @@ const ApplyModal = (props: IProps) => {
             }
         }
     }
+
+    // Parse Excel file and create/update CV
+    const parseExcelAndCreateCv = async (file: File) => {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    const data = e.target?.result;
+                    const workbook = XLSX.read(data, { type: 'binary' });
+                    const sheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[sheetName];
+                    const jsonData = XLSX.utils.sheet_to_json(worksheet);
+                    
+                    if (!jsonData || jsonData.length === 0) {
+                        throw new Error('File Excel không có dữ liệu hoặc định dạng không đúng!');
+                    }
+                    
+                    // Get first row as CV data
+                    const rowData: any = jsonData[0];
+                    
+                    // Map Excel columns to CV fields
+                    // Expected columns: fullName, email, phone, address, objective, experience, education, skills, photoUrl, toeic, ielts
+                    const cvData = {
+                        fullName: rowData.fullName || rowData['Họ và tên'] || rowData['Full Name'] || user.name || '',
+                        email: rowData.email || rowData['Email'] || user.email || '',
+                        phone: rowData.phone || rowData['Số điện thoại'] || rowData['Phone'] || '',
+                        address: rowData.address || rowData['Địa chỉ'] || rowData['Address'] || '',
+                        objective: rowData.objective || rowData['Mục tiêu'] || rowData['Objective'] || '',
+                        experience: rowData.experience || rowData['Kinh nghiệm'] || rowData['Experience'] || '',
+                        education: rowData.education || rowData['Học vấn'] || rowData['Education'] || '',
+                        skills: (() => {
+                            let skillsText = rowData.skills || rowData['Kỹ năng'] || rowData['Skills'] || '';
+                            // Add TOEIC and IELTS if available
+                            if (rowData.toeic || rowData['TOEIC']) {
+                                skillsText += (skillsText ? '\n' : '') + `TOEIC: ${rowData.toeic || rowData['TOEIC']}`;
+                            }
+                            if (rowData.ielts || rowData['IELTS']) {
+                                skillsText += (skillsText ? '\n' : '') + `IELTS: ${rowData.ielts || rowData['IELTS']}`;
+                            }
+                            return skillsText;
+                        })(),
+                        photoUrl: rowData.photoUrl || rowData['Ảnh'] || rowData['Photo'] || '',
+                        cvTemplate: 'Tiêu chuẩn'
+                    };
+                    
+                    console.log('📌 Parsed Excel data:', cvData);
+                    
+                    // Check if CV already exists (by email)
+                    const existingCv = cvList.find(cv => cv.email === cvData.email && cv.cvTemplate === 'Tiêu chuẩn');
+                    
+                    let createdCv;
+                    if (existingCv) {
+                        // Update existing CV
+                        console.log('📌 Updating existing CV:', existingCv.id);
+                        const updateRes = await callUpdateCv(existingCv.id.toString(), cvData);
+                        createdCv = updateRes.data;
+                        message.success('CV đã được cập nhật từ file Excel!');
+                    } else {
+                        // Create new CV
+                        console.log('📌 Creating new CV from Excel');
+                        const createRes = await callCreateCv(cvData);
+                        createdCv = createRes.data;
+                        message.success('CV đã được tạo từ file Excel!');
+                    }
+                    
+                    // Refresh CV list
+                    await fetchCvList();
+                    
+                    // Auto-select the created/updated CV
+                    if (createdCv?.id) {
+                        setSelectedCvId(createdCv.id);
+                        setCvSelectionMode('existing');
+                    }
+                    
+                    resolve(createdCv);
+                } catch (error: any) {
+                    console.error('❌ Error parsing Excel:', error);
+                    reject(error);
+                }
+            };
+            reader.onerror = (error) => reject(error);
+            reader.readAsBinaryString(file);
+        });
+    };
 
     const propsUpload: UploadProps = {
         maxCount: 1,
@@ -331,6 +434,33 @@ const ApplyModal = (props: IProps) => {
         },
     };
 
+    const propsUploadExcel: UploadProps = {
+        maxCount: 1,
+        multiple: false,
+        accept: ".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel",
+        async customRequest({ file, onSuccess, onError }: any) {
+            setUploadingExcel(true);
+            try {
+                await parseExcelAndCreateCv(file);
+                if (onSuccess) onSuccess('ok');
+            } catch (error: any) {
+                console.error('❌ Excel upload error:', error);
+                const errorMsg = new Error(error?.message || "Đã có lỗi xảy ra khi xử lý file Excel.");
+                if (onError) onError({ event: errorMsg });
+                message.error(error?.message || "Đã có lỗi xảy ra khi xử lý file Excel.");
+            } finally {
+                setUploadingExcel(false);
+            }
+        },
+        onChange(info) {
+            if (info.file.status === 'done') {
+                // Message already shown in customRequest
+            } else if (info.file.status === 'error') {
+                message.error(info?.file?.error?.event?.message ?? "Đã có lỗi xảy ra khi xử lý file Excel.")
+            }
+        },
+    };
+
 
     return (
         <>
@@ -380,7 +510,7 @@ const ApplyModal = (props: IProps) => {
                                                 value={cvSelectionMode} 
                                                 onChange={(e) => {
                                                     setCvSelectionMode(e.target.value);
-                                                    if (e.target.value === 'upload') {
+                                                    if (e.target.value === 'upload' || e.target.value === 'excel') {
                                                         setSelectedCvId(null);
                                                     } else {
                                                         setUrlCV("");
@@ -389,7 +519,8 @@ const ApplyModal = (props: IProps) => {
                                                 style={{ marginBottom: 16 }}
                                             >
                                                 <Radio value="existing">Chọn CV có sẵn ({cvList.filter(cv => getCvFileUrl(cv)).length})</Radio>
-                                                <Radio value="upload">Upload CV mới</Radio>
+                                                <Radio value="upload">Upload CV mới (PDF/DOC)</Radio>
+                                                <Radio value="excel">Upload Excel để tạo CV</Radio>
                                             </Radio.Group>
                                         </div>
 
@@ -616,7 +747,7 @@ const ApplyModal = (props: IProps) => {
                                                     );
                                                 })()}
                                             </div>
-                                        ) : (
+                                        ) : cvSelectionMode === 'upload' ? (
                                             <ProForm.Item
                                                 label={"Upload file CV"}
                                                 rules={[{ required: cvSelectionMode === 'upload', message: 'Vui lòng upload file!' }]}
@@ -644,6 +775,61 @@ const ApplyModal = (props: IProps) => {
                                                     </div>
                                                 )}
                                             </ProForm.Item>
+                                        ) : (
+                                            <div>
+                                                <div style={{ 
+                                                    marginBottom: 16, 
+                                                    padding: 16,
+                                                    background: '#f0f9ff',
+                                                    borderRadius: 8,
+                                                    border: '1px solid #91d5ff'
+                                                }}>
+                                                    <div style={{ fontWeight: 600, fontSize: 15, marginBottom: 8, color: '#0050b3' }}>
+                                                        📊 Upload file Excel để tạo CV tự động
+                                                    </div>
+                                                    <div style={{ fontSize: 13, color: '#666', lineHeight: 1.6, marginBottom: 12 }}>
+                                                        Hệ thống sẽ tự động tạo CV từ thông tin trong file Excel của bạn. 
+                                                        Nếu CV đã tồn tại, hệ thống sẽ tự động cập nhật thông tin mới.
+                                                    </div>
+                                                    <div style={{ fontSize: 12, color: '#999', marginBottom: 16 }}>
+                                                        <strong>Định dạng Excel:</strong> Các cột: fullName, email, phone, address, objective, experience, education, skills, photoUrl, toeic, ielts
+                                                        <br />
+                                                        (Hoặc tiếng Việt: Họ và tên, Email, Số điện thoại, Địa chỉ, Mục tiêu, Kinh nghiệm, Học vấn, Kỹ năng, Ảnh, TOEIC, IELTS)
+                                                    </div>
+                                                </div>
+                                                <ProForm.Item
+                                                    label={"Upload file Excel"}
+                                                    rules={[{ required: cvSelectionMode === 'excel', message: 'Vui lòng upload file Excel!' }]}
+                                                >
+                                                    <Upload {...propsUploadExcel} disabled={uploadingExcel}>
+                                                        <Button 
+                                                            icon={<UploadOutlined />} 
+                                                            loading={uploadingExcel}
+                                                            disabled={uploadingExcel}
+                                                            size="large"
+                                                            type="primary"
+                                                            style={{
+                                                                background: 'linear-gradient(135deg, #52c41a 0%, #389e0d 100%)',
+                                                                border: 'none'
+                                                            }}
+                                                        >
+                                                            {uploadingExcel ? 'Đang xử lý Excel...' : 'Tải lên file Excel ( *.xlsx, *.xls )'}
+                                                        </Button>
+                                                    </Upload>
+                                                    {cvList.find(cv => cv.cvTemplate === 'Tiêu chuẩn' && cv.email === user.email) && (
+                                                        <div style={{ 
+                                                            marginTop: 12, 
+                                                            padding: 12,
+                                                            background: '#f6ffed',
+                                                            border: '1px solid #b7eb8f',
+                                                            borderRadius: 8,
+                                                            color: '#52c41a'
+                                                        }}>
+                                                            ✓ CV đã được tạo/cập nhật từ Excel. Bạn có thể nhấn "Nộp CV" để ứng tuyển.
+                                                        </div>
+                                                    )}
+                                                </ProForm.Item>
+                                            </div>
                                         )}
                                     </Col>
                                 </Row>

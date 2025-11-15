@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { FileText, Plus, Edit2, Trash2, Eye, Download, Calendar, Mail, Phone, MapPin, Target, X, Camera } from 'lucide-react';
+import { FileText, Plus, Edit2, Trash2, Eye, Download, Calendar, Mail, Phone, MapPin, Target, X, Camera, FileSpreadsheet } from 'lucide-react';
 import { callFetchCvByUser, callFetchCvById, callDeleteCv, callUpdateCv } from 'config/api';
 import { ICv } from '@/types/backend';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
+import * as XLSX from 'xlsx';
 
 // Component hiển thị text
 const FieldText = React.memo(({ value, placeholder, style }: { value?: string; placeholder?: string; style?: any }) => (
@@ -647,6 +648,7 @@ const CvManagement: React.FC = () => {
   const [error, setError] = useState<string>('');
   const [isEditMode, setIsEditMode] = useState<boolean>(false);
   const [isDownloading, setIsDownloading] = useState<boolean>(false);
+  const [isExportingExcel, setIsExportingExcel] = useState<boolean>(false);
   const [editingCv, setEditingCv] = useState<ICv | null>(null);
 
   const cvPreviewRef = useRef<HTMLDivElement>(null);
@@ -790,6 +792,118 @@ const CvManagement: React.FC = () => {
       alert('Có lỗi xảy ra khi tải xuống CV. Vui lòng thử lại!');
     } finally {
       setIsDownloading(false);
+    }
+  };
+
+  const handleExportExcel = () => {
+    if (!selectedCv) return;
+
+    try {
+      setIsExportingExcel(true);
+      
+      // Prepare data for Excel
+      const cvData = isEditMode && editingCv ? editingCv : selectedCv;
+      
+      // Extract TOEIC and IELTS from skills if present
+      const skillsText = cvData.skills || '';
+      let toeic = '';
+      let ielts = '';
+      
+      const toeicMatch = skillsText.match(/TOEIC:\s*([^\n]+)/i);
+      const ieltsMatch = skillsText.match(/IELTS:\s*([^\n]+)/i);
+      
+      let cleanSkills = skillsText;
+      if (toeicMatch) {
+        toeic = toeicMatch[1].trim();
+        cleanSkills = cleanSkills.replace(/TOEIC:\s*[^\n]+/i, '').trim();
+      }
+      if (ieltsMatch) {
+        ielts = ieltsMatch[1].trim();
+        cleanSkills = cleanSkills.replace(/IELTS:\s*[^\n]+/i, '').trim();
+      }
+
+      // Split multiline fields into separate rows
+      const splitIntoLines = (text: string): string[] => {
+        if (!text) return [''];
+        return text.split('\n').filter(line => line.trim() !== '');
+      };
+
+      const skillsLines = splitIntoLines(cleanSkills);
+      const experienceLines = splitIntoLines(cvData.experience || '');
+      const educationLines = splitIntoLines(cvData.education || '');
+      const objectiveLines = splitIntoLines(cvData.objective || '');
+      
+      // Find max number of lines to create that many rows
+      const maxLines = Math.max(
+        skillsLines.length,
+        experienceLines.length,
+        educationLines.length,
+        objectiveLines.length,
+        1
+      );
+
+      // Create worksheet data with multiple rows
+      const worksheetData: any[] = [];
+      for (let i = 0; i < maxLines; i++) {
+        worksheetData.push({
+          'Họ và tên': i === 0 ? (cvData.fullName || '') : '',
+          'Email': i === 0 ? (cvData.email || '') : '',
+          'Số điện thoại': i === 0 ? (cvData.phone || '') : '',
+          'Địa chỉ': i === 0 ? (cvData.address || '') : '',
+          'Mục tiêu': objectiveLines[i] || '',
+          'Kinh nghiệm': experienceLines[i] || '',
+          'Học vấn': educationLines[i] || '',
+          'Kỹ năng': skillsLines[i] || '',
+          'Ảnh': i === 0 ? (cvData.photoUrl || '') : '',
+          'TOEIC': i === 0 ? toeic : '',
+          'IELTS': i === 0 ? ielts : ''
+        });
+      }
+
+      // Create workbook and worksheet
+      const workbook = XLSX.utils.book_new();
+      const worksheet = XLSX.utils.json_to_sheet(worksheetData);
+      
+      // Set column widths
+      const columnWidths = [
+        { wch: 15 }, // Họ và tên
+        { wch: 25 }, // Email
+        { wch: 15 }, // Số điện thoại
+        { wch: 30 }, // Địa chỉ
+        { wch: 40 }, // Mục tiêu
+        { wch: 50 }, // Kinh nghiệm
+        { wch: 40 }, // Học vấn
+        { wch: 40 }, // Kỹ năng
+        { wch: 30 }, // Ảnh
+        { wch: 10 }, // TOEIC
+        { wch: 10 }  // IELTS
+      ];
+      worksheet['!cols'] = columnWidths;
+
+      // Set row heights for all data rows
+      const range = XLSX.utils.decode_range(worksheet['!ref'] || 'A1');
+      if (!worksheet['!rows']) worksheet['!rows'] = [];
+      
+      // Set row height for header row
+      worksheet['!rows'][0] = { hpt: 30 };
+      
+      // Set row height for all data rows
+      for (let R = 1; R <= range.e.r; R++) {
+        worksheet['!rows'][R] = { hpt: 25 };
+      }
+
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'CV Data');
+      
+      // Generate Excel file
+      const fileName = `CV_${cvData.fullName?.replace(/\s+/g, '_') || 'CV'}_${new Date().getTime()}.xlsx`;
+      XLSX.writeFile(workbook, fileName);
+      
+      alert('Xuất Excel thành công!');
+    } catch (error: any) {
+      console.error('Error exporting Excel:', error);
+      alert('Có lỗi xảy ra khi xuất Excel!');
+    } finally {
+      setIsExportingExcel(false);
     }
   };
 
@@ -1026,7 +1140,7 @@ const CvManagement: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-6">
+                <div className={`grid gap-4 pt-6 ${isEditMode ? 'grid-cols-1 md:grid-cols-3' : 'grid-cols-1 md:grid-cols-4'}`}>
                   <button
                     onClick={() => {
                       setIsViewModalOpen(false);
@@ -1073,7 +1187,15 @@ const CvManagement: React.FC = () => {
                         className="group bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white py-4 rounded-xl flex items-center justify-center gap-3 transition-all shadow-lg hover:shadow-2xl transform hover:-translate-y-1 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         <Download size={22} className="group-hover:animate-bounce" />
-                        <span className="font-semibold">{isDownloading ? 'Đang tải...' : 'Tải xuống PDF'}</span>
+                        <span className="font-semibold">{isDownloading ? 'Đang tải...' : 'Tải PDF'}</span>
+                      </button>
+                      <button
+                        onClick={handleExportExcel}
+                        disabled={isExportingExcel}
+                        className="group bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white py-4 rounded-xl flex items-center justify-center gap-3 transition-all shadow-lg hover:shadow-2xl transform hover:-translate-y-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <FileSpreadsheet size={22} className="group-hover:animate-pulse" />
+                        <span className="font-semibold">{isExportingExcel ? 'Đang xuất...' : 'Tải Excel'}</span>
                       </button>
                     </>
                   )}

@@ -385,3 +385,20 @@ export const callFetchCvByUser = () => {
 export const callFetchAllCv = (query: string) => {
     return axios.get<IBackendRes<IModelPaginate<ICv>>>(`/api/v1/cvs?${query}`);
 }
+
+/**
+ * Upload Excel file and create/update CV from Excel data
+ */
+export const callUploadExcelCv = (file: any) => {
+    const bodyFormData = new FormData();
+    bodyFormData.append('file', file);
+    
+    return axios<IBackendRes<ICv>>({
+        method: 'post',
+        url: '/api/v1/cvs/upload-excel',
+        data: bodyFormData,
+        headers: {
+            "Content-Type": "multipart/form-data",
+        },
+    });
+}
