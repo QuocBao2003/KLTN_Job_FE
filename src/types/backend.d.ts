@@ -34,7 +34,26 @@ export interface IAccount {
         }
     }
 }
-
+export interface Notification {
+    id: number;
+    title: string;
+    description: string;
+    type: NotificationType;
+    isRead: boolean;
+    isViewed: boolean; 
+    relatedEntityId: number;
+    navigationUrl: string;
+    createdAt: string;
+    readAt?: string; 
+  }
+  
+  export type NotificationType = 
+    | 'JOB_APPROVED'
+    | 'JOB_REJECTED'
+    | 'JOB_PENDING_APPROVAL'
+    | 'RESUME_APPROVED'
+    | 'RESUME_REJECTED'
+    | 'RESUME_PENDING';
 export interface IGetAccount extends Omit<IAccount, "access_token"> { }
 
 export interface ICompany {
@@ -42,6 +61,7 @@ export interface ICompany {
     name?: string;
     address?: string;
     logo: string;
+    banner: string;
     description?: string;
     createdBy?: string;
     isDeleted?: boolean;
@@ -62,6 +82,7 @@ export interface ISaveJob {
 export interface ISkill {
     id?: string;
     name?: string;
+    jobProfession?: IJobProfession;
     createdBy?: string;
     isDeleted?: boolean;
     deletedAt?: boolean | null;
@@ -71,10 +92,37 @@ export interface ISkill {
 
 export interface IMessageRoom {
     id: string; // UUID
-    candidateId: number;
-    employerId: number;
     jobId: number;
+    jobName?: string;
+    companyName?: string;
+    
+    // ✅ Thông tin người chat đối diện
+    otherUserId?: number;
+    otherUserName?: string;
+    otherUserEmail?: string;
+    otherUserAvatar?: string | null;
+    
+    // ✅ Thông tin tin nhắn cuối
+    lastMessage?: string;
+    lastMessageTime?: string;
+    lastSenderId?: number;
+    
+    // ✅ Số tin nhắn chưa đọc
+    unreadCount?: number;
+    
+    // Legacy fields (có thể giữ để tương thích)
+    candidateId?: number;
+    employerId?: number;
+    candidateUnreadCount?: number;
+    employerUnreadCount?: number;
+    createdDate?: string;
+
+
+    candidate?: IUser;
+    employer?: IUser;
+    job?: IJob;
 }
+
 export interface IMessageContent {
     id: string;
     content: string;
@@ -83,6 +131,7 @@ export interface IMessageContent {
     sender: IUser;
     messageRoom: IMessageRoom;
 }
+
 export interface IMessageResponse {
     id: string;
     content: string;
@@ -91,7 +140,6 @@ export interface IMessageResponse {
     senderUsername: string;
     senderAvatarUrl: string | null;
 }
-
 export interface IUser {
     id?: string;
     name: string;
@@ -115,7 +163,16 @@ export interface IUser {
     createdAt?: string;
     updatedAt?: string;
 }
-
+export interface IJobProfession {
+    id?: string;
+    name?: string;
+    createdBy?: string;
+    isDeleted?: boolean;
+    deletedAt?: boolean | null;
+    createdAt?: string;
+    updatedAt?: string;
+}
+export type SalaryTypeEnum = "SPECIFIC" | "NEGOTIABLE";
 export interface IJob {
     id?: string;
     name: string;
@@ -125,11 +182,18 @@ export interface IJob {
         name: string;
         logo?: string;
     }
+    jobProfession?: IJobProfession;
     location: string;
-    salary: number;
+    minSalary?: number;
+    maxSalary?: number;
+    salaryType: SalaryTypeEnum;
     quantity: number;
     level: string;
     description: string;
+    interest : string;
+    request : string;
+    worklocation : string;
+    worktime : string;
     startDate: Date;
     endDate: Date;
     status: "PENDING" | "APPROVED" | "REJECTED";
@@ -221,4 +285,73 @@ export interface IJobSuggestion {
     companyName: string;
     location: string;
     logo: string;
+}
+
+
+
+export interface ITimeSeriesStatistic {
+    label: string; // "Week 1-2025" hoặc "01/2025"
+    count: number;
+    periodStart: string;
+    periodEnd: string;
+}
+
+export interface IResumeStatusStatistic {
+    status: string;
+    count: number;
+}
+
+export interface IJobResumeStatistic {
+    jobId: number;
+    jobName: string;
+    resumeCount: number;
+    startDate: string;
+    endDate: string;
+}
+
+export interface IHRStatistics {
+    totalApprovedJobs: number;
+    totalRejectedJobs: number;
+    totalPendingJobs: number;
+    totalResumes: number;
+    activeJobsWithResumes: IJobResumeStatistic[];
+    resumesByStatus: IResumeStatusStatistic[];
+    jobsTimeSeries: ITimeSeriesStatistic[];
+    resumesTimeSeries: ITimeSeriesStatistic[];
+    statisticsTime: string;
+    filterStartDate: string;
+    filterEndDate: string;
+    timeUnit: string; // "WEEK" or "MONTH"
+}
+
+export interface ICompanyTopResume {
+    companyId: number;
+    companyName: string;
+    companyLogo: string;
+    totalResumes: number;
+}
+
+export interface ICompanyResumeStatistic {
+    companyId: number;
+    companyName: string;
+    totalResumes: number;
+    approvedResumes: number;
+    rejectedResumes: number;
+    pendingResumes: number;
+}
+
+export interface IAdminStatistics {
+    totalApprovedJobs: number;
+    totalRejectedJobs: number;
+    totalPendingJobs: number;
+    totalCompanies: number;
+    topCompanyByResumes: ICompanyTopResume | null;
+    resumesByStatus: IResumeStatusStatistic[];
+    jobsTimeSeries: ITimeSeriesStatistic[];
+    resumesTimeSeries: ITimeSeriesStatistic[];
+    companyResumeStatistics: ICompanyResumeStatistic[];
+    statisticsTime: string;
+    filterStartDate: string;
+    filterEndDate: string;
+    timeUnit: string; // "WEEK" or "MONTH"
 }

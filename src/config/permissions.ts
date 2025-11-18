@@ -41,8 +41,14 @@ export const ALL_PERMISSIONS = {
     SKILLS: {
         GET_PAGINATE: { method: "GET", apiPath: '/api/v1/skills', module: "SKILLS" },
         CREATE: { method: "POST", apiPath: '/api/v1/skills', module: "SKILLS" },
-        UPDATE: { method: "PUT", apiPath: '/api/v1/skills', module: "SKILLS" },
+        UPDATE: { method: "PUT", apiPath: '/api/v1/skills/{id}', module: "SKILLS" },
         DELETE: { method: "DELETE", apiPath: '/api/v1/skills/{id}', module: "SKILLS" },
+    },
+    JOBPROFESSIONS: {
+        GET_PAGINATE: { method: "GET", apiPath: '/api/v1/job_professions', module: "JOBPROFESSIONS" },
+        CREATE: { method: "POST", apiPath: '/api/v1/job_professions', module: "JOBPROFESSIONS" },
+        UPDATE: { method: "PUT", apiPath: '/api/v1/job_professions/{id}', module: "JOBPROFESSIONS" },
+        DELETE: { method: "DELETE", apiPath: '/api/v1/job_professions/{id}', module: "JOBPROFESSIONS" },
     },
 }
 
@@ -56,4 +62,5 @@ export const ALL_MODULES = {
     USERS: 'USERS',
     SUBSCRIBERS: 'SUBSCRIBERS',
     SKILLS: 'SKILLS',
+    JOBPROFESSIONS: 'JOBPROFESSIONS',
 }

@@ -37,7 +37,7 @@ const SuggestedJobCard: React.FC<IProps> = ({ job, onSave, onView }) => {
                     </Text>
                     <div className={savejobStyles['job-info']}>
                         <Tag color="green" className={savejobStyles['salary-tag']}>
-                            {job.salary === 0 ? 'Thoả thuận' : (job.salary + "").replace(/\B(?=(\d{3})+(?!\d))/g, ',') + ' đ'}
+                            {job.minSalary === 0  && job.maxSalary === 0 ? 'Thoả thuận' : (job.minSalary + "").replace(/\B(?=(\d{3})+(?!\d))/g, ',') + ' đ' +'-' +(job.maxSalary + "").replace(/\B(?=(\d{3})+(?!\d))/g, ',') + ' đ'}
                         </Tag>
                         <Tag color="default" className={savejobStyles['location-tag']}>
                             {job.location}

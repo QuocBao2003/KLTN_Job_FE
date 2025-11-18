@@ -1,7 +1,8 @@
-import { callFetchCompany } from '@/config/api';
+import { callFetchCompany, callCountJobByCompanyIdAndStatus } from '@/config/api';
 import { convertSlug } from '@/config/utils';
 import { ICompany } from '@/types/backend';
-import { Card, Col, Divider, Empty, Pagination, Row, Spin } from 'antd';
+import { Card, Col, Empty, Pagination, Row, Spin } from 'antd';
+import { EnvironmentOutlined } from '@ant-design/icons';
 import { useState, useEffect } from 'react';
 import { isMobile } from 'react-device-detect';
 import { Link, useNavigate } from 'react-router-dom';
@@ -16,6 +17,7 @@ const CompanyCard = (props: IProps) => {
 
     const [displayCompany, setDisplayCompany] = useState<ICompany[] | null>(null);
     const [isLoading, setIsLoading] = useState<boolean>(false);
+    const [jobCounts, setJobCounts] = useState<Map<string, number>>(new Map());
 
     const [current, setCurrent] = useState(1);
     const [pageSize, setPageSize] = useState(4);
@@ -42,6 +44,27 @@ const CompanyCard = (props: IProps) => {
         if (res && res.data) {
             setDisplayCompany(res.data.result);
             setTotal(res.data.meta.total)
+            
+            // Fetch job counts for each company
+            const counts = new Map<string, number>();
+            const promises = res.data.result.map(async (company: ICompany) => {
+                if (!company.id) return;
+                try {
+                    const countRes = await callCountJobByCompanyIdAndStatus(company.id);
+                    if (countRes && countRes.data) {
+                        // Handle both object and number response
+                        const count = typeof countRes.data === 'object' && 'approvedJobsCount' in countRes.data
+                            ? (countRes.data as any).approvedJobsCount
+                            : countRes.data;
+                        counts.set(company.id, count || 0);
+                    }
+                } catch (error) {
+                    console.error(`Error fetching job count for company ${company.id}:`, error);
+                    counts.set(company.id, 0);
+                }
+            });
+            await Promise.all(promises);
+            setJobCounts(counts);
         }
         setIsLoading(false)
     }
@@ -83,26 +106,50 @@ const CompanyCard = (props: IProps) => {
                                 <Col span={24} md={6} key={item.id}>
                                     <Card
                                         onClick={() => handleViewDetailJob(item)}
-                                        style={{ height: 350 }}
+                                        className={styles["company-card"]}
                                         hoverable
-                                        cover={
-                                            <div className={styles["card-customize"]} >
+                                        bodyStyle={{ padding: 0 }}
+                                    >
+                                        <div className={styles["company-card-wrapper"]}>
+                                            {/* Banner - chỉ hiển thị nửa trên */}
+                                            <div className={styles["company-banner"]}>
                                                 <img
-                                                    style={{ maxWidth: "200px" }}
-                                                    alt="example"
-                                                    src={item?.logo || "https://via.placeholder.com/200x200?text=No+Logo"}
+                                                    src={item?.banner || "https://cdn-new.topcv.vn/unsafe/https://static.topcv.vn/v4/image/normal-company/cover/company_cover_1.jpg"}
+                                                    alt="company banner"
                                                 />
                                             </div>
-                                        }
-                                    >
-                                        <Divider />
-                                        <h3 style={{ textAlign: "center" }}>{item.name}</h3>
-                                      
+                                            
+                                            {/* Logo tròn - chồng lên banner */}
+                                            <div className={styles["company-logo-wrapper"]}>
+                                                <div className={styles["company-logo"]}>
+                                                    <img
+                                                        src={item?.logo || "https://via.placeholder.com/120x120?text=Logo"}
+                                                        alt="company logo"
+                                                    />
+                                                </div>
+                                            </div>
+                                            
+                                            {/* Tên công ty */}
+                                            <div className={styles["company-info"]}>
+                                                <h3 className={styles["company-name"]}>{item.name}</h3>
+                                                {item.address && (
+                                                    <div className={styles["company-address"]}>
+                                                        <EnvironmentOutlined className={styles["address-icon"]} />
+                                                        <span>{item.address}</span>
+                                                    </div>
+                                                )}
+                                                {item.id && jobCounts.has(item.id) && (
+                                                    <div className={styles["company-job-count"]}>
+                                                        {jobCounts.get(item.id)} việc đang tuyển
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
                                     </Card>
                                 </Col>
                             )
                         })}
-
+                        
                         {(!displayCompany || displayCompany && displayCompany.length === 0)
                             && !isLoading &&
                             <div className={styles["empty"]}>

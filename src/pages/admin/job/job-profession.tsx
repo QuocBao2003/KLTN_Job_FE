@@ -1,33 +1,33 @@
 import DataTable from "@/components/client/data-table";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
-import { ISkill } from "@/types/backend";
+import { IJobProfession } from "@/types/backend";
 import { DeleteOutlined, EditOutlined, PlusOutlined } from "@ant-design/icons";
 import { ActionType, ProColumns } from '@ant-design/pro-components';
-import { Button, Popconfirm, Space, Tag, message, notification } from "antd";
+import { Button, Popconfirm, Space, message, notification } from "antd";
 import { useState, useRef } from 'react';
 import dayjs from 'dayjs';
-import { callDeleteSkill } from "@/config/api";
+import { callDeleteJobProfession } from "@/config/api";
 import queryString from 'query-string';
 import { sfLike } from "spring-filter-query-builder";
-import { fetchSkill } from "@/redux/slice/skillSlide";
-import ModalSkill from "@/components/admin/skill/modal.skill";
+import { fetchJobProfession } from "@/redux/slice/jobProfessionSlice";
+import ModalJobProfession from "@/components/admin/job/job-profession.modal";
 
-const SkillPage = () => {
+const JobProfessionPage = () => {
     const [openModal, setOpenModal] = useState<boolean>(false);
-    const [dataInit, setDataInit] = useState<ISkill | null>(null);
+    const [dataInit, setDataInit] = useState<IJobProfession | null>(null);
 
     const tableRef = useRef<ActionType>();
 
-    const isFetching = useAppSelector(state => state.skill.isFetching);
-    const meta = useAppSelector(state => state.skill.meta);
-    const skills = useAppSelector(state => state.skill.result);
+    const isFetching = useAppSelector(state => state.jobProfession.isFetching);
+    const meta = useAppSelector(state => state.jobProfession.meta);
+    const jobProfessions = useAppSelector(state => state.jobProfession.result);
     const dispatch = useAppDispatch();
 
-    const handleDeleteSkill = async (id: string | undefined) => {
+    const handleDeleteJobProfession = async (id: string | undefined) => {
         if (id) {
-            const res = await callDeleteSkill(id);
+            const res = await callDeleteJobProfession(id);
             if (res && +res.statusCode === 200) {
-                message.success('Xóa Skill thành công');
+                message.success('Xóa Job Profession thành công');
                 reloadTable();
             } else {
                 notification.error({
@@ -42,7 +42,7 @@ const SkillPage = () => {
         tableRef?.current?.reload();
     }
 
-    const columns: ProColumns<ISkill>[] = [
+    const columns: ProColumns<IJobProfession>[] = [
         {
             title: 'STT',
             key: 'index',
@@ -57,36 +57,23 @@ const SkillPage = () => {
             hideInSearch: true,
         },
         {
-            title: 'Tên Skill',
+            title: 'Tên ngành nghề',
             dataIndex: 'name',
             sorter: true,
         },
-        {
-            title: 'Ngành nghề',
-            dataIndex: ['jobProfession', 'name'],
-            render: (text, record) => {
-                return (
-                    <>
-                        {record.jobProfession?.name ? (
-                            <Tag color="blue">{record.jobProfession.name}</Tag>
-                        ) : (
-                            <Tag color="default">N/A</Tag>
-                        )}
-                    </>
-                );
-            },
-            hideInSearch: true,
-        },
+
         {
             title: 'Created By',
             dataIndex: 'createdBy',
             hideInSearch: true,
         },
+
         {
             title: 'Updated By',
             dataIndex: 'updatedBy',
             hideInSearch: true,
         },
+
         {
             title: 'CreatedAt',
             dataIndex: 'createdAt',
@@ -131,9 +118,9 @@ const SkillPage = () => {
 
                     <Popconfirm
                         placement="leftTop"
-                        title={"Xác nhận xóa skill"}
-                        description={"Bạn có chắc chắn muốn xóa skill này ?"}
-                        onConfirm={() => handleDeleteSkill(entity.id)}
+                        title={"Xác nhận xóa ngành nghề"}
+                        description={"Bạn có chắc chắn muốn xóa ngành nghề này? (Lưu ý: Không thể xóa nếu còn skill hoặc job liên quan)"}
+                        onConfirm={() => handleDeleteJobProfession(entity.id)}
                         okText="Xác nhận"
                         cancelText="Hủy"
                     >
@@ -188,16 +175,16 @@ const SkillPage = () => {
 
     return (
         <div>
-            <DataTable<ISkill>
+            <DataTable<IJobProfession>
                 actionRef={tableRef}
-                headerTitle="Danh sách Skill"
+                headerTitle="Danh sách Ngành nghề"
                 rowKey="id"
                 loading={isFetching}
                 columns={columns}
-                dataSource={skills}
+                dataSource={jobProfessions}
                 request={async (params, sort, filter): Promise<any> => {
                     const query = buildQuery(params, sort, filter);
-                    dispatch(fetchSkill({ query }))
+                    dispatch(fetchJobProfession({ query }))
                 }}
                 scroll={{ x: true }}
                 pagination={
@@ -222,7 +209,7 @@ const SkillPage = () => {
                     );
                 }}
             />
-            <ModalSkill
+            <ModalJobProfession
                 openModal={openModal}
                 setOpenModal={setOpenModal}
                 reloadTable={reloadTable}
@@ -233,4 +220,4 @@ const SkillPage = () => {
     )
 }
 
-export default SkillPage;
+export default JobProfessionPage;

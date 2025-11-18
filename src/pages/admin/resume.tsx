@@ -2,17 +2,18 @@ import DataTable from "@/components/client/data-table";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import { IResume } from "@/types/backend";
 import { ActionType, ProColumns, ProFormSelect } from '@ant-design/pro-components';
-import { Space, message, notification } from "antd";
+import { Popconfirm, Space, message, notification } from "antd";
 import { useState, useRef } from 'react';
 import dayjs from 'dayjs';
-import { callDeleteResume } from "@/config/api";
+import { callDeleteResume, createRoomMessage } from "@/config/api";
 import queryString from 'query-string';
 import { fetchResume } from "@/redux/slice/resumeSlide";
 import ViewDetailResume from "@/components/admin/resume/view.resume";
 import { ALL_PERMISSIONS } from "@/config/permissions";
 import Access from "@/components/share/access";
 import { sfIn } from "spring-filter-query-builder";
-import { EditOutlined } from "@ant-design/icons";
+import { DeleteOutlined, EditOutlined, MessageOutlined } from "@ant-design/icons";
+import { useNavigate } from "react-router-dom";
 
 const ResumePage = () => {
     const tableRef = useRef<ActionType>();
@@ -21,7 +22,7 @@ const ResumePage = () => {
     const meta = useAppSelector(state => state.resume.meta);
     const resumes = useAppSelector(state => state.resume.result);
     const dispatch = useAppDispatch();
-
+    const navigate = useNavigate();
     const [dataInit, setDataInit] = useState<IResume | null>(null);
     const [openViewDetail, setOpenViewDetail] = useState<boolean>(false);
 
@@ -43,24 +44,60 @@ const ResumePage = () => {
     const reloadTable = () => {
         tableRef?.current?.reload();
     }
+    const handleMessage = async (resume: IResume) => {
+        try {
+            // Lấy jobId từ resume
+            const job = typeof resume.jobId === 'object' ? resume.jobId : null;
+            const jobFull = (resume as any)?.job || null;
+            const jobId = job?.id || jobFull?.id || null;
+
+            // Lấy candidateId (userId)
+            const userId = typeof resume.userId === 'object' 
+                ? (resume.userId as any)?.id 
+                : resume.userId;
+
+            if (!jobId) {
+                message.warning('Không tìm thấy thông tin công việc');
+                return;
+            }
+
+            if (!userId) {
+                message.warning('Không tìm thấy thông tin ứng viên');
+                return;
+            }
+
+            // Tạo hoặc lấy phòng chat (HR phải truyền cả jobId và otherUserId)
+            const res = await createRoomMessage(String(jobId), String(userId));
+            
+            if (res && res.data) {
+                const room = res.data;
+                // Navigate đến trang messages với roomId
+                navigate(`/admin/messages?roomId=${room.id}`);
+            }
+        } catch (error: any) {
+            console.error('Error creating message room:', error);
+            notification.error({
+                message: 'Có lỗi xảy ra',
+                description: error?.response?.data?.message || 'Không thể tạo phòng chat'
+            });
+        }
+    };
 
     const columns: ProColumns<IResume>[] = [
         {
-            title: 'Id',
-            dataIndex: 'id',
+            title: 'STT',
+            key: 'index',
             width: 50,
-            render: (text, record, index, action) => {
+            align: "center",
+            render: (text, record, index) => {
                 return (
-                    <a href="#" onClick={() => {
-                        setOpenViewDetail(true);
-                        setDataInit(record);
-                    }}>
-                        {record.id}
-                    </a>
-                )
+                    <>
+                        {(index + 1) + (meta.page - 1) * (meta.pageSize)}
+                    </>)
             },
             hideInSearch: true,
         },
+        
         {
             title: 'Trạng Thái',
             dataIndex: 'status',
@@ -123,6 +160,15 @@ const ResumePage = () => {
             width: 100,
             render: (_value, entity, _index, _action) => (
                 <Space>
+                    <MessageOutlined
+                        style={{
+                            fontSize: 20,
+                            color: '#1890ff',
+                            cursor: 'pointer'
+                        }}
+                        onClick={() => handleMessage(entity)}
+                        title="Nhắn tin với ứng viên"
+                    />
                     <EditOutlined
                         style={{
                             fontSize: 20,
@@ -135,7 +181,7 @@ const ResumePage = () => {
                         }}
                     />
 
-                    {/* <Popconfirm
+                    <Popconfirm
                         placement="leftTop"
                         title={"Xác nhận xóa resume"}
                         description={"Bạn có chắc chắn muốn xóa resume này ?"}
@@ -151,7 +197,7 @@ const ResumePage = () => {
                                 }}
                             />
                         </span>
-                    </Popconfirm> */}
+                    </Popconfirm>
                 </Space>
             ),
 

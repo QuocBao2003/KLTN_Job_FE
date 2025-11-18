@@ -6,8 +6,9 @@ import {
   LogoutOutlined,
   MenuFoldOutlined,
   RiseOutlined,
-  TwitterOutlined,
+  TwitterOutlined, BellOutlined, MessageOutlined
 } from "@ant-design/icons";
+
 import { Avatar, Drawer, Dropdown, MenuProps, Space, message, Badge } from "antd";
 import { Menu, ConfigProvider } from "antd";
 import styles from "@/styles/client.module.scss";
@@ -16,9 +17,10 @@ import { FaFacebook } from "react-icons/fa";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Link } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
-import { callLogout, callFetchResumeByUser } from "@/config/api";
+import { callLogout, callFetchResumeByUser, callCountUnviewedNotifications, getUnreadRoomCount, resetAllUnreadCounts  } from "@/config/api";
 import { setLogoutAction } from "@/redux/slice/accountSlide";
-import images from "@/img/Logo-I.png";
+import images from "@/img/logo.jpeg";
+import NotificationDropdown from "./notification";
 
 const Header = (props: any) => {
   const navigate = useNavigate();
@@ -30,7 +32,9 @@ const Header = (props: any) => {
   const user = useAppSelector((state) => state.account.user);
   const [openMobileMenu, setOpenMobileMenu] = useState<boolean>(false);
   const [appliedJobsCount, setAppliedJobsCount] = useState<number>(0);
-
+  const [isNotificationOpen, setIsNotificationOpen] = useState<boolean>(false);
+  const [unviewedCount, setUnviewedCount] = useState<number>(0);
+  const [unreadMessagesCount, setUnreadMessagesCount] = useState<number>(0);
   const [current, setCurrent] = useState("home");
   const location = useLocation();
 
@@ -40,11 +44,40 @@ const Header = (props: any) => {
 
   // Fetch số lượng việc làm đã ứng tuyển
   useEffect(() => {
-    if (isAuthenticated && user && user.role?.name === 'NORMAL_USER') {
+    if (isAuthenticated && user && user.role?.name === 'USER') {
       fetchAppliedJobsCount();
     }
   }, [isAuthenticated, user]);
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      fetchUnviewedCount();
+    }
+  }, [isAuthenticated, user]);
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      fetchUnreadMessagesCount();
+      
+      // Poll every 30 seconds để update count
+      const interval = setInterval(() => {
+        fetchUnreadMessagesCount();
+      }, 30000);
 
+      return () => clearInterval(interval);
+    }
+  }, [isAuthenticated, user]);
+  const fetchUnreadMessagesCount = async () => {
+    try {
+      const res = await getUnreadRoomCount();
+      console.log('🔍 getTotalUnreadCount response:', res);
+      console.log('📊 Unread messages count:', res?.data);
+      if (res && res.data !== undefined) {
+        setUnreadMessagesCount(res.data);
+      }
+    } catch (error: any) {
+      console.error('❌ Error fetching unread messages count:', error);
+      console.error('❌ Error details:', error?.response?.data);
+    }
+  };
   const fetchAppliedJobsCount = async () => {
     try {
       const res = await callFetchResumeByUser();
@@ -54,6 +87,16 @@ const Header = (props: any) => {
       }
     } catch (error) {
       console.error('Error fetching applied jobs count:', error);
+    }
+  };
+  const fetchUnviewedCount = async () => {
+    try {
+      const res = await callCountUnviewedNotifications();
+      if (res && res.data) {
+        setUnviewedCount(res.data.count);
+      }
+    } catch (error) {
+      console.error('Error fetching unviewed count:', error);
     }
   };
 
@@ -82,7 +125,22 @@ const Header = (props: any) => {
   const onClick: MenuProps["onClick"] = (e) => {
     setCurrent(e.key);
   };
-
+  const handleNotificationClick = () => {
+    setIsNotificationOpen(!isNotificationOpen);
+    
+  };
+  const handleMessageClick = async () => {
+    // UI reset trước để mượt
+    setUnreadMessagesCount(0);
+  
+    try {
+      await resetAllUnreadCounts();
+    } catch (error) {
+      console.error('Error resetting unread counts:', error);
+    } finally {
+      navigate("/messages");
+    }
+  };
   const handleLogout = async () => {
     const res = await callLogout();
     if (res && res && +res.statusCode === 200) {
@@ -170,9 +228,9 @@ const Header = (props: any) => {
                 <ConfigProvider
                   theme={{
                     token: {
-                      colorPrimary: "#fff",
-                      colorBgContainer: "",
-                      colorText: "#a7a7a7",
+                      colorPrimary: "#197bcd",
+                      colorBgContainer: "#fff",
+                      colorText: "#595959",
                     },
                   }}
                 >
@@ -183,26 +241,62 @@ const Header = (props: any) => {
                     mode="horizontal"
                     items={items}
                     overflowedIndicator={null}
+                    style={{ backgroundColor: '#ffffff' }}
                   />
                   </div>
                 </ConfigProvider>
                 <div className={styles["extra"]}>
                   {isAuthenticated === false ? (
-                    <Link to={"/login"}>Đăng Nhập</Link>
+                    <Link to={"/login"} style={{ color: "#595959" }}>Đăng Nhập</Link>
                   ) : (
-                    <>
+                    <Space size={16}>
+                      {/* Icon Message */}
+                      <Badge count={unreadMessagesCount} size="small">
+                        <MessageOutlined
+                          style={{
+                            fontSize: 20,
+                            cursor: "pointer",
+                            color: "#595959",
+                          }}
+                          onClick={() => handleMessageClick()}
+                        />
+                      </Badge>
+
+                      {/* Icon Notification */}
+                      <div style={{ position: "relative" }}>
+                        <Badge count={unviewedCount} size="small">
+                          <BellOutlined
+                            style={{
+                              fontSize: 20,
+                              cursor: "pointer",
+                              color: "#595959",
+                            }}
+                            onClick={handleNotificationClick}
+                          />
+                        </Badge>
+
+                        {/* Notification Dropdown */}
+                        {isNotificationOpen && (
+                          <NotificationDropdown
+                            onClose={() => setIsNotificationOpen(false)}
+                            onUnreadCountChange={setUnviewedCount}
+                          />
+                        )}
+                      </div>
+
+                      {/* User Dropdown */}
                       <Dropdown
                         menu={{ items: itemsDropdown }}
                         trigger={["click"]}
                       >
-                        <Space style={{ cursor: "pointer" }}>
-                          <span>Welcome {user?.name}</span>
+                        <Space style={{ cursor: "pointer", color: "#595959" }}>
+                          <span style={{ color: "#595959" }}>Welcome {user?.name}</span>
                           <Avatar>
                             {user?.name?.substring(0, 2)?.toUpperCase()}
                           </Avatar>
                         </Space>
                       </Dropdown>
-                    </>
+                    </Space>
                   )}
                 </div>
               </div>

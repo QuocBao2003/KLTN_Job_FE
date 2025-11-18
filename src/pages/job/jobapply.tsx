@@ -44,22 +44,21 @@ const JobApply = () => {
     };
 
     const handleMessage = async (resume: IResume) => {
-        // Lấy jobId và companyId từ resume
         const job = typeof resume.jobId === 'object' ? resume.jobId : null;
-        const jobFull = (resume as any)?.job || null;
-        const jobId = job?.id || jobFull?.id || null;
-        
-        if (!jobId) {
-            message.warning('Không tìm thấy thông tin công việc');
-            return;
-        }
-        
-        const res = await createRoomMessage(String(jobId));
-        console.log(res);
-        if (res && res.data) {
-            const room = res.data;
-            navigate(`/message-jobapply?roomId=${room.id}&jobId=${jobId}`);
-        }
+    const jobFull = (resume as any)?.job || null;
+    const jobId = job?.id || jobFull?.id || null;
+    
+    if (!jobId) {
+        message.warning('Không tìm thấy thông tin công việc');
+        return;
+    }
+    
+    const res = await createRoomMessage(String(jobId));
+    console.log(res);
+    if (res && res.data) {
+        const room = res.data;
+        navigate(`/messages?roomId=${room.id}`);
+    }
     };
 
     const formatSalary = (salary: number | string | undefined): string => {

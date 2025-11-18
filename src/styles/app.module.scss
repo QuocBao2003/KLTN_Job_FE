@@ -4,7 +4,14 @@
     padding: 0;
 }
 
+.layout-app {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
 .content-app {
-    height: 100%;
+    flex: 1;
     width: 100%;
+    background-color: #f3f5f7;
 }

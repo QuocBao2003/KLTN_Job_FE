@@ -1,8 +1,8 @@
-import { callFetchJob } from '@/config/api';
+import { callFetchJob, callSavedJob } from '@/config/api';
 import { convertSlug, getLocationName } from '@/config/utils';
 import { IJob } from '@/types/backend';
-import { EnvironmentOutlined, DollarOutlined  } from '@ant-design/icons';
-import { Card, Col, Empty, Pagination, Row, Spin } from 'antd';
+import { EnvironmentOutlined, DollarOutlined, HeartOutlined } from '@ant-design/icons';
+import { Card, Col, Empty, Pagination, Row, Spin, message } from 'antd';
 import { useState, useEffect } from 'react';
 import { isMobile } from 'react-device-detect';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
@@ -25,7 +25,7 @@ const JobCard = (props: IProps) => {
     const [isLoading, setIsLoading] = useState<boolean>(false);
 
     const [current, setCurrent] = useState(1);
-    const [pageSize, setPageSize] = useState(6);
+    const [pageSize, setPageSize] = useState(9);
     const [total, setTotal] = useState(0);
     const [filter, setFilter] = useState("");
     const [sortQuery, setSortQuery] = useState("sort=updatedAt,desc");
@@ -90,11 +90,39 @@ const JobCard = (props: IProps) => {
         navigate(`/job/${slug}?id=${item.id}`)
     }
 
+    const handleSaveJob = async (e: React.MouseEvent, jobId?: string) => {
+        e.stopPropagation(); // Ngăn chặn event bubble lên card
+        if (!jobId) {
+            message.error('Không tìm thấy ID công việc!');
+            return;
+        }
+        try {
+            const res = await callSavedJob(jobId);
+            if (res && res.data) {
+                message.success('Đã lưu công việc thành công!');
+            }
+        } catch (error) {
+            message.error('Có lỗi xảy ra khi lưu công việc!');
+        }
+    }
+
+    const formatSalary = (item: IJob) => {
+        if (item.salaryType === "NEGOTIABLE") {
+            return "Thương lượng";
+        }
+        if (item.salaryType === "SPECIFIC" && item.minSalary && item.maxSalary) {
+            const min = item.minSalary.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+            const max = item.maxSalary.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+            return `${min} - ${max} đ`;
+        }
+        return "Thương lượng";
+    }
+
     return (
         <div className={`${styles["card-job-section"]}`}>
             <div className={`${styles["job-content"]}`}>
                 <Spin spinning={isLoading} tip="Loading...">
-                    <Row gutter={[20, 20]}>
+                    <Row gutter={[16, 16]}>
                         <Col span={24}>
                             <div className={isMobile ? styles["dflex-mobile"] : styles["dflex-pc"]}>
                                 <span className={styles["title"]}>Công Việc Mới Nhất</span>
@@ -106,10 +134,18 @@ const JobCard = (props: IProps) => {
 
                         {displayJob?.map(item => {
                             return (
-                                <Col span={24} md={12} key={item.id}>
-                                    <Card size="small" title={null} hoverable
+                                <Col span={24} md={8} key={item.id}>
+                                    <Card 
+                                        size="small" 
+                                        title={null} 
+                                        hoverable
+                                        className={styles["job-card-wrapper"]}
                                         onClick={() => handleViewDetailJob(item)}
                                     >
+                                        <HeartOutlined 
+                                            className={styles["heart-icon"]}
+                                            onClick={(e) => handleSaveJob(e, item.id)}
+                                        />
                                         <div className={styles["card-job-content"]}>
                                             <div className={styles["card-job-left"]}>
                                                 <img
@@ -123,9 +159,9 @@ const JobCard = (props: IProps) => {
                                                 <div>
                                                     <DollarOutlined style={{ color: '#2580ff' }} />&nbsp;
                                                     <span style={{ color: '#2580ff' }}>
-                                                        {(item.salary + "")?.replace(/\B(?=(\d{3})+(?!\d))/g, ',')} đ
+                                                        {formatSalary(item)}
                                                     </span>
-                                                    </div>
+                                                </div>
                                                 <div className={styles["job-updatedAt"]}>{item.updatedAt ? dayjs(item.updatedAt).locale('en').fromNow() : dayjs(item.createdAt).locale('en').fromNow()}</div>
                                             </div>
                                         </div>

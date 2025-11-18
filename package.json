@@ -12,6 +12,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@ant-design/charts": "^2.6.6",
     "@ant-design/icons": "4.8.0",
     "@ant-design/pro-components": "2.6.46",
     "@ant-design/pro-layout": "7.17.19",
@@ -37,6 +38,7 @@
     "react-redux": "8.0.5",
     "react-router-dom": "6.11.2",
     "react-spinners": "0.13.8",
+    "recharts": "^3.4.1",
     "sockjs-client": "^1.6.1",
     "spring-filter-query-builder": "1.1.0",
     "uuid": "9.0.0"
