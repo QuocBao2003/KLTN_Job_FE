@@ -299,18 +299,18 @@ const ApplyModal = (props: IProps) => {
                         address: rowData.address || rowData['Địa chỉ'] || rowData['Address'] || '',
                         objective: rowData.objective || rowData['Mục tiêu'] || rowData['Objective'] || '',
                         experience: rowData.experience || rowData['Kinh nghiệm'] || rowData['Experience'] || '',
-                        education: rowData.education || rowData['Học vấn'] || rowData['Education'] || '',
-                        skills: (() => {
-                            let skillsText = rowData.skills || rowData['Kỹ năng'] || rowData['Skills'] || '';
-                            // Add TOEIC and IELTS if available
+                        education: (() => {
+                            let educationText = rowData.education || rowData['Học vấn'] || rowData['Education'] || '';
+                            // Add TOEIC and IELTS to education if available
                             if (rowData.toeic || rowData['TOEIC']) {
-                                skillsText += (skillsText ? '\n' : '') + `TOEIC: ${rowData.toeic || rowData['TOEIC']}`;
+                                educationText += (educationText ? '\n' : '') + `TOEIC: ${rowData.toeic || rowData['TOEIC']}`;
                             }
                             if (rowData.ielts || rowData['IELTS']) {
-                                skillsText += (skillsText ? '\n' : '') + `IELTS: ${rowData.ielts || rowData['IELTS']}`;
+                                educationText += (educationText ? '\n' : '') + `IELTS: ${rowData.ielts || rowData['IELTS']}`;
                             }
-                            return skillsText;
+                            return educationText;
                         })(),
+                        skills: rowData.skills || rowData['Kỹ năng'] || rowData['Skills'] || '',
                         photoUrl: rowData.photoUrl || rowData['Ảnh'] || rowData['Photo'] || '',
                         cvTemplate: 'Tiêu chuẩn'
                     };
