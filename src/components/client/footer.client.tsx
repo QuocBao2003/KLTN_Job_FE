@@ -5,8 +5,8 @@ import images from '@/img/Logo-IT.png';
 const Footer: React.FC = () => {
   return (
     <>
-      <div className={styles['footer-separator']}></div>
-      <footer className={styles['about-footer']}>
+      <div id="site-footer-separator" className={styles['footer-separator']}></div>
+      <footer id="site-footer" className={styles['about-footer']}>
         <div className={styles['footer-container']}>
         <div className={styles['footer-section']}>
           <h3>Về chúng tôi</h3>

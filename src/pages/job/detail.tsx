@@ -33,6 +33,7 @@ const ClientJobDetailPage = (props: any) => {
             if (id) {
                 setIsLoading(true)
                 const res = await callFetchJobById(id);
+                console.log(res);
                 if (res?.data) {
                     setJobDetail(res.data)
                 }

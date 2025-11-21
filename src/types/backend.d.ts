@@ -217,10 +217,16 @@ export interface IResume {
         name: string;
         
     };
+    companyName?: string;
     jobId: string | {
         id: string;
         name: string;
     };
+    job?: {
+        id?: string;
+        name?: string;
+    } | null;
+    jobName?: string;
     history?: {
         status: string;
         updatedAt: Date;

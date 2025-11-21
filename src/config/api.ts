@@ -5,8 +5,11 @@ import axios from 'config/axios-customize';
  * 
 Module Auth
  */
-export const callRegister = (name: string, email: string, password: string, age: number, gender: string, address: string) => {
-    return axios.post<IBackendRes<IUser>>('/api/v1/auth/register', { name, email, password, age, gender, address })
+export const callRegister = (name: string, email: string, password: string, gender: string, address: string) => {
+    return axios.post<IBackendRes<IUser>>('/api/v1/auth/register', { name, email, password, gender, address })
+}
+export const callRegisterHR = (name: string, email: string, password: string, gender: string, address: string) => {
+    return axios.post<IBackendRes<IUser>>('/api/v1/auth/registerHR', { name, email, password, gender, address })
 }
 
 export const callLogin = (username: string, password: string) => {
@@ -172,6 +175,9 @@ export const callGetSavedJobByUser=()=>{
 }
 export const callSavedJob = (id? : string) =>{
     return axios.post<IBackendRes<ISaveJob[]>>(`/api/v1/save-jobs/${id}`);
+}
+export const callJobByJobProfession = (professionId: string) =>{
+    return axios.get<IBackendRes<IModelPaginate<IJob>>>(`/api/v1/jobs/jobProfession/${professionId}`);
 }
 // tạo room chat
 

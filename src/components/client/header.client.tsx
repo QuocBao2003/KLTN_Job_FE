@@ -209,7 +209,7 @@ const Header = (props: any) => {
 
   return (
     <>
-      <div className={styles["header-section"]}>
+      <header id="site-header" className={styles["header-section"]}>
         <div className={styles["container"]}>
           {!isMobile ? (
             <div style={{ display: "flex", gap: 30 }}>
@@ -308,7 +308,7 @@ const Header = (props: any) => {
             </div>
           )}
         </div>
-      </div>
+      </header>
       <Drawer
         title="Chức năng"
         placement="right"

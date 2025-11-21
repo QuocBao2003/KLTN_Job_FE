@@ -2,7 +2,7 @@ import DataTable from "@/components/client/data-table";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import { IResume } from "@/types/backend";
 import { ActionType, ProColumns, ProFormSelect } from '@ant-design/pro-components';
-import { Popconfirm, Space, message, notification } from "antd";
+import { Button, Popconfirm, Space, message, notification } from "antd";
 import { useState, useRef } from 'react';
 import dayjs from 'dayjs';
 import { callDeleteResume, createRoomMessage } from "@/config/api";
@@ -12,8 +12,10 @@ import ViewDetailResume from "@/components/admin/resume/view.resume";
 import { ALL_PERMISSIONS } from "@/config/permissions";
 import Access from "@/components/share/access";
 import { sfIn } from "spring-filter-query-builder";
-import { DeleteOutlined, EditOutlined, MessageOutlined } from "@ant-design/icons";
+import { DeleteOutlined, DownloadOutlined, EditOutlined, MessageOutlined } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
+import * as XLSX from 'xlsx-js-style';
+import { saveAs } from 'file-saver';
 
 const ResumePage = () => {
     const tableRef = useRef<ActionType>();
@@ -40,7 +42,156 @@ const ResumePage = () => {
             }
         }
     }
+    const resolveJobName = (resume: IResume) => {
+        if (typeof resume.jobId === 'object' && resume.jobId?.name) {
+            return resume.jobId.name;
+        }
+        if (resume.job && resume.job.name) {
+            return resume.job.name;
+        }
+        if ((resume as any)?.jobName) {
+            return (resume as any).jobName;
+        }
+        return "Công việc chưa xác định";
+    };
 
+    const exportExcel = () => {
+        if (!resumes || resumes.length === 0) {
+            message.warning("Không có dữ liệu để xuất Excel");
+            return;
+        }
+    
+        const firstResume = resumes[0];
+        const companyName =
+            firstResume?.companyName ||
+            (typeof firstResume?.companyId === 'object'
+                ? (firstResume?.companyId as any)?.name
+                : firstResume?.companyId) ||
+            "Công ty chưa xác định";
+    
+        const now = dayjs().format("DD-MM-YYYY HH:mm:ss");
+    
+        const dataForExcel = resumes.map((r, index) => ({
+            "STT": index + 1,
+            "Email ứng viên": r.email,
+            "Trạng thái": r.status,
+            "Tên công việc": resolveJobName(r),
+            "Ngày apply": r.createdAt ? dayjs(r.createdAt).format("DD-MM-YYYY HH:mm:ss") : ""
+        }));
+    
+        const headerRows = [
+            [`Tên công ty: ${companyName}`],
+            [`Ngày tháng: ${now}`],
+            ["Danh sách ứng viên đã apply"],
+            [""]
+        ];
+    
+        // Tạo worksheet từ headerRows
+        const worksheet = XLSX.utils.aoa_to_sheet(headerRows);
+    
+        // Thêm dữ liệu bảng ứng viên vào worksheet
+        XLSX.utils.sheet_add_json(worksheet, dataForExcel, {
+            origin: headerRows.length,
+            skipHeader: false
+        });
+    
+        
+        const headerRowCount = headerRows.length; 
+        const dataRowCount = dataForExcel.length;
+        const totalRows = headerRowCount + 1 + dataRowCount; 
+    
+        // Số cột: lấy max giữa headerRows từng dòng và data keys
+        const maxColsFromHeader = headerRows.reduce((max, row) => Math.max(max, row.length), 0);
+        const dataCols = dataForExcel.length > 0 ? Object.keys(dataForExcel[0]).length : 0;
+        const totalCols = Math.max(maxColsFromHeader, dataCols);
+    
+        // Build range object
+        const safeRange = {
+            s: { r: 0, c: 0 },
+            e: { r: Math.max(totalRows - 1, 0), c: Math.max(totalCols - 1, 0) }
+        };
+    
+        // Nếu sheet chưa có !ref thì set bằng safeRange, ngược lại decode_range từ nó
+        let range;
+        if (!worksheet["!ref"]) {
+            worksheet["!ref"] = XLSX.utils.encode_range(safeRange);
+            range = safeRange;
+        } else {
+            try {
+                range = XLSX.utils.decode_range(worksheet["!ref"]);
+            } catch (err) {
+                // fallback nếu decode bị lỗi
+                worksheet["!ref"] = XLSX.utils.encode_range(safeRange);
+                range = safeRange;
+            }
+        }
+    
+        // ----- Merge các dòng header để căn giữa toàn bộ tiêu đề -----
+        if (!worksheet["!merges"]) worksheet["!merges"] = [];
+        const headerRowsToMerge = [0, 1, 2];
+        headerRowsToMerge.forEach((rowIndex) => {
+            worksheet["!merges"]!.push({
+                s: { r: rowIndex, c: 0 },
+                e: { r: rowIndex, c: Math.max(totalCols - 1, 0) }
+            });
+        });
+    
+        // ----- AUTO-FIT COLUMNS (approx by text length) -----
+        worksheet["!cols"] = [];
+        for (let C = 0; C < totalCols; C++) {
+            let maxWidth = 10; // minimum
+            for (let R = 0; R <= range.e.r; R++) {
+                const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
+                const cell = worksheet[cellAddress];
+                if (!cell) continue;
+                const text = cell.v ? String(cell.v) : "";
+                // đo độ dài chuỗi (có thể điều chỉnh hệ số)
+                const len = text.replace(/\t/g, '    ').length;
+                if (len > maxWidth) maxWidth = len;
+            }
+            // width theo số ký tự (wch). + thêm 4 chars để không bị cắt
+            worksheet["!cols"][C] = { wch: Math.min(Math.max(maxWidth + 4, 10), 80) };
+        }
+    
+        // ----- (TÙY CHỌN) áp style cho header — LƯU Ý: style này có thể không được ghi bởi SheetJS community -----
+        const headerRowIndex = headerRowCount; // dòng header cột thực tế (0-based)
+        const headerStyle = {
+            font: { bold: true },
+            alignment: { horizontal: "center", vertical: "center", wrapText: true }
+        };
+        const topHeaderStyle = {
+            font: { bold: true }
+        };
+    
+        for (let R = 0; R <= range.e.r; R++) {
+            for (let C = 0; C <= range.e.c; C++) {
+                const addr = XLSX.utils.encode_cell({ r: R, c: C });
+                const cell = worksheet[addr];
+                if (!cell) continue;
+                // căn giữa mặc định
+                cell.s = cell.s || {};
+                cell.s.alignment = { horizontal: "center", vertical: "center", wrapText: true };
+    
+                if (R < headerRowIndex - 1) {
+                    // áp style cho top header (Tên công ty, Ngày tháng)
+                    cell.s = { ...cell.s, ...topHeaderStyle };
+                } else if (R === headerRowIndex) {
+                    // áp style cho header cột (STT, Email...)
+                    cell.s = { ...cell.s, ...headerStyle };
+                }
+            }
+        }
+    
+        // ----- Append sheet vào workbook và xuất file -----
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Danh sách ứng viên");
+    
+        const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+        const blob = new Blob([excelBuffer], {
+            type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        });
+        saveAs(blob, `Danh_sach_ung_vien_${dayjs().format('DDMMYYYY_HHmmss')}.xlsx`);
+    };
     const reloadTable = () => {
         tableRef?.current?.reload();
     }
@@ -119,18 +270,18 @@ const ResumePage = () => {
         },
 
         {
-            title: 'Job',
+            title: 'Tên Công việc',
             dataIndex: ["job", "name"],
             hideInSearch: true,
         },
         {
-            title: 'Company',
+            title: 'Tên Công ty',
             dataIndex: "companyName",
             hideInSearch: true,
         },
 
         {
-            title: 'CreatedAt',
+            title: 'Thời gian ứng tuyển',
             dataIndex: 'createdAt',
             width: 200,
             sorter: true,
@@ -142,7 +293,7 @@ const ResumePage = () => {
             hideInSearch: true,
         },
         {
-            title: 'UpdatedAt',
+            title: 'Thời gian duyệt',
             dataIndex: 'updatedAt',
             width: 200,
             sorter: true,
@@ -270,11 +421,17 @@ const ResumePage = () => {
                         }
                     }
                     rowSelection={false}
-                    toolBarRender={(_action, _rows): any => {
-                        return (
-                            <></>
-                        );
-                    }}
+                    toolBarRender={(_action, _rows): any => [
+                        <Button
+                            key="export-resume"
+                            type="primary"
+                            icon={<DownloadOutlined />}
+                            onClick={exportExcel}
+                            disabled={!resumes?.length}
+                        >
+                            Xuất Excel
+                        </Button>
+                    ]}
                 />
             </Access>
             <ViewDetailResume

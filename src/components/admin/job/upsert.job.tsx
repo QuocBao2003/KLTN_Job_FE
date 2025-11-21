@@ -726,9 +726,9 @@ const ViewUpsertJob = (props: any) => {
                             </Col>
                             <Col span={24}>
                                 <ProForm.Item
-                                    name="workLocation"
+                                    name="worklocation"
                                     label="Địa điểm làm việc"
-                                    rules={[{ required: true, message: 'Vui lòng nhập quyền lợi được hưởng!' }]}
+                                    rules={[{ required: true, message: 'Vui lòng nhập địa điểm làm việc' }]}
                                 >
                                     <ReactQuill
                                         theme="snow"
@@ -739,9 +739,9 @@ const ViewUpsertJob = (props: any) => {
                             </Col>
                             <Col span={24}>
                                 <ProForm.Item
-                                    name="workTime"
+                                    name="worktime"
                                     label="Thời gian làm việc"
-                                    rules={[{ required: true, message: 'Vui lòng nhập quyền lợi được hưởng!' }]}
+                                    rules={[{ required: true, message: 'Vui lòng nhập thời gian làm việc' }]}
                                 >
                                     <ReactQuill
                                         theme="snow"

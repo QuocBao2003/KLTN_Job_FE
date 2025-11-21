@@ -7,6 +7,7 @@ $color-red: #f44336;
 $color-blue: #1a73e8;
 $color-gray: #80868b;
 $color-grayish: #dadce0;
+$color-gray-600: #6b7280;
 
 $shadow-normal: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
 $shadow-medium: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
@@ -20,14 +21,25 @@ $shadow-large: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0,
 
     // Components
     .container {
+        position: relative;
         display: flex;
-        justify-content: center;
+        justify-content: flex-end;
         align-items: center;
-        max-width: 80rem;
-        min-height: 100vh;
-        // width: 100%;
-        padding: 0 2rem;
-        margin: 0 auto;
+        width: 100%;
+        min-height: 50vh;
+        padding: 2rem;
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+        isolation: isolate;
+
+        &::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.35);
+            z-index: 0;
+        }
     }
 
 
@@ -62,16 +74,46 @@ $shadow-large: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0,
 
     // Main
     .main {
+        &.login-layout {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 2.5rem;
+            padding: 3.875rem 0 2rem;
+
+            .container {
+                flex: 1;
+                min-height: 30rem;
+                max-width: 32rem;
+                border-radius: 1rem;
+                overflow: hidden;
+                box-shadow: $shadow-large;
+
+                &::before {
+                    display: none;
+                }
+            }
+
+            .wrapper {
+                flex: 0 0 30rem;
+            }
+        }
+
         .wrapper {
-            max-width: 28rem;
+            position: relative;
+            z-index: 1;
+            flex: 0 0 30rem;
+            max-width: 30rem;
             width: 100%;
-            margin: 2rem auto;
-            padding: 2rem 2.5rem;
+            margin: 0 auto;
+            padding: 2.5rem 2.75rem;
             border: none;
             outline: none;
-            border-radius: 0.5rem;
+            border-radius: 1rem;
             color: $color-black;
-            background: $color-white;
+            background: rgba(255, 255, 255, 0.92);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            backdrop-filter: blur(12px);
             box-shadow: $shadow-large;
 
             .form {
@@ -179,6 +221,209 @@ $shadow-large: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0,
                     }
                 }
             }
+        }
+    }
+
+    @media (max-width: 992px) {
+        .container {
+            flex-direction: column;
+            justify-content: center;
+            padding: 1.5rem;
+        }
+
+        .main .wrapper {
+            flex: unset;
+            max-width: 100%;
+            margin: 2rem 0;
+            padding: 2rem;
+        }
+
+        .main.login-layout {
+            flex-direction: column;
+
+            .container {
+                max-width: 100%;
+                width: 100%;
+            }
+
+            .wrapper {
+                margin: 0;
+            }
+        }
+    }
+
+    @media (max-width: 576px) {
+        .container {
+            padding: 1rem;
+        }
+
+        .main .wrapper {
+            padding: 1.5rem;
+        }
+
+        .main.login-layout {
+            padding: 1.5rem 0;
+        }
+    }
+}
+
+.role-modal-wrapper {
+    :global(.ant-modal-content) {
+        border-radius: 24px;
+        padding: 0;
+    }
+
+    :global(.ant-modal-body) {
+        padding: 0;
+    }
+}
+
+.role-modal {
+    padding: 2.5rem 2.75rem 2.25rem;
+    text-align: center;
+    background: $color-white;
+
+    .role-header {
+        h3 {
+            font-size: 1.5rem;
+            margin-bottom: 0.35rem;
+        }
+
+        p {
+            margin: 0;
+            color: $color-gray-600;
+            font-size: 1rem;
+        }
+    }
+
+    .role-intro {
+        margin: 1.75rem 0 2rem;
+
+        p {
+            margin: 0;
+            font-size: 1.05rem;
+            font-weight: 500;
+            color: $color-black;
+        }
+    }
+
+    .role-selection {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1.5rem;
+        justify-content: center;
+    }
+
+    .role-card {
+        flex: 1;
+        min-width: 280px;
+        max-width: 360px;
+        background: $color-light;
+        border-radius: 1.5rem;
+        padding: 1.75rem;
+        border: 1px solid $color-grayish;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 1.25rem;
+        text-align: center;
+        transition: all 0.3s ease;
+        box-shadow: 0 20px 45px rgba(17, 24, 39, 0.08);
+
+        &:hover {
+            border-color: $color-blue;
+            box-shadow: 0 25px 55px rgba(26, 115, 232, 0.18);
+            transform: translateY(-4px);
+            background: $color-white;
+        }
+    }
+
+    .role-avatar {
+        width: 180px;
+        height: 180px;
+        border-radius: 50%;
+        overflow: hidden;
+        background: linear-gradient(135deg, #e0f2ff, #f5f9ff);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 10px 25px rgba(59, 130, 246, 0.25);
+
+        img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+    }
+
+    .role-content {
+        display: flex;
+        flex-direction: column;
+        gap: 0.85rem;
+
+        h4 {
+            font-size: 1.15rem;
+            margin: 0;
+            color: $color-black;
+        }
+
+        p {
+            margin: 0;
+            color: $color-gray-600;
+            line-height: 1.5;
+        }
+
+        :global(.ant-btn) {
+            font-weight: 600;
+            height: auto;
+            padding: 0.75rem 1.25rem;
+            background: $color-blue;
+            border: none;
+
+            &:hover {
+                background: darken($color-blue, 5%);
+            }
+        }
+
+        :global(.ant-btn-default) {
+            background: transparent;
+            border: 2px solid $color-grayish;
+            color: $color-black;
+
+            &:hover {
+                border-color: $color-blue;
+                color: $color-blue;
+                background: rgba(26, 115, 232, 0.08);
+            }
+        }
+    }
+
+    @media (max-width: 768px) {
+        padding: 2rem 1.5rem;
+
+        .role-selection {
+            flex-direction: column;
+        }
+    }
+}
+
+.inline-link {
+    padding: 0;
+    height: auto;
+    font-size: inherit;
+}
+
+.register-page {
+    padding: 30px 0 60px;
+    background: $color-light;
+
+    .main {
+        display: flex;
+        justify-content: center;
+
+        .wrapper {
+            max-width: 26rem;
+            padding: 2rem 2.25rem;
         }
     }
 }
