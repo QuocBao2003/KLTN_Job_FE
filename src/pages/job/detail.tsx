@@ -1,12 +1,15 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { useState, useEffect } from 'react';
 import { IJob } from "@/types/backend";
-import { callFetchJobById, callSavedJob } from "@/config/api";
+import { callFetchJobById, callSavedJob, callJobByJobProfession } from "@/config/api";
 import styles from 'styles/client.module.scss';
+import savejobStyles from 'styles/savejob.module.scss';
 import parse from 'html-react-parser';
-import { Col, Divider, message, Row, Skeleton, Tag, Card } from "antd";
-import { DollarOutlined, EnvironmentOutlined, HistoryOutlined } from "@ant-design/icons";
-import { getLocationName } from "@/config/utils";
+import { Col, Divider, message, Row, Skeleton, Tag, Card, Empty, Spin, Typography, Button } from "antd";
+import { DollarOutlined, EnvironmentOutlined, HistoryOutlined, HeartOutlined } from "@ant-design/icons";
+import { getLocationName, convertSlug } from "@/config/utils";
+
+const { Title, Text } = Typography;
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import ApplyModal from "@/components/client/modal/apply.modal";
@@ -21,8 +24,11 @@ import {
 const ClientJobDetailPage = (props: any) => {
     const [jobDetail, setJobDetail] = useState<IJob | null>(null);
     const [isLoading, setIsLoading] = useState<boolean>(false);
+    const [relatedJobs, setRelatedJobs] = useState<IJob[]>([]);
+    const [isLoadingRelatedJobs, setIsLoadingRelatedJobs] = useState<boolean>(false);
 
     const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
+    const navigate = useNavigate();
 
     let location = useLocation();
     let params = new URLSearchParams(location.search);
@@ -42,6 +48,30 @@ const ClientJobDetailPage = (props: any) => {
         }
         init();
     }, [id]);
+
+    useEffect(() => {
+        const fetchRelatedJobs = async () => {
+            if (jobDetail?.jobProfession?.id) {
+                setIsLoadingRelatedJobs(true);
+                try {
+                    const res = await callJobByJobProfession(jobDetail.jobProfession.id);
+                    console.log("related jobs", res?.data);
+                    // Kiểm tra cả result và content để tương thích với cả hai format
+                    const jobs = (res?.data as any)?.content || (res?.data as any)?.result || [];
+                    if (jobs && Array.isArray(jobs)) {
+                        // Loại bỏ job hiện tại khỏi danh sách
+                        const filteredJobs = jobs.filter((job: IJob) => job.id !== jobDetail.id);
+                        setRelatedJobs(filteredJobs);
+                    }
+                } catch (error) {
+                    console.error("Error fetching related jobs:", error);
+                } finally {
+                    setIsLoadingRelatedJobs(false);
+                }
+            }
+        };
+        fetchRelatedJobs();
+    }, [jobDetail?.jobProfession?.id, jobDetail?.id]);
     const handleClickSaveJob= async ()=>{
         if (!jobDetail?.id) {
             message.error("Không tìm thấy ID việc làm");
@@ -53,6 +83,39 @@ const ClientJobDetailPage = (props: any) => {
         }else{
             message.error("Lưu việc làm thất bại");
         }
+    }
+
+    const handleViewDetailJob = (item: IJob) => {
+        const slug = convertSlug(item.name);
+        navigate(`/job/${slug}?id=${item.id}`)
+    }
+
+    const handleSaveJob = async (e: React.MouseEvent, jobId?: string) => {
+        e.stopPropagation();
+        if (!jobId) {
+            message.error('Không tìm thấy ID công việc!');
+            return;
+        }
+        try {
+            const res = await callSavedJob(jobId);
+            if (res && res.data) {
+                message.success('Đã lưu công việc thành công!');
+            }
+        } catch (error) {
+            message.error('Có lỗi xảy ra khi lưu công việc!');
+        }
+    }
+
+    const formatSalary = (item: IJob) => {
+        if (item.salaryType === "NEGOTIABLE" || (item.minSalary === 0 && item.maxSalary === 0)) {
+            return "Thoả thuận";
+        }
+        if (item.salaryType === "SPECIFIC" && item.minSalary && item.maxSalary) {
+            const min = item.minSalary.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+            const max = item.maxSalary.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+            return `${min} - ${max} triệu`;
+        }
+        return "Thoả thuận";
     }
     return (
         <div className={`${styles["container"]} ${styles["detail-job-section"]}`} style={{ marginTop: '15px' }}>
@@ -300,6 +363,78 @@ const ClientJobDetailPage = (props: any) => {
                                             </div>
                                         )}
                                     </div>
+                                </Card>
+                                
+                                {/* Card: Danh sách việc làm cùng ngành */}
+                                <Card 
+                                    bordered={false}
+                                    style={{ 
+                                        backgroundColor: '#ffffff',
+                                        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                                        borderRadius: '8px',
+                                        padding: '20px',
+                                        marginTop: '20px'
+                                    }}
+                                >
+                                    <div className={savejobStyles['suggested-title']} style={{ marginBottom: '16px' }}>
+                                        Gợi ý việc làm phù hợp
+                                    </div>
+                                    <Spin spinning={isLoadingRelatedJobs} tip="Loading...">
+                                        {relatedJobs && relatedJobs.length > 0 ? (
+                                            <div className={savejobStyles['suggested-jobs-list']}>
+                                                {relatedJobs.map((item) => {
+                                                    return (
+                                                        <Card 
+                                                            key={item.id}
+                                                            className={savejobStyles['suggested-job-card']}
+                                                            hoverable
+                                                            onClick={() => handleViewDetailJob(item)}
+                                                            size="small"
+                                                        >
+                                                            <div className={savejobStyles['suggested-job-content']}>
+                                                                <div className={savejobStyles['job-left']}>
+                                                                    <img
+                                                                        src={item?.company?.logo || "https://via.placeholder.com/200x200?text=No+Logo"}
+                                                                        alt={item.company?.name}
+                                                                        className={savejobStyles['company-logo-small']}
+                                                                    />
+                                                                </div>
+                                                                <div className={savejobStyles['job-right']}>
+                                                                    <Title level={5} className={savejobStyles['job-title']}>
+                                                                        {item.name}
+                                                                    </Title>
+                                                                    
+                                                                    <div className={savejobStyles['job-info']}>
+                                                                        <Tag className={savejobStyles['salary-tag']}>
+                                                                            {formatSalary(item)}
+                                                                        </Tag>
+                                                                        <Tag className={savejobStyles['location-tag']}>
+                                                                            {getLocationName(item.location)}
+                                                                        </Tag>
+                                                                    </div>
+                                                                </div>
+                                                                <div className={savejobStyles['job-actions']}>
+                                                                    <Button
+                                                                        type="text"
+                                                                        icon={<HeartOutlined />}
+                                                                        className={savejobStyles['save-btn']}
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            handleSaveJob(e, item.id);
+                                                                        }}
+                                                                    />
+                                                                </div>
+                                                            </div>
+                                                        </Card>
+                                                    )
+                                                })}
+                                            </div>
+                                        ) : (
+                                            !isLoadingRelatedJobs && (
+                                                <Empty description="Không có việc làm cùng ngành" />
+                                            )
+                                        )}
+                                    </Spin>
                                 </Card>
                             </Col>
                         </>

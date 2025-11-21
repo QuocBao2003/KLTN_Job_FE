@@ -1,11 +1,12 @@
-import { Card, Col, Row, Statistic, Table, DatePicker, Space, Tag, Spin, Select, Radio } from "antd";
+import { Card, Col, Row, Statistic, Table, DatePicker, Space, Tag, Spin, Select, Radio, Button } from "antd";
 import { 
     CheckCircleOutlined, 
     CloseCircleOutlined, 
     ClockCircleOutlined,
     FileTextOutlined,
     TrophyOutlined,
-    ShopOutlined
+    ShopOutlined,
+    DownloadOutlined
 } from '@ant-design/icons';
 import CountUp from 'react-countup';
 import { 
@@ -17,6 +18,8 @@ import { getHRStatistics, getAdminStatistics, IStatisticsFilter } from "@/config
 import { IHRStatistics, IAdminStatistics } from "@/types/backend";
 import { useAppSelector } from "@/redux/hooks";
 import dayjs, { Dayjs } from 'dayjs';
+import * as XLSX from 'xlsx';
+import { saveAs } from 'file-saver';
 
 const { RangePicker } = DatePicker;
 const { Option } = Select;
@@ -25,6 +28,7 @@ type TimeUnit = 'WEEK' | 'MONTH';
 
 const DashboardPage = () => {
     const user = useAppSelector(state => state.account.user);
+    console.log("user", user);
     const isHR = user?.role?.name === 'HR';
     const isAdmin = user?.role?.name === 'SUPER_ADMIN';
 
@@ -54,29 +58,17 @@ const DashboardPage = () => {
 
             if (isHR) {
                 const res = await getHRStatistics(filter) as any;
-                console.log("HR Statistics Response:", res);
-                // Axios interceptor returns res.data, so res is already IBackendRes<IHRStatistics>
                 if (res && res.data) {
                     setHrStats(res.data);
                 } else if (res && !res.data) {
-                    // If response structure is different, try using res directly
-                    console.warn("HR Statistics: Unexpected response structure, trying direct assignment", res);
                     setHrStats(res as IHRStatistics);
-                } else {
-                    console.error("HR Statistics: No data in response", res);
                 }
             } else if (isAdmin) {
                 const res = await getAdminStatistics(filter) as any;
-                console.log("Admin Statistics Response:", res);
-                // Axios interceptor returns res.data, so res is already IBackendRes<IAdminStatistics>
                 if (res && res.data) {
                     setAdminStats(res.data);
                 } else if (res && !res.data) {
-                    // If response structure is different, try using res directly
-                    console.warn("Admin Statistics: Unexpected response structure, trying direct assignment", res);
                     setAdminStats(res as IAdminStatistics);
-                } else {
-                    console.error("Admin Statistics: No data in response", res);
                 }
             }
         } catch (error) {
@@ -84,6 +76,180 @@ const DashboardPage = () => {
         } finally {
             setLoading(false);
         }
+    };
+
+    const formatPeriodLabel = (periodStart?: string, periodEnd?: string) => {
+        if (!periodStart && !periodEnd) return 'N/A';
+        const start = periodStart ? dayjs(periodStart).format('DD/MM/YYYY') : '';
+        const end = periodEnd ? dayjs(periodEnd).format('DD/MM/YYYY') : '';
+        if (start && end) {
+            return start === end ? start : `${start} - ${end}`;
+        }
+        return start || end || 'N/A';
+    };
+
+    // Export Excel for HR
+    const exportHRToExcel = () => {
+        if (!hrStats) return;
+
+        const wb = XLSX.utils.book_new();
+
+        // Sheet 1: Tổng quan
+        const dateRangeLabel = dateRange
+            ? `${dateRange[0].format('DD/MM/YYYY')} - ${dateRange[1].format('DD/MM/YYYY')}`
+            : 'N/A';
+        const overviewData = [
+            ['BÁO CÁO THỐNG KÊ - HR'],
+            ['Thời gian:', dateRangeLabel],
+            ['Tên công ty:', user?.company?.name || 'N/A'],
+            [],
+            ['TỔNG QUAN'],
+            ['Tổng công việc được duyệt:', hrStats.totalApprovedJobs],
+            ['Tổng công việc không được duyệt:', hrStats.totalRejectedJobs],
+            ['Tổng công việc đang chờ duyệt:', hrStats.totalPendingJobs],
+            ['Tổng số ứng tuyển:', hrStats.totalResumes],
+        ];
+        const ws1 = XLSX.utils.aoa_to_sheet(overviewData);
+        XLSX.utils.book_append_sheet(wb, ws1, 'Tổng quan');
+
+        // Sheet 2: Trạng thái công việc
+        const jobStatusData = [
+            ['TRẠNG THÁI CÔNG VIỆC'],
+            ['Trạng thái', 'Số lượng'],
+            ['Đã duyệt', hrStats.totalApprovedJobs],
+            ['Từ chối', hrStats.totalRejectedJobs],
+            ['Chờ duyệt', hrStats.totalPendingJobs],
+        ];
+        const ws2 = XLSX.utils.aoa_to_sheet(jobStatusData);
+        XLSX.utils.book_append_sheet(wb, ws2, 'Trạng thái công việc');
+
+        // Sheet 3: Trạng thái đơn ứng tuyển
+        const resumeStatusHeaders = [['TRẠNG THÁI ĐỠN ỨNG TUYỂN'], ['Trạng thái', 'Số lượng']];
+        const resumeStatusRows = (hrStats.resumesByStatus ?? []).map(item => [item.status, item.count]);
+        const ws3 = XLSX.utils.aoa_to_sheet([...resumeStatusHeaders, ...resumeStatusRows]);
+        XLSX.utils.book_append_sheet(wb, ws3, 'Trạng thái đơn ứng tuyển');
+
+        // Sheet 4: Danh sách công việc ứng tuyển
+        const jobListHeaders = [
+            ['DANH SÁCH CÔNG VIỆC ỨNG TUYỂN'],
+            ['Tên công việc', 'Số đơn ứng tuyển', 'Ngày bắt đầu', 'Ngày kết thúc']
+        ];
+        const jobListRows = (hrStats.activeJobsWithResumes ?? []).map(job => [
+            job.jobName,
+            job.resumeCount,
+            dayjs(job.startDate).format('DD/MM/YYYY'),
+            dayjs(job.endDate).format('DD/MM/YYYY')
+        ]);
+        const ws4 = XLSX.utils.aoa_to_sheet([...jobListHeaders, ...jobListRows]);
+        XLSX.utils.book_append_sheet(wb, ws4, 'Danh sách công việc');
+
+        // Sheet 5: Biểu đồ theo thời gian - Jobs
+        const jobsTimeSeriesHeaders = [
+            [`CÔNG VIỆC TẠO THEO ${timeUnit === 'WEEK' ? 'TUẦN' : 'THÁNG'}`],
+            ['Thời gian', 'Số lượng']
+        ];
+        const jobsTimeSeriesRows = (hrStats.jobsTimeSeries ?? []).map(item => [
+            formatPeriodLabel(item.periodStart, item.periodEnd),
+            item.count
+        ]);
+        const ws5 = XLSX.utils.aoa_to_sheet([...jobsTimeSeriesHeaders, ...jobsTimeSeriesRows]);
+        XLSX.utils.book_append_sheet(wb, ws5, 'Công việc theo thời gian');
+
+        // Sheet 6: Biểu đồ theo thời gian - Resumes
+        const resumesTimeSeriesHeaders = [
+            [`ĐƠN ỨNG TUYỂN THEO ${timeUnit === 'WEEK' ? 'TUẦN' : 'THÁNG'}`],
+            ['Thời gian', 'Số lượng']
+        ];
+        const resumesTimeSeriesRows = (hrStats.resumesTimeSeries ?? []).map(item => [
+            formatPeriodLabel(item.periodStart, item.periodEnd),
+            item.count
+        ]);
+        const ws6 = XLSX.utils.aoa_to_sheet([...resumesTimeSeriesHeaders, ...resumesTimeSeriesRows]);
+        XLSX.utils.book_append_sheet(wb, ws6, 'Ứng tuyển theo thời gian');
+
+        // Xuất file
+        const fileName = `HR_Statistics_${user?.company?.name}_${dayjs().format('YYYYMMDD_HHmmss')}.xlsx`;
+        XLSX.writeFile(wb, fileName);
+    };
+
+    // Export Excel for Admin
+    const exportAdminToExcel = () => {
+        if (!adminStats) return;
+
+        const wb = XLSX.utils.book_new();
+
+        // Sheet 1: Tổng quan
+        const overviewData = [
+            ['BÁO CÁO THỐNG KÊ TOÀN HỆ THỐNG - ADMIN'],
+            ['Thời gian:', `${dateRange?.[0].format('DD/MM/YYYY')} - ${dateRange?.[1].format('DD/MM/YYYY')}`],
+            [],
+            ['TỔNG QUAN'],
+            ['Tổng công việc được duyệt:', adminStats.totalApprovedJobs],
+            ['Tổng công việc không được duyệt:', adminStats.totalRejectedJobs],
+            ['Tổng công việc đang chờ duyệt:', adminStats.totalPendingJobs],
+            ['Tổng số công ty:', adminStats.totalCompanies],
+            [],
+            ['CÔNG TY HÀNG ĐẦU'],
+            ['Tên công ty:', adminStats.topCompanyByResumes?.companyName || 'N/A'],
+            ['Tổng đơn ứng tuyển:', adminStats.topCompanyByResumes?.totalResumes || 0],
+        ];
+        const ws1 = XLSX.utils.aoa_to_sheet(overviewData);
+        XLSX.utils.book_append_sheet(wb, ws1, 'Tổng quan');
+
+        // Sheet 2: Trạng thái công việc
+        const jobStatusData = [
+            ['TRẠNG THÁI CÔNG VIỆC'],
+            ['Trạng thái', 'Số lượng'],
+            ['Đã duyệt', adminStats.totalApprovedJobs],
+            ['Từ chối', adminStats.totalRejectedJobs],
+            ['Chờ duyệt', adminStats.totalPendingJobs],
+        ];
+        const ws2 = XLSX.utils.aoa_to_sheet(jobStatusData);
+        XLSX.utils.book_append_sheet(wb, ws2, 'Trạng thái công việc');
+
+        // Sheet 3: Trạng thái đơn ứng tuyển
+        const resumeStatusHeaders = [['TRẠNG THÁI ĐƠN ỨNG TUYỂN'], ['Trạng thái', 'Số lượng']];
+        const resumeStatusRows = adminStats.resumesByStatus.map(item => [item.status, item.count]);
+        const ws3 = XLSX.utils.aoa_to_sheet([...resumeStatusHeaders, ...resumeStatusRows]);
+        XLSX.utils.book_append_sheet(wb, ws3, 'Trạng thái đơn ứng tuyển');
+
+        // Sheet 4: Top công ty
+        const companyHeaders = [
+            [`TOP ${topLimit} CÔNG TY THEO SỐ ĐƠN ỨNG TUYỂN`],
+            ['Thứ hạng', 'Tên công ty', 'Tổng ứng tuyển', 'Đã duyệt', 'Chờ duyệt', 'Từ chối']
+        ];
+        const companyRows = adminStats.companyResumeStatistics.map((company, index) => [
+            index + 1,
+            company.companyName,
+            company.totalResumes,
+            company.approvedResumes,
+            company.pendingResumes,
+            company.rejectedResumes
+        ]);
+        const ws4 = XLSX.utils.aoa_to_sheet([...companyHeaders, ...companyRows]);
+        XLSX.utils.book_append_sheet(wb, ws4, 'Top công ty');
+
+        // Sheet 5: Biểu đồ theo thời gian - Jobs
+        const jobsTimeSeriesHeaders = [
+            [`CÔNG VIỆC TẠO THEO ${timeUnit === 'WEEK' ? 'TUẦN' : 'THÁNG'}`],
+            ['Thời gian', 'Số lượng']
+        ];
+        const jobsTimeSeriesRows = adminStats.jobsTimeSeries.map(item => [item.label, item.count]);
+        const ws5 = XLSX.utils.aoa_to_sheet([...jobsTimeSeriesHeaders, ...jobsTimeSeriesRows]);
+        XLSX.utils.book_append_sheet(wb, ws5, 'Công việc theo thời gian');
+
+        // Sheet 6: Biểu đồ theo thời gian - Resumes
+        const resumesTimeSeriesHeaders = [
+            [`ĐƠN ỨNG TUYỂN THEO ${timeUnit === 'WEEK' ? 'TUẦN' : 'THÁNG'}`],
+            ['Thời gian', 'Số lượng']
+        ];
+        const resumesTimeSeriesRows = adminStats.resumesTimeSeries.map(item => [item.label, item.count]);
+        const ws6 = XLSX.utils.aoa_to_sheet([...resumesTimeSeriesHeaders, ...resumesTimeSeriesRows]);
+        XLSX.utils.book_append_sheet(wb, ws6, 'Ứng tuyển theo thời gian');
+
+        // Xuất file
+        const fileName = `Admin_Statistics_Full_Report_${dayjs().format('YYYYMMDD_HHmmss')}.xlsx`;
+        XLSX.writeFile(wb, fileName);
     };
 
     const formatter = (value: number | string) => {
@@ -156,18 +322,26 @@ const DashboardPage = () => {
                 {/* Filter Section */}
                 <Card bordered={false} style={{ marginBottom: 20 }}>
                     <Space wrap>
-                        <span>Time Period:</span>
+                        <span>Thời gian:</span>
                         <RangePicker 
                             value={dateRange}
                             onChange={(dates) => setDateRange(dates as [Dayjs, Dayjs] | null)}
                             format="DD/MM/YYYY"
                             allowClear={false}
                         />
-                        <span>View By:</span>
+                        <span>Xem theo:</span>
                         <Radio.Group value={timeUnit} onChange={(e) => setTimeUnit(e.target.value)}>
-                            <Radio.Button value="WEEK">Week</Radio.Button>
-                            <Radio.Button value="MONTH">Month</Radio.Button>
+                            <Radio.Button value="WEEK">Tuần</Radio.Button>
+                            <Radio.Button value="MONTH">Tháng</Radio.Button>
                         </Radio.Group>
+                        <Button 
+                            type="primary" 
+                            icon={<DownloadOutlined />}
+                            onClick={exportHRToExcel}
+                            style={{ marginLeft: 8 }}
+                        >
+                            Xuất báo cáo Excel
+                        </Button>
                     </Space>
                 </Card>
 
@@ -273,9 +447,9 @@ const DashboardPage = () => {
                 </Row>
 
                 {/* Charts Row 2: Time Series */}
-                {/* <Row gutter={[20, 20]} style={{ marginTop: 20 }}>
+                 <Row gutter={[20, 20]} style={{ marginTop: 20 }}>
                     <Col span={24} md={12}>
-                        <Card title={`Jobs Created by ${timeUnit === 'WEEK' ? 'Week' : 'Month'}`} bordered={false}>
+                        <Card title={`Công việc được tạo theo ${timeUnit === 'WEEK' ? 'Tuần' : 'Tháng'}`} bordered={false}>
                             <ResponsiveContainer width="100%" height={300}>
                                 <LineChart data={jobsTimeSeriesData}>
                                     <CartesianGrid strokeDasharray="3 3" />
@@ -290,7 +464,7 @@ const DashboardPage = () => {
                     </Col>
 
                     <Col span={24} md={12}>
-                        <Card title={`Applications Received by ${timeUnit === 'WEEK' ? 'Week' : 'Month'}`} bordered={false}>
+                        <Card title={`Đơn ứng tuyển theo ${timeUnit === 'WEEK' ? 'Tuần' : 'Tháng'}`} bordered={false}>
                             <ResponsiveContainer width="100%" height={300}>
                                 <AreaChart data={resumesTimeSeriesData}>
                                     <CartesianGrid strokeDasharray="3 3" />
@@ -303,12 +477,12 @@ const DashboardPage = () => {
                             </ResponsiveContainer>
                         </Card>
                     </Col>
-                </Row> */}
+                </Row> 
 
                 {/* Bar Chart: Top Jobs by Applications */}
-                {/* <Row gutter={[20, 20]} style={{ marginTop: 20 }}>
+                <Row gutter={[20, 20]} style={{ marginTop: 20 }}>
                     <Col span={24}>
-                        <Card title="Active Jobs with Application Count" bordered={false}>
+                        <Card title="Công việc có nhiều ứng tuyển nhất" bordered={false}>
                             <ResponsiveContainer width="100%" height={400}>
                                 <BarChart data={hrStats.activeJobsWithResumes.slice(0, 10)}>
                                     <CartesianGrid strokeDasharray="3 3" />
@@ -322,12 +496,12 @@ const DashboardPage = () => {
                                     <YAxis />
                                     <Tooltip />
                                     <Legend />
-                                    <Bar dataKey="resumeCount" fill={COLORS.approved} name="Applications" />
+                                    <Bar dataKey="resumeCount" fill={COLORS.approved} name="Số ứng tuyển" />
                                 </BarChart>
                             </ResponsiveContainer>
                         </Card>
                     </Col>
-                </Row> */}
+                </Row>
 
                 {/* Active Jobs Table */}
                 <Row gutter={[20, 20]} style={{ marginTop: 20 }}>
@@ -352,17 +526,17 @@ const DashboardPage = () => {
                                         sorter: (a, b) => a.resumeCount - b.resumeCount,
                                         defaultSortOrder: 'descend',
                                         render: (count: number) => (
-                                            <Tag color="blue">{count} applications</Tag>
+                                            <Tag color="blue">{count} ứng tuyển</Tag>
                                         )
                                     },
                                     {
-                                        title: 'Start Date',
+                                        title: 'Ngày bắt đầu',
                                         dataIndex: 'startDate',
                                         key: 'startDate',
                                         render: (date: string) => dayjs(date).format('DD/MM/YYYY')
                                     },
                                     {
-                                        title: 'End Date',
+                                        title: 'Ngày kết thúc',
                                         dataIndex: 'endDate',
                                         key: 'endDate',
                                         render: (date: string) => dayjs(date).format('DD/MM/YYYY')
@@ -426,6 +600,14 @@ const DashboardPage = () => {
                             <Radio.Button value="WEEK">Week</Radio.Button>
                             <Radio.Button value="MONTH">Month</Radio.Button>
                         </Radio.Group>
+                        <Button 
+                            type="primary" 
+                            icon={<DownloadOutlined />}
+                            onClick={exportAdminToExcel}
+                            style={{ marginLeft: 8 }}
+                        >
+                            Export Full Report
+                        </Button>
                         <span>Top Companies:</span>
                         <Select value={topLimit} onChange={setTopLimit} style={{ width: 100 }}>
                             <Option value={5}>Top 5</Option>
