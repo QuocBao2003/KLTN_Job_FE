@@ -120,6 +120,15 @@ const Header = (props: any) => {
       label: <Link to={"/listCV"}>Tạo CV</Link>,
       key: "/listCV",
     },
+    {
+      label: <Link to="/myCv">CV của tôi</Link>,
+      key: '/myCv',
+      icon: <ContactsOutlined />,
+    },
+    {
+      label: <Link to="/savejob">Việc làm đã lưu</Link>,
+      key: '/savejob',
+    },
   ];
 
   const onClick: MenuProps["onClick"] = (e) => {

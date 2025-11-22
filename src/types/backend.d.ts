@@ -360,4 +360,18 @@ export interface IAdminStatistics {
     filterStartDate: string;
     filterEndDate: string;
     timeUnit: string; // "WEEK" or "MONTH"
+export interface ICv {
+  id: number;
+  fullName: string;
+  email: string;
+  phone: string;
+  address: string;
+  objective: string;
+  experience: string;
+  education: string;
+  skills: string;
+  photoUrl?: string;
+  cvTemplate?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }

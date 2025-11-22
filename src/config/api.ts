@@ -132,10 +132,10 @@ export const callGetUserById = (id: string | number) => {
 };
 
 export const callChangePassword = (
-  id: string,
-  data: { oldPassword: string; newPassword: string }
+    id: string,
+    data: { oldPassword: string; newPassword: string }
 ) => {
-  return axios.put<IBackendRes<IUser>>(`/api/v1/users/${id}`, data);
+    return axios.put<IBackendRes<IUser>>(`/api/v1/users/${id}`, data);
 };
 /**
  * 
@@ -170,10 +170,10 @@ export const callFetchJobById = (id: string) => {
     return axios.get<IBackendRes<IJob>>(`/api/v1/jobs/${id}`);
 }
 
-export const callGetSavedJobByUser=()=>{
+export const callGetSavedJobByUser = () => {
     return axios.get<IBackendRes<ISaveJob>>(`/api/v1/save-jobs`);
 }
-export const callSavedJob = (id? : string) =>{
+export const callSavedJob = (id?: string) => {
     return axios.post<IBackendRes<ISaveJob[]>>(`/api/v1/save-jobs/${id}`);
 }
 export const callJobByJobProfession = (professionId: string) =>{
@@ -414,4 +414,118 @@ export const getAdminStatistics = (filter?: IStatisticsFilter) => {
     if (filter?.topLimit) params.topLimit = filter.topLimit;
     
     return axios.get<IBackendRes<IAdminStatistics>>('/api/v1/statistics/admin', { params });
+// Thêm interface cho thống kê
+export interface IJobStatistics {
+    level?: string;
+    location?: string;
+    companyName?: string;
+    jobCount: number;
+    averageSalary: number;
+}
+
+/**
+ * Module Statistics
+ */
+export const callGetJobStatisticsByLevel = () => {
+    return axios.get<IBackendRes<IJobStatistics[]>>('/api/v1/jobs/statistics/level');
+}
+
+export const callGetJobStatisticsByLocation = () => {
+    return axios.get<IBackendRes<IJobStatistics[]>>('/api/v1/jobs/statistics/location');
+}
+
+export const callGetJobStatisticsByCompany = () => {
+    return axios.get<IBackendRes<IJobStatistics[]>>('/api/v1/jobs/statistics/company');
+}
+
+export const callGetJobStatisticsOverview = () => {
+    return axios.get<IBackendRes<{
+        totalJobs: number;
+        totalCompanies: number;
+        totalCandidates: number;
+        averageSalary: number;
+    }>>('/api/v1/jobs/statistics/overview');
+}
+
+
+export const callSubmitCv = (data: {
+    fullName: string;
+    email: string;
+    phone: string;
+    address: string;
+    objective: string;
+    experience: string;
+    education: string;
+    skills: string;
+    photoUrl: string;
+    cvTemplate: string;
+}) => {
+    return axios.post<IBackendRes<ICv>>('/api/v1/submit-cv', data);
+}
+
+export const callCreateCv = (data: {
+    fullName: string;
+    email: string;
+    phone: string;
+    address: string;
+    objective: string;
+    experience: string;
+    education: string;
+    skills: string;
+    photoUrl: string;
+    cvTemplate: string;
+}) => {
+    return axios.post<IBackendRes<ICv>>('/api/v1/cvs', data);
+}
+
+export const callUpdateCv = (id: string, data: {
+    fullName?: string;
+    email?: string;
+    phone?: string;
+    address?: string;
+    objective?: string;
+    experience?: string;
+    education?: string;
+    skills?: string;
+    photoUrl?: string;
+    cvTemplate?: string;
+}) => {
+    return axios.put<IBackendRes<ICv>>(`/api/v1/cvs/${id}`, data);
+}
+
+export const callFetchCvById = (id: string) => {
+    return axios.get<IBackendRes<ICv>>(`/api/v1/cvs/${id}`);
+}
+
+export const callDeleteCv = (id: string) => {
+    return axios.delete<IBackendRes<ICv>>(`/api/v1/cvs/${id}`);
+}
+
+export const callFetchCvByUser = () => {
+    return axios.post<IBackendRes<IModelPaginate<ICv>>>(`/api/v1/cvs/by-user`);
+}
+
+export const callFetchAllCv = (query: string) => {
+    return axios.get<IBackendRes<IModelPaginate<ICv>>>(`/api/v1/cvs?${query}`);
+}
+
+/**
+ * Upload Excel file and create/update CV from Excel data
+ */
+export const callUploadExcelCv = (file: any) => {
+    const bodyFormData = new FormData();
+    bodyFormData.append('file', file);
+
+    return axios<IBackendRes<ICv>>({
+        method: 'post',
+        url: '/api/v1/cvs/upload-excel',
+        data: bodyFormData,
+        headers: {
+            "Content-Type": "multipart/form-data",
+        },
+    });
+}
+
+export const callFetchAllJobProfession = (query : string = "") => {
+    return axios.get(`/api/v1/job_professions/tree?${query}`);
 }
