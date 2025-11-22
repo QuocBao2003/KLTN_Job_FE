@@ -34,8 +34,11 @@ import PageListCV from "./pages/CV/listCv";
 import Authenticate from "./pages/auth/authentication";
 import SaveJob from "./pages/job/savejob";
 import JobApply from "./pages/job/jobapply";
-import MessageJobApply from "./pages/job/messageJobApply";
+
 import Profile from "./pages/profile/profile";
+import SkillPage from "./pages/admin/job/skill";
+import MessagesContainer from "./pages/message/messagesContainer";
+import JobProfessionPage from "./pages/admin/job/job-profession";
 import CvManagement from "./pages/CV/myCv";
 
 
@@ -51,7 +54,7 @@ const LayoutClient = () => {
   }, [location]);
 
   return (
-    <div className="layout-app" ref={rootRef}>
+    <div className={styles["layout-app"]} ref={rootRef}>
       <Header searchTerm={searchTerm} setSearchTerm={setSearchTerm} />
       <div className={styles["content-app"]}>
         <Outlet context={[searchTerm, setSearchTerm]} />
@@ -94,7 +97,10 @@ export default function App() {
         { path: "authenticate", element: <Authenticate /> },
         { path: "savejob", element: <SaveJob /> },
         { path: "jobapply", element: <JobApply /> },
-        { path: "message-jobapply", element: <MessageJobApply /> },
+        { 
+          path: "messages", 
+          element: <MessagesContainer /> 
+        },
         { path: "profile", element: <Profile /> },
       ],
     },
@@ -179,6 +185,22 @@ export default function App() {
             </ProtectedRoute>
           ),
         },
+        {
+          path: "skill",
+          element: (
+            <ProtectedRoute>
+              <SkillPage />
+            </ProtectedRoute>
+          ),
+        },
+        {
+          path: "job-profession",
+          element: (
+            <ProtectedRoute>
+              <JobProfessionPage/>
+            </ProtectedRoute>
+          ),
+        }
       ],
     },
 
@@ -191,6 +213,7 @@ export default function App() {
       path: "/register",
       element: <RegisterPage />,
     },
+
   ]);
 
   return (

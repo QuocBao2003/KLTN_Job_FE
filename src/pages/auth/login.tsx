@@ -1,17 +1,19 @@
-import { Button, Divider, Form, Input, message, notification } from "antd";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Button, Divider, Form, Input, message, notification, Modal } from "antd";
+import { useLocation, useNavigate } from "react-router-dom";
 import { callLogin } from "config/api";
 import { useState, useEffect } from "react";
 import { useDispatch } from "react-redux";
 import { setUserLoginInfo } from "@/redux/slice/accountSlide";
 import styles from "styles/auth.module.scss";
 import { useAppSelector } from "@/redux/hooks";
-import { SvgIcon } from "@mui/material";
 import { FcGoogle } from "react-icons/fc";
 import OAuthConfig from "config/configuration";
+import Header from "components/client/header.client";
+import Footer from "components/client/footer.client";
 const LoginPage = () => {
   const navigate = useNavigate();
   const [isSubmit, setIsSubmit] = useState(false);
+  const [roleModalOpen, setRoleModalOpen] = useState(false);
   const dispatch = useDispatch();
   const isAuthenticated = useAppSelector(
     (state) => state.account.isAuthenticated
@@ -68,74 +70,158 @@ const LoginPage = () => {
   };
 
   return (
-    <div className={styles["login-page"]}>
-      <main className={styles.main}>
-        <div className={styles.container}>
+    <>
+      <Header />
+      <div className={styles["login-page"]}>
+        <main className={`${styles.main} ${styles["login-layout"]}`}>
           <section className={styles.wrapper}>
-            <div className={styles.heading}>
-              <h2 className={`${styles.text} ${styles["text-large"]}`}>
-                Đăng Nhập
-              </h2>
-              <Divider />
-            </div>
-            <Form
-              name="basic"
-              // style={{ maxWidth: 600, margin: '0 auto' }}
-              onFinish={onFinish}
-              autoComplete="off"
-            >
-              <Form.Item
-                labelCol={{ span: 24 }} //whole column
-                label="Email"
-                name="username"
-                rules={[
-                  { required: true, message: "Email không được để trống!" },
-                ]}
+              <div className={styles.heading}>
+                <h2 className={`${styles.text} ${styles["text-large"]}`}>
+                  Đăng Nhập
+                </h2>
+                <Divider />
+              </div>
+              <Form
+                name="basic"
+                // style={{ maxWidth: 600, margin: '0 auto' }}
+                onFinish={onFinish}
+                autoComplete="off"
               >
-                <Input />
-              </Form.Item>
+                <Form.Item
+                  labelCol={{ span: 24 }} //whole column
+                  label="Email"
+                  name="username"
+                  rules={[
+                    { required: true, message: "Email không được để trống!" },
+                  ]}
+                >
+                  <Input />
+                </Form.Item>
 
-              <Form.Item
-                labelCol={{ span: 24 }} //whole column
-                label="Mật khẩu"
-                name="password"
-                rules={[
-                  { required: true, message: "Mật khẩu không được để trống!" },
-                ]}
-              >
-                <Input.Password />
-              </Form.Item>
+                <Form.Item
+                  labelCol={{ span: 24 }} //whole column
+                  label="Mật khẩu"
+                  name="password"
+                  rules={[
+                    { required: true, message: "Mật khẩu không được để trống!" },
+                  ]}
+                >
+                  <Input.Password />
+                </Form.Item>
 
-              <Form.Item
-              // wrapperCol={{ offset: 6, span: 16 }}
-              >
-                <Button type="primary" htmlType="submit" loading={isSubmit}>
-                  Đăng nhập
+                <Form.Item
+                // wrapperCol={{ offset: 6, span: 16 }}
+                >
+                  <Button type="primary" htmlType="submit" loading={isSubmit}>
+                    Đăng nhập
+                  </Button>
+                </Form.Item>
+                <Divider>Or</Divider>
+                <p className="text text-normal">
+                  Chưa có tài khoản ?
+                  <span>
+                    <Button
+                      type="link"
+                      className={styles["inline-link"]}
+                      onClick={() => setRoleModalOpen(true)}
+                    >
+                      Đăng Ký
+                    </Button>
+                  </span>
+                </p>
+                <Button
+                  block
+                  onClick={() => handleClick()}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "10px",
+                    height: "40px",
+                  }}
+                >
+                  <FcGoogle />
+                  Continue with Google
                 </Button>
-              </Form.Item>
-              <Divider>Or</Divider>
-              <p className="text text-normal">
-                Chưa có tài khoản ?
-                <span>
-                  <Link to="/register"> Đăng Ký </Link>
-                </span>
-              </p>
-              <Button
-                variant="contained"
-                color="secondary"
-                size="large"
-                onClick={() => handleClick()}
-                fullWidth
-                sx={{ gap: "10px" }}
-              >
-                <FcGoogle />
-                Continue with Google
-              </Button>
-            </Form>
-          </section>
+              </Form>
+            </section>
+        </main>
+      </div>
+      <Modal
+        open={roleModalOpen}
+        onCancel={() => setRoleModalOpen(false)}
+        footer={null}
+        centered
+        width={820}
+        className={styles["role-modal-wrapper"]}
+      >
+        <div className={styles["role-modal"]}>
+          <div className={styles["role-header"]}>
+            <h3>Chào bạn,</h3>
+            <p>Bạn hãy dành ra vài giây để xác nhận thông tin dưới đây nhé! 🔔</p>
+          </div>
+
+          <div className={styles["role-intro"]}>
+            <p>
+              Để tối ưu tốt nhất cho trải nghiệm của bạn với TOPJob, vui lòng lựa
+              chọn nhóm phù hợp nhất với bạn.
+            </p>
+          </div>
+
+          <div className={styles["role-selection"]}>
+            <div className={styles["role-card"]}>
+              <div className={styles["role-avatar"]}>
+                <img
+                  src="https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=400&q=80"
+                  alt="Ứng viên"
+                />
+              </div>
+              <div className={styles["role-content"]}>
+                <h4>Tôi là ứng viên tìm việc</h4>
+                
+                <Button
+                  type="primary"
+                  shape="round"
+                  size="large"
+                  block
+                  onClick={() => {
+                    setRoleModalOpen(false);
+                    navigate("/register?role=candidate");
+                  }}
+                >
+                  Tôi là ứng viên tìm việc
+                </Button>
+              </div>
+            </div>
+
+            <div className={styles["role-card"]}>
+              <div className={styles["role-avatar"]}>
+                <img
+                  src="https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=400&q=80"
+                  alt="Nhà tuyển dụng"
+                />
+              </div>
+              <div className={styles["role-content"]}>
+                <h4>Tôi là nhà tuyển dụng</h4>
+                
+                <Button
+                  shape="round"
+                  size="large"
+                  block
+                  onClick={() => {
+                    setRoleModalOpen(false);
+                    navigate("/register?role=recruiter");
+                  }}
+                >
+                  Tôi là nhà tuyển dụng
+                </Button>
+              </div>
+            </div>
+          </div>
         </div>
-      </main>
-    </div>
+      </Modal>
+      <Footer />
+    </>
   );
 };
 

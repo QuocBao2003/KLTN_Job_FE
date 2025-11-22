@@ -28,6 +28,10 @@ interface ICompanyLogo {
     name: string;
     uid: string;
 }
+interface ICompanyBanner {
+    name: string;
+    uid: string;
+}
 
 const ModalCompany = (props: IProps) => {
     const { openModal, setOpenModal, reloadTable, dataInit, setDataInit } = props;
@@ -37,6 +41,7 @@ const ModalCompany = (props: IProps) => {
 
     const [loadingUpload, setLoadingUpload] = useState<boolean>(false);
     const [dataLogo, setDataLogo] = useState<ICompanyLogo[]>([]);
+    const [dataBanner, setDataBanner] = useState<ICompanyBanner[]>([]);
     const [previewOpen, setPreviewOpen] = useState(false);
     const [previewImage, setPreviewImage] = useState('');
     const [previewTitle, setPreviewTitle] = useState('');
@@ -55,7 +60,12 @@ const ModalCompany = (props: IProps) => {
                 name: dataInit.logo,
                 uid: uuidv4(),
             }])
-
+            if (dataInit.banner) {
+                setDataBanner([{
+                    name: dataInit.banner,
+                    uid: uuidv4(),
+                }])
+            }
         }
     }, [dataInit])
 
@@ -67,9 +77,11 @@ const ModalCompany = (props: IProps) => {
             return;
         }
 
+        const bannerName = dataBanner.length > 0 ? dataBanner[0].name : '';
+
         if (dataInit?.id) {
             //update
-            const res = await callUpdateCompany(dataInit.id, name, address, value, dataLogo[0].name);
+            const res = await callUpdateCompany(dataInit.id, name, address, value, dataLogo[0].name, bannerName);
             if (res.data) {
                 message.success("Cập nhật company thành công");
                 handleReset();
@@ -82,7 +94,7 @@ const ModalCompany = (props: IProps) => {
             }
         } else {
             //create
-            const res = await callCreateCompany(name, address, value, dataLogo[0].name);
+            const res = await callCreateCompany(name, address, value, dataLogo[0].name, bannerName);
             if (res.data) {
                 message.success("Thêm mới company thành công");
                 handleReset();
@@ -100,6 +112,8 @@ const ModalCompany = (props: IProps) => {
         form.resetFields();
         setValue("");
         setDataInit(null);
+        setDataLogo([]);
+        setDataBanner([]);
 
         //add animation when closing modal
         setAnimation('close')
@@ -108,8 +122,12 @@ const ModalCompany = (props: IProps) => {
         setAnimation('open')
     }
 
-    const handleRemoveFile = (file: any) => {
+    const handleRemoveFileLogo = (file: any) => {
         setDataLogo([])
+    }
+
+    const handleRemoveFileBanner = (file: any) => {
+        setDataBanner([])
     }
 
     const handlePreview = async (file: any) => {
@@ -173,7 +191,22 @@ const ModalCompany = (props: IProps) => {
             }
         }
     };
-
+    const handleUploadFileBanner = async ({ file, onSuccess, onError }: any) => {
+        const res = await callUploadSingleFile(file, "bannerCompany");
+        if (res && res.data) {
+            setDataBanner([{
+                name: res.data.fileName,
+                uid: uuidv4()
+            }])
+            if (onSuccess) onSuccess('ok')
+        } else {
+            if (onError) {
+                setDataBanner([])
+                const error = new Error(res.message);
+                onError({ event: error });
+            }
+        }
+    };
 
     return (
         <>
@@ -242,7 +275,7 @@ const ModalCompany = (props: IProps) => {
                                             customRequest={handleUploadFileLogo}
                                             beforeUpload={beforeUpload}
                                             onChange={handleChange}
-                                            onRemove={(file) => handleRemoveFile(file)}
+                                            onRemove={(file) => handleRemoveFileLogo(file)}
                                             onPreview={handlePreview}
                                             defaultFileList={
                                                 dataInit?.id ?
@@ -264,10 +297,49 @@ const ModalCompany = (props: IProps) => {
                                         </Upload>
                                     </ConfigProvider>
                                 </Form.Item>
-
                             </Col>
 
-                            <Col span={16}>
+                            <Col span={8}>
+                                <Form.Item
+                                    labelCol={{ span: 24 }}
+                                    label="Ảnh Banner"
+                                    name="banner"
+                                >
+                                    <ConfigProvider locale={enUS}>
+                                        <Upload
+                                            name="banner"
+                                            listType="picture-card"
+                                            className="avatar-uploader"
+                                            maxCount={1}
+                                            multiple={false}
+                                            customRequest={handleUploadFileBanner}
+                                            beforeUpload={beforeUpload}
+                                            onChange={handleChange}
+                                            onRemove={(file) => handleRemoveFileBanner(file)}
+                                            onPreview={handlePreview}
+                                            defaultFileList={
+                                                dataInit?.id && dataInit?.banner ?
+                                                    [
+                                                        {
+                                                            uid: uuidv4(),
+                                                            name: dataInit?.banner ?? "",
+                                                            status: 'done',
+                                                            url: `${import.meta.env.VITE_BACKEND_URL}/storage/bannerCompany/${dataInit?.banner}`,
+                                                        }
+                                                    ] : []
+                                            }
+
+                                        >
+                                            <div>
+                                                {loadingUpload ? <LoadingOutlined /> : <PlusOutlined />}
+                                                <div style={{ marginTop: 8 }}>Upload</div>
+                                            </div>
+                                        </Upload>
+                                    </ConfigProvider>
+                                </Form.Item>
+                            </Col>
+
+                            <Col span={24}>
                                 <ProFormTextArea
                                     label="Địa chỉ"
                                     name="address"

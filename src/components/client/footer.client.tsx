@@ -4,8 +4,10 @@ import styles from '@/styles/footer.module.scss';
 import images from '@/img/Logo-IT.png';
 const Footer: React.FC = () => {
   return (
-    <footer className={styles['about-footer']}>
-      <div className={styles['footer-container']}>
+    <>
+      <div id="site-footer-separator" className={styles['footer-separator']}></div>
+      <footer id="site-footer" className={styles['about-footer']}>
+        <div className={styles['footer-container']}>
         <div className={styles['footer-section']}>
           <h3>Về chúng tôi</h3>
          
@@ -34,10 +36,9 @@ const Footer: React.FC = () => {
           </div>
         </div>
        
-      </div>
-      
-    </footer>
-    
+        </div>
+      </footer>
+    </>
   );
 };
 

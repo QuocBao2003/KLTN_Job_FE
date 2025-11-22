@@ -68,7 +68,16 @@ const LayoutAdmin = () => {
 
             const viewPermission = permissions?.find(item =>
                 item.apiPath === ALL_PERMISSIONS.PERMISSIONS.GET_PAGINATE.apiPath
-                && item.method === ALL_PERMISSIONS.USERS.GET_PAGINATE.method
+                && item.method === ALL_PERMISSIONS.PERMISSIONS.GET_PAGINATE.method
+            )
+
+            const viewSkill = permissions?.find(item =>
+                item.apiPath === ALL_PERMISSIONS.SKILLS.GET_PAGINATE.apiPath
+                && item.method === ALL_PERMISSIONS.SKILLS.GET_PAGINATE.method
+            )
+            const viewJobProfession = permissions?.find(item =>
+                item.apiPath === ALL_PERMISSIONS.JOBPROFESSIONS.GET_PAGINATE.apiPath
+                && item.method === ALL_PERMISSIONS.JOBPROFESSIONS.GET_PAGINATE.method
             )
 
             const full = [
@@ -110,8 +119,17 @@ const LayoutAdmin = () => {
                     key: '/admin/role',
                     icon: <ExceptionOutlined />
                 }] : []),
+                ...(viewSkill || ACL_ENABLE === 'false' ? [{
+                    label: <Link to='/admin/skill'>Skill</Link>,
+                    key: '/admin/skill',
+                    icon: <ExceptionOutlined />
+                }] : []),
 
-
+                ...(viewJobProfession || ACL_ENABLE === 'false' ? [{
+                    label: <Link to='/admin/job-profession'>Job Profession</Link>,
+                    key: '/admin/job-profession',
+                    icon: <ExceptionOutlined />
+                }] : []),
 
             ];
 

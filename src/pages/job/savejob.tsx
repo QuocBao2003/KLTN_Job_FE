@@ -82,7 +82,7 @@ const SaveJob = () => {
                                                 <div className={savejobStyles['job-left']}>
                                                     {/* Không có logo trong ISaveJob, hiển thị placeholder */}
                                                     <img
-                                                        src={`$${'{'}import.meta.env.VITE_BACKEND_URL{'}'}/storage/company/placeholder.png`}
+                                                        src={job?.logo || "https://via.placeholder.com/200x200?text=No+Logo"}
                                                         alt={job.companyName ?? 'company'}
                                                         className={savejobStyles['company-logo']}
                                                     />

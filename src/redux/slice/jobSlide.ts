@@ -1,5 +1,5 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
-import { callFetchJob } from '@/config/api';
+import { callFetchJob, callFetchJobByUserRole } from '@/config/api';
 import { IJob } from '@/types/backend';
 
 interface IState {
@@ -21,6 +21,13 @@ export const fetchJob = createAsyncThunk(
     }
 )
 
+export const fetchJobByUserRole = createAsyncThunk(
+    'job/fetchJobByUserRole',
+    async ({ query }: { query: string }) => {
+        const response = await callFetchJobByUserRole(query);
+        return response;
+    }
+)
 
 const initialState: IState = {
     isFetching: true,
@@ -70,6 +77,19 @@ export const jobSlide = createSlice({
 
             // state.courseOrder = action.payload;
         })
+        builder.addCase(fetchJobByUserRole.pending, (state) => {
+            state.isFetching = true;
+        });
+        builder.addCase(fetchJobByUserRole.rejected, (state) => {
+            state.isFetching = false;
+        });
+        builder.addCase(fetchJobByUserRole.fulfilled, (state, action) => {
+            if (action.payload?.data) {
+                state.isFetching = false;
+                state.meta = action.payload.data.meta;
+                state.result = action.payload.data.result;
+            }
+        });
     },
 
 });

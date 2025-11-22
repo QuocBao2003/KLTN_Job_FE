@@ -1,5 +1,5 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
-import { callFetchAllSkill } from '@/config/api';
+import { callFetchAllSkill, callFetchSkillsByProfession } from '@/config/api';
 import { ISkill } from '@/types/backend';
 
 interface IState {
@@ -20,6 +20,13 @@ export const fetchSkill = createAsyncThunk(
         return response;
     }
 )
+export const fetchSkillsByProfession = createAsyncThunk(
+    'skill/fetchSkillsByProfession',
+    async ({ professionId }: { professionId: string }) => {
+      const response = await callFetchSkillsByProfession(professionId);
+      return response;
+    }
+  );
 
 
 const initialState: IState = {
@@ -69,6 +76,19 @@ export const skillSlide = createSlice({
             // Add user to the state array
 
             // state.courseOrder = action.payload;
+        })
+        builder.addCase(fetchSkillsByProfession.pending, (state, action) => {
+            state.isFetching = true;
+        })
+        builder.addCase(fetchSkillsByProfession.rejected, (state, action) => {
+            state.isFetching = false;
+        })
+        builder.addCase(fetchSkillsByProfession.fulfilled, (state, action) => {
+            if (action.payload && action.payload.data) {
+                state.isFetching = false;
+                state.result = action.payload.data; 
+                state.meta.total = action.payload.data.length; 
+            }
         })
     },
 

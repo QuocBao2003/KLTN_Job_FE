@@ -1,12 +1,15 @@
-import { IBackendRes, ICompany, IAccount, IUser, IModelPaginate, IGetAccount, IJob, IResume, IPermission, IRole, ISkill, ISubscribers, ISaveJob, IMessageRoom, IMessageContent, IMessageResponse, ICv } from '@/types/backend';
+import { IBackendRes, ICompany, IAccount, IUser, IModelPaginate, IGetAccount, IJob, IResume, IPermission, IRole, ISkill, ISubscribers, ISaveJob, IMessageRoom, IMessageContent, IMessageResponse, IChatResponse, IJobProfession, IAdminStatistics, IHRStatistics } from '@/types/backend';
 import axios from 'config/axios-customize';
 
 /**
  * 
 Module Auth
  */
-export const callRegister = (name: string, email: string, password: string, age: number, gender: string, address: string) => {
-    return axios.post<IBackendRes<IUser>>('/api/v1/auth/register', { name, email, password, age, gender, address })
+export const callRegister = (name: string, email: string, password: string, gender: string, address: string) => {
+    return axios.post<IBackendRes<IUser>>('/api/v1/auth/register', { name, email, password, gender, address })
+}
+export const callRegisterHR = (name: string, email: string, password: string, gender: string, address: string) => {
+    return axios.post<IBackendRes<IUser>>('/api/v1/auth/registerHR', { name, email, password, gender, address })
 }
 
 export const callLogin = (username: string, password: string) => {
@@ -50,12 +53,12 @@ export const callUploadSingleFile = (file: any, folderType: string) => {
  * 
 Module Company
  */
-export const callCreateCompany = (name: string, address: string, description: string, logo: string) => {
-    return axios.post<IBackendRes<ICompany>>('/api/v1/companies', { name, address, description, logo })
+export const callCreateCompany = (name: string, address: string, description: string, logo: string,banner: string) => {
+    return axios.post<IBackendRes<ICompany>>('/api/v1/companies', { name, address, description, logo,banner })
 }
 
-export const callUpdateCompany = (id: string, name: string, address: string, description: string, logo: string) => {
-    return axios.put<IBackendRes<ICompany>>(`/api/v1/companies`, { id, name, address, description, logo })
+export const callUpdateCompany = (id: string, name: string, address: string, description: string, logo: string, banner: string) => {
+    return axios.put<IBackendRes<ICompany>>(`/api/v1/companies`, { id, name, address, description, logo, banner })
 }
 
 export const callDeleteCompany = (id: string) => {
@@ -65,27 +68,40 @@ export const callDeleteCompany = (id: string) => {
 export const callFetchCompany = (query: string) => {
     return axios.get<IBackendRes<IModelPaginate<ICompany>>>(`/api/v1/companies?${query}`);
 }
+export const callFetchCompanyByRole = (query: string) => {
+    return axios.get<IBackendRes<IModelPaginate<ICompany>>>(`/api/v1/companies/role?${query}`);
+}
+
 
 export const callFetchCompanyById = (id: string) => {
     return axios.get<IBackendRes<ICompany>>(`/api/v1/companies/${id}`);
 }
-
+export const callFetchJobByCompanyIdAndStatus = (companyId: string, query: string) =>{
+    return axios.get<IBackendRes<IModelPaginate<IJob>>>(`/api/v1/jobs/company/${companyId}?${query}`);
+} 
+export const callCountJobByCompanyIdAndStatus = (companyId: string) =>{
+    return axios.get<IBackendRes<number>>(`/api/v1/jobs/company/${companyId}/count`);
+} 
 /**
  * 
 Module Skill
  */
-export const callCreateSkill = (name: string) => {
-    return axios.post<IBackendRes<ISkill>>('/api/v1/skills', { name })
-}
-
+export const callCreateSkill = (name: string, professionId: string) => {
+    return axios.post<IBackendRes<ISkill>>(`/api/v1/skills?professionId=${professionId}`, { name });
+};
 export const callUpdateSkill = (id: string, name: string) => {
-    return axios.put<IBackendRes<ISkill>>(`/api/v1/skills`, { id, name })
-}
-
+    return axios.put<IBackendRes<ISkill>>(`/api/v1/skills/${id}`, { name });
+};
 export const callDeleteSkill = (id: string) => {
     return axios.delete<IBackendRes<ISkill>>(`/api/v1/skills/${id}`);
-}
+};
+export const callFetchSkillById = (id: string) => {
+    return axios.get<IBackendRes<ISkill>>(`/api/v1/skills/${id}`);
+};
 
+export const callFetchSkillsByProfession = (professionId: string) => {
+    return axios.get<IBackendRes<ISkill[]>>(`/api/v1/skills/by-profession/${professionId}`);
+};
 export const callFetchAllSkill = (query: string) => {
     return axios.get<IBackendRes<IModelPaginate<ISkill>>>(`/api/v1/skills?${query}`);
 }
@@ -125,6 +141,12 @@ export const callChangePassword = (
  * 
 Module Job
  */
+export const updateJobApprove = (id:string) =>{
+    return axios.put<IBackendRes<void>>(`/api/v1/jobs/${id}/approve`);
+}
+export const updateJobReject = (id:string) =>{
+    return axios.put<IBackendRes<void>>(`/api/v1/jobs/${id}/reject`);
+}
 export const callCreateJob = (job: IJob) => {
     return axios.post<IBackendRes<IJob>>('/api/v1/jobs', { ...job })
 }
@@ -141,6 +163,9 @@ export const callFetchJob = (query: string) => {
     return axios.get<IBackendRes<IModelPaginate<IJob>>>(`/api/v1/jobs?${query}`);
 }
 
+export const callFetchJobByUserRole = (query: string) => {
+    return axios.get<IBackendRes<IModelPaginate<IJob>>>(`/api/v1/jobs/role?${query}`);
+}
 export const callFetchJobById = (id: string) => {
     return axios.get<IBackendRes<IJob>>(`/api/v1/jobs/${id}`);
 }
@@ -151,7 +176,11 @@ export const callGetSavedJobByUser = () => {
 export const callSavedJob = (id?: string) => {
     return axios.post<IBackendRes<ISaveJob[]>>(`/api/v1/save-jobs/${id}`);
 }
+export const callJobByJobProfession = (professionId: string) =>{
+    return axios.get<IBackendRes<IModelPaginate<IJob>>>(`/api/v1/jobs/jobProfession/${professionId}`);
+}
 // tạo room chat
+
 export const createRoomMessage = (jobId: string, otherUserId?: string) => {
     const params: Record<string, any> = { jobId: Number(jobId) };
 
@@ -164,10 +193,28 @@ export const createRoomMessage = (jobId: string, otherUserId?: string) => {
 
 export const getMessagesInRoom = (roomId: string) => {
     return axios.get<IBackendRes<IMessageResponse[]>>(`/api/v1/chat/room/${roomId}/messages`);
-}
+};
+
 export const getMyRooms = () => {
     return axios.get<IBackendRes<IMessageRoom[]>>(`/api/v1/chat/rooms`);
-}
+};
+
+// ✅ API cập nhật: Lấy số PHÒNG có tin nhắn chưa đọc (số người gửi)
+export const getUnreadRoomCount = () => {
+    return axios.get<IBackendRes<number>>(`/api/v1/chat/unread-room-count`);
+};
+
+// ✅ API mới: Reset tất cả unread count khi click vào icon Message
+export const resetAllUnreadCounts = () => {
+    return axios.put<IBackendRes<void>>(`/api/v1/chat/reset-unread`);
+};
+
+// ✅ API: Đánh dấu 1 phòng cụ thể đã đọc (optional)
+export const markRoomAsRead = (roomId: string) => {
+    return axios.put<IBackendRes<void>>(`/api/v1/chat/room/${roomId}/mark-read`);
+};
+
+
 /**
 
 Module Resume
@@ -202,7 +249,7 @@ export const callFetchResumeById = (id: string) => {
 }
 
 export const callFetchResumeByUser = () => {
-    return axios.post<IBackendRes<IModelPaginate<IResume>>>(`/api/v1/resumes/by-user`);
+    return axios.get<IBackendRes<IModelPaginate<IResume>>>(`/api/v1/resumes/by-user`);
 }
 
 /**
@@ -253,7 +300,27 @@ export const callFetchRoleById = (id: string) => {
     return axios.get<IBackendRes<IRole>>(`/api/v1/roles/${id}`);
 }
 
+// Module Job Profession
+export const callCreateJobProfession = (name: string) => {
+    return axios.post<IBackendRes<IJobProfession>>('/api/v1/job_professions', { name });
+};
+export const callUpdateJobProfession = (id: string, name: string) => {
+    return axios.put<IBackendRes<IJobProfession>>(`/api/v1/job_professions/${id}`, { name });
+};
+export const callDeleteJobProfession = (id: string) => {
+    return axios.delete<IBackendRes<IJobProfession>>(`/api/v1/job_professions/${id}`);
+};
+export const callFetchJobProfessionById = (id: string) => {
+    return axios.get<IBackendRes<IJobProfession>>(`/api/v1/job_professions/${id}`);
+};
+export const callFetchAllJobProfession = (query: string) => {
+    return axios.get<IBackendRes<IModelPaginate<IJobProfession>>>(`/api/v1/job_professions?${query}`);
+};
+
+
+
 /**
+ * 
  * 
 Module Subscribers
  */
@@ -281,16 +348,72 @@ export const callFetchSubscriberById = (id: string) => {
     return axios.get<IBackendRes<ISubscribers>>(`/api/v1/subscribers/${id}`);
 }
 
-export const callAskAI = (prompt: string) => {
-    return axios.get<string>(`/api/v1/ask?question=${prompt}`); // Kiểu trả về là string thay vì IBackendRes<string>
+export const callAskAI = (message: string) => {
+    return axios.post<IChatResponse>(`/api/v1/messageAi`, { message });
 };
-
+export const callAskAIWithFile = (file: File, message?: string) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    if (message) {
+        formData.append('message', message);
+    }
+    
+    return axios.post<IChatResponse>(`/api/v1/fileAi`, formData, {
+        headers: {
+            'Content-Type': 'multipart/form-data',
+        },
+    });
+};
+// Notification
+export const callFetchAllNotifications = () => {
+    return axios.get<IBackendRes<Notification[]>>("/api/v1/notifications/all");
+  };
+  
+  // Đếm thông báo CHƯA XEM (viewed) thay vì chưa đọc (read)
+  export const callCountUnviewedNotifications = () => {
+    return axios.get<IBackendRes<{ count: number }>>("/api/v1/notifications/count");
+  };
+  
+  // Đánh dấu 1 thông báo là đã đọc
+  export const callMarkNotificationAsRead = (id: number) => {
+    return axios.put<IBackendRes<boolean>>(`/api/v1/notifications/${id}/read`);
+  };
+  
+  //  Đánh dấu tất cả là đã XEM 
+  export const callMarkAllNotificationsAsViewed = () => {
+    return axios.put<IBackendRes<boolean>>("/api/v1/notifications/mark-all-viewed");
+  };
 
 // 
 export const callGetJobByEmail = () => {
     return axios.get<IBackendRes<string>>(`/api/v1/email`);
 }
 
+
+// thong ke
+export interface IStatisticsFilter {
+    startDate?: string;   // ISO format
+    endDate?: string;     // ISO format
+    timeUnit?: 'WEEK' | 'MONTH'; // Default 'MONTH'
+    topLimit?: number;    // For admin only
+}
+export const getHRStatistics = (filter?: IStatisticsFilter) => {
+    const params: any = {};
+    if (filter?.startDate) params.startDate = filter.startDate;
+    if (filter?.endDate) params.endDate = filter.endDate;
+    if (filter?.timeUnit) params.timeUnit = filter.timeUnit;
+    
+    return axios.get<IBackendRes<IHRStatistics>>('/api/v1/statistics/hr', { params });
+}
+
+export const getAdminStatistics = (filter?: IStatisticsFilter) => {
+    const params: any = {};
+    if (filter?.startDate) params.startDate = filter.startDate;
+    if (filter?.endDate) params.endDate = filter.endDate;
+    if (filter?.timeUnit) params.timeUnit = filter.timeUnit;
+    if (filter?.topLimit) params.topLimit = filter.topLimit;
+    
+    return axios.get<IBackendRes<IAdminStatistics>>('/api/v1/statistics/admin', { params });
 // Thêm interface cho thống kê
 export interface IJobStatistics {
     level?: string;

@@ -9,7 +9,7 @@ import dayjs from 'dayjs';
 import { callDeleteJob } from "@/config/api";
 import queryString from 'query-string';
 import { useNavigate } from "react-router-dom";
-import { fetchJob } from "@/redux/slice/jobSlide";
+import { fetchJobByUserRole } from "@/redux/slice/jobSlide";
 import Access from "@/components/share/access";
 import { ALL_PERMISSIONS } from "@/config/permissions";
 import { sfIn } from "spring-filter-query-builder";
@@ -97,15 +97,20 @@ const JobPage = () => {
         },
         {
             title: 'Trạng thái',
-            dataIndex: 'active',
-            render(dom, entity, index, action, schema) {
-                return <>
-                    <Tag color={entity.active ? "lime" : "red"} >
-                        {entity.active ? "ACTIVE" : "INACTIVE"}
-                    </Tag>
-                </>
-            },
-            hideInSearch: true,
+    dataIndex: 'status',
+    render(dom, entity) {
+        let color = "default";
+        if (entity.status === "APPROVED") color = "green";
+        if (entity.status === "PENDING") color = "orange";
+        if (entity.status === "REJECTED") color = "red";
+
+        return (
+            <Tag color={color}>
+                {entity.status}
+            </Tag>
+        );
+    },
+    hideInSearch: true,
         },
 
         {
@@ -241,7 +246,7 @@ const JobPage = () => {
                     dataSource={jobs}
                     request={async (params, sort, filter): Promise<any> => {
                         const query = buildQuery(params, sort, filter);
-                        dispatch(fetchJob({ query }))
+                        dispatch(fetchJobByUserRole({ query }))
                     }}
                     scroll={{ x: true }}
                     pagination={

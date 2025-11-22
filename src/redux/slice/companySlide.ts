@@ -1,5 +1,5 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
-import { callFetchCompany } from '@/config/api';
+import { callFetchCompany, callFetchCompanyByRole } from '@/config/api';
 import { ICompany } from '@/types/backend';
 
 interface IState {
@@ -20,7 +20,13 @@ export const fetchCompany = createAsyncThunk(
         return response;
     }
 )
-
+export const fetchCompanyByRole = createAsyncThunk(
+    'company/fetchCompanyByRole',
+    async ({ query }: { query: string }) => {
+        const response = await callFetchCompanyByRole(query);
+        return response;
+    }
+)
 
 const initialState: IState = {
     isFetching: true,
@@ -59,8 +65,20 @@ export const companySlide = createSlice({
             // Add user to the state array
             // state.courseOrder = action.payload;
         })
-
+        builder.addCase(fetchCompanyByRole.pending, (state) => {
+            state.isFetching = true;
+        })
         builder.addCase(fetchCompany.fulfilled, (state, action) => {
+            if (action.payload && action.payload.data) {
+                state.isFetching = false;
+                state.meta = action.payload.data.meta;
+                state.result = action.payload.data.result;
+            }
+            // Add user to the state array
+
+            // state.courseOrder = action.payload;
+        })
+        builder.addCase(fetchCompanyByRole.fulfilled, (state, action) => {
             if (action.payload && action.payload.data) {
                 state.isFetching = false;
                 state.meta = action.payload.data.meta;

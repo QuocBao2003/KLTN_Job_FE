@@ -37,29 +37,28 @@ const JobApply = () => {
 
     const handleViewCV = (resume: IResume) => {
         if (resume?.url) {
-            window.open(`${import.meta.env.VITE_BACKEND_URL}/storage/resume/${resume.url}`, '_blank');
+            window.open(resume.url, '_blank');
         } else {
             message.warning('Không tìm thấy CV');
         }
     };
 
     const handleMessage = async (resume: IResume) => {
-        // Lấy jobId và companyId từ resume
         const job = typeof resume.jobId === 'object' ? resume.jobId : null;
-        const jobFull = (resume as any)?.job || null;
-        const jobId = job?.id || jobFull?.id || null;
-        
-        if (!jobId) {
-            message.warning('Không tìm thấy thông tin công việc');
-            return;
-        }
-        
-        const res = await createRoomMessage(String(jobId));
-        console.log(res);
-        if (res && res.data) {
-            const room = res.data;
-            navigate(`/message-jobapply?roomId=${room.id}&jobId=${jobId}`);
-        }
+    const jobFull = (resume as any)?.job || null;
+    const jobId = job?.id || jobFull?.id || null;
+    
+    if (!jobId) {
+        message.warning('Không tìm thấy thông tin công việc');
+        return;
+    }
+    
+    const res = await createRoomMessage(String(jobId));
+    console.log(res);
+    if (res && res.data) {
+        const room = res.data;
+        navigate(`/messages?roomId=${room.id}`);
+    }
     };
 
     const formatSalary = (salary: number | string | undefined): string => {
@@ -105,6 +104,13 @@ const JobApply = () => {
             return {
                 text: `Đã ứng tuyển đang chờ duyệt (${appliedDate})`,
                 color: '#2196f3'
+            };
+        }
+
+        if(status === 'REVIEWING') {
+            return {
+                text: `NTD đã xem hồ sơ`,
+                color: '#ff9800'
             };
         }
         
@@ -163,7 +169,7 @@ const JobApply = () => {
                                     
                                         const jobName = job?.name || jobFull?.name || 'N/A';
                                         const companyName = company?.name || (resume as any)?.companyName || 'N/A';
-                                        const companyLogo = company?.logo || (resume as any)?.companyLogo;
+                                        const companyLogo = resume?.logo ;
                                         const jobSalary = jobFull?.salary || null;
                                         const jobId = job?.id || jobFull?.id || null;
                                         const appliedTime = resume.createdAt ? dayjs(resume.createdAt).format('DD-MM-YYYY HH:mm') : 'N/A';
@@ -187,9 +193,7 @@ const JobApply = () => {
                                                     {/* Logo công ty bên trái */}
                                                     <div className={jobapplyStyles['job-left']}>
                                                         <img
-                                                            src={companyLogo 
-                                                                ? `${import.meta.env.VITE_BACKEND_URL}/storage/company/${companyLogo}`
-                                                                : `${import.meta.env.VITE_BACKEND_URL}/storage/company/placeholder.png`}
+                                                            src={companyLogo}
                                                             alt={companyName}
                                                             className={jobapplyStyles['company-logo']}
                                                         />
@@ -209,7 +213,7 @@ const JobApply = () => {
                                                         <div className={jobapplyStyles['cv-info']}>
                                                             <Text className={jobapplyStyles['cv-label']}>CV đã ứng tuyển: </Text>
                                                             <a 
-                                                                href={`${import.meta.env.VITE_BACKEND_URL}/storage/resume/${resume?.url}`}
+                                                                href={resume?.url}
                                                                 target="_blank"
                                                                 rel="noopener noreferrer"
                                                                 className={jobapplyStyles['cv-link']}
