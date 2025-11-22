@@ -116,10 +116,10 @@ export const callGetUserById = (id: string | number) => {
 };
 
 export const callChangePassword = (
-  id: string,
-  data: { oldPassword: string; newPassword: string }
+    id: string,
+    data: { oldPassword: string; newPassword: string }
 ) => {
-  return axios.put<IBackendRes<IUser>>(`/api/v1/users/${id}`, data);
+    return axios.put<IBackendRes<IUser>>(`/api/v1/users/${id}`, data);
 };
 /**
  * 
@@ -145,10 +145,10 @@ export const callFetchJobById = (id: string) => {
     return axios.get<IBackendRes<IJob>>(`/api/v1/jobs/${id}`);
 }
 
-export const callGetSavedJobByUser=()=>{
+export const callGetSavedJobByUser = () => {
     return axios.get<IBackendRes<ISaveJob>>(`/api/v1/save-jobs`);
 }
-export const callSavedJob = (id? : string) =>{
+export const callSavedJob = (id?: string) => {
     return axios.post<IBackendRes<ISaveJob[]>>(`/api/v1/save-jobs/${id}`);
 }
 // tạo room chat
@@ -392,7 +392,7 @@ export const callFetchAllCv = (query: string) => {
 export const callUploadExcelCv = (file: any) => {
     const bodyFormData = new FormData();
     bodyFormData.append('file', file);
-    
+
     return axios<IBackendRes<ICv>>({
         method: 'post',
         url: '/api/v1/cvs/upload-excel',
@@ -401,4 +401,8 @@ export const callUploadExcelCv = (file: any) => {
             "Content-Type": "multipart/form-data",
         },
     });
+}
+
+export const callFetchAllJobProfession = (query : string = "") => {
+    return axios.get(`/api/v1/job_professions/tree?${query}`);
 }
