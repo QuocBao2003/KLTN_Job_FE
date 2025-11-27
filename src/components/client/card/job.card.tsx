@@ -13,7 +13,6 @@ import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 dayjs.extend(relativeTime);
 
-
 interface IProps {
     showPagination?: boolean;
 }
@@ -38,42 +37,57 @@ const JobCard = (props: IProps) => {
     }, [current, pageSize, filter, sortQuery, location]);
 
     const fetchJob = async () => {
-        setIsLoading(true)
+        setIsLoading(true);
+
         let query = `page=${current}&size=${pageSize}`;
-        if (filter) {
-            query += `&${filter}`;
-        }
-        if (sortQuery) {
-            query += `&${sortQuery}`;
-        }
 
-        //check query string
+        // 1. Sort
+        if (sortQuery) query += `&${sortQuery}`;
+
+        // 2. Filter RQL (Location)
         const queryLocation = searchParams.get("location");
-        const querySkills = searchParams.get("skills")
-        if (queryLocation || querySkills) {
-            let q = "";
-            if (queryLocation) {
-                q = sfIn("location", queryLocation.split(",")).toString();
-            }
-
-            if (querySkills) {
-                q = queryLocation ?
-                    q + " and " + `${sfIn("skills", querySkills.split(","))}`
-                    : `${sfIn("skills", querySkills.split(","))}`;
-            }
-
-            query += `&filter=${encodeURIComponent(q)}`;
+        const filterArr = [];
+        if (queryLocation) {
+            filterArr.push(sfIn("location", queryLocation.split(",")).toString());
         }
+
+        // Xử lý Name (Search Keyword)
+        // Nếu backend của bạn hỗ trợ tìm tên qua param `name=...` thì dùng dòng dưới:
+        const queryName = searchParams.get("name");
+        if (queryName) {
+            // filterArr.push(`name~'${queryName}'`); // Nếu dùng RQL
+            query += `&name=${queryName}`; // Nếu backend nhận param riêng
+        }
+
+        if (filter) filterArr.push(filter);
+        if (filterArr.length > 0) {
+            query += `&filter=${encodeURIComponent(filterArr.join(" and "))}`;
+        }
+
+        // 3. Xử lý Skills & Profession (Backend Java Param)
+        // --- CODE QUAN TRỌNG CẦN CHECK ---
+        const querySkills = searchParams.get("skills");
+        const queryProfessions = searchParams.get("jobProfession");
+        const queryLevels = searchParams.get("level");
+
+        if (querySkills) {
+            query += `&skills=${querySkills}`;
+        }
+        if (queryProfessions) {
+            query += `&jobProfession=${queryProfessions}`;
+        }
+        if (queryLevels) {
+            query += `&level=${queryLevels}`;
+        }
+        // ----------------------------------
 
         const res = await callFetchJob(query);
         if (res && res.data) {
             setDisplayJob(res.data.result);
-            setTotal(res.data.meta.total)
+            setTotal(res.data.meta.total);
         }
         setIsLoading(false);
     }
-
-
 
     const handleOnchangePage = (pagination: { current: number, pageSize: number }) => {
         if (pagination && pagination.current !== current) {
@@ -90,6 +104,39 @@ const JobCard = (props: IProps) => {
         navigate(`/job/${slug}?id=${item.id}`)
     }
 
+<<<<<<< Updated upstream
+=======
+    const handleSaveJob = async (e: React.MouseEvent, jobId?: number) => {
+        e.stopPropagation(); // Ngăn chặn event bubble lên card
+        if (!jobId) {
+            message.error('Không tìm thấy ID công việc!');
+            return;
+        }
+        try {
+            // Lưu ý: callSavedJob nhận string hay number? 
+            // Nếu api nhận string thì convert: jobId.toString()
+            const res = await callSavedJob(jobId.toString());
+            if (res && res.data) {
+                message.success('Đã lưu công việc thành công!');
+            }
+        } catch (error) {
+            message.error('Có lỗi xảy ra khi lưu công việc!');
+        }
+    }
+
+    const formatSalary = (item: IJob) => {
+        if (item.salaryType === "NEGOTIABLE") {
+            return "Thương lượng";
+        }
+        if (item.salaryType === "SPECIFIC" && item.minSalary && item.maxSalary) {
+            const min = item.minSalary.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+            const max = item.maxSalary.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+            return `${min} - ${max} đ`;
+        }
+        return "Thương lượng";
+    }
+
+>>>>>>> Stashed changes
     return (
         <div className={`${styles["card-job-section"]}`}>
             <div className={`${styles["job-content"]}`}>
@@ -106,10 +153,25 @@ const JobCard = (props: IProps) => {
 
                         {displayJob?.map(item => {
                             return (
+<<<<<<< Updated upstream
                                 <Col span={24} md={12} key={item.id}>
                                     <Card size="small" title={null} hoverable
                                         onClick={() => handleViewDetailJob(item)}
                                     >
+=======
+                                <Col span={24} md={8} key={item.id}>
+                                    <Card
+                                        size="small"
+                                        title={null}
+                                        hoverable
+                                        className={styles["job-card-wrapper"]}
+                                        onClick={() => handleViewDetailJob(item)}
+                                    >
+                                        <HeartOutlined
+                                            className={styles["heart-icon"]}
+                                            onClick={(e) => handleSaveJob(e, item.id)}
+                                        />
+>>>>>>> Stashed changes
                                         <div className={styles["card-job-content"]}>
                                             <div className={styles["card-job-left"]}>
                                                 <img

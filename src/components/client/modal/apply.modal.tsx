@@ -33,6 +33,10 @@ const ApplyModal = (props: IProps) => {
     // Extract file URL from CV skills field (format: [CV_FILE_URL]fileName[/CV_FILE_URL])
     // OR check if CV has template (can be downloaded as PDF)
     const getCvFileUrl = (cv: ICv): string | null => {
+        if (cv.url && (cv.url.startsWith('http') || cv.url.startsWith('https'))) {
+            return cv.url;
+        }
+        
         // Check if CV has uploaded file
         if (cv.skills) {
             const match = cv.skills.match(/\[CV_FILE_URL\](.*?)\[\/CV_FILE_URL\]/);
@@ -168,8 +172,11 @@ const ApplyModal = (props: IProps) => {
             
             if (selectedCv) {
                 const fileUrl = getCvFileUrl(selectedCv);
+
+                const isRealUrl = fileUrl && (fileUrl.startsWith('http') || fileUrl.startsWith('https'));
+
                 const isTemplate = isCvTemplate(selectedCv);
-                
+
                 console.log('📌 File URL from selected CV:', fileUrl);
                 console.log('📌 Is Template CV:', isTemplate);
                 
@@ -198,6 +205,20 @@ const ApplyModal = (props: IProps) => {
                         }
                     });
                     return;
+                }
+                if (isRealUrl) {
+                    finalUrlCV = fileUrl;
+                    console.log('📌 Using Real Cloud URL:', finalUrlCV);
+                } 
+                // Nếu không có URL thật mà là Template -> Gửi ID để Backend xử lý (Generate PDF)
+                else if (isTemplate) {
+                    finalUrlCV = `CV_ID:${selectedCv.id}`;
+                    console.log('📌 Using template ID (No URL yet):', finalUrlCV);
+                    
+                    message.info({
+                        content: 'Đang xử lý CV template của bạn...',
+                        duration: 2
+                    });
                 }
                 
                 // If it's a template CV, we'll use a special format
@@ -324,7 +345,7 @@ const ApplyModal = (props: IProps) => {
                     if (existingCv) {
                         // Update existing CV
                         console.log('📌 Updating existing CV:', existingCv.id);
-                        const updateRes = await callUpdateCv(existingCv.id.toString(), cvData);
+                        const updateRes = await callUpdateCv(existingCv.id, cvData);
                         createdCv = updateRes.data;
                         message.success('CV đã được cập nhật từ file Excel!');
                     } else {

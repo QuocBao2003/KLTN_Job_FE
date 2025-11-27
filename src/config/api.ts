@@ -1,4 +1,8 @@
+<<<<<<< Updated upstream
 import { IBackendRes, ICompany, IAccount, IUser, IModelPaginate, IGetAccount, IJob, IResume, IPermission, IRole, ISkill, ISubscribers, ISaveJob, IMessageRoom, IMessageContent, IMessageResponse, ICv } from '@/types/backend';
+=======
+import { IBackendRes, ICompany, IAccount, IUser, IModelPaginate, IGetAccount, IJob, IResume, IPermission, ICv, IRole, ISkill, ISubscribers, ISaveJob, IMessageRoom, IMessageContent, IMessageResponse, IChatResponse, IJobProfession, IAdminStatistics, IHRStatistics } from '@/types/backend';
+>>>>>>> Stashed changes
 import axios from 'config/axios-customize';
 
 /**
@@ -33,7 +37,7 @@ export const callUploadSingleFile = (file: any, folderType: string) => {
     bodyFormData.append('file', file);
     bodyFormData.append('folder', folderType);
 
-    return axios<IBackendRes<{ fileName: string }>>({
+    return axios<IBackendRes<any>>({
         method: 'post',
         url: '/api/v1/files',
         data: bodyFormData,
@@ -50,8 +54,13 @@ export const callUploadSingleFile = (file: any, folderType: string) => {
  * 
 Module Company
  */
+<<<<<<< Updated upstream
 export const callCreateCompany = (name: string, address: string, description: string, logo: string) => {
     return axios.post<IBackendRes<ICompany>>('/api/v1/companies', { name, address, description, logo })
+=======
+export const callCreateCompany = (name: string, address: string, description: string, logo: string, banner: string) => {
+    return axios.post<IBackendRes<ICompany>>('/api/v1/companies', { name, address, description, logo, banner })
+>>>>>>> Stashed changes
 }
 
 export const callUpdateCompany = (id: string, name: string, address: string, description: string, logo: string) => {
@@ -69,7 +78,16 @@ export const callFetchCompany = (query: string) => {
 export const callFetchCompanyById = (id: string) => {
     return axios.get<IBackendRes<ICompany>>(`/api/v1/companies/${id}`);
 }
+<<<<<<< Updated upstream
 
+=======
+export const callFetchJobByCompanyIdAndStatus = (companyId: string, query: string) => {
+    return axios.get<IBackendRes<IModelPaginate<IJob>>>(`/api/v1/jobs/company/${companyId}?${query}`);
+}
+export const callCountJobByCompanyIdAndStatus = (companyId: string) => {
+    return axios.get<IBackendRes<number>>(`/api/v1/jobs/company/${companyId}/count`);
+}
+>>>>>>> Stashed changes
 /**
  * 
 Module Skill
@@ -125,6 +143,15 @@ export const callChangePassword = (
  * 
 Module Job
  */
+<<<<<<< Updated upstream
+=======
+export const updateJobApprove = (id: string) => {
+    return axios.put<IBackendRes<void>>(`/api/v1/jobs/${id}/approve`);
+}
+export const updateJobReject = (id: string) => {
+    return axios.put<IBackendRes<void>>(`/api/v1/jobs/${id}/reject`);
+}
+>>>>>>> Stashed changes
 export const callCreateJob = (job: IJob) => {
     return axios.post<IBackendRes<IJob>>('/api/v1/jobs', { ...job })
 }
@@ -151,6 +178,12 @@ export const callGetSavedJobByUser = () => {
 export const callSavedJob = (id?: string) => {
     return axios.post<IBackendRes<ISaveJob[]>>(`/api/v1/save-jobs/${id}`);
 }
+<<<<<<< Updated upstream
+=======
+export const callJobByJobProfession = (professionId: string) => {
+    return axios.get<IBackendRes<IModelPaginate<IJob>>>(`/api/v1/jobs/jobProfession/${professionId}`);
+}
+>>>>>>> Stashed changes
 // tạo room chat
 export const createRoomMessage = (jobId: string, otherUserId?: string) => {
     const params: Record<string, any> = { jobId: Number(jobId) };
@@ -174,7 +207,8 @@ Module Resume
  */
 export const callCreateResume = (url: string, jobId: any, email: string, userId: string | number) => {
     return axios.post<IBackendRes<IResume>>('/api/v1/resumes', {
-        email, url,
+        url: url,
+        email: email,
         status: "PENDING",
         user: {
             "id": userId
@@ -284,13 +318,77 @@ export const callFetchSubscriberById = (id: string) => {
 export const callAskAI = (prompt: string) => {
     return axios.get<string>(`/api/v1/ask?question=${prompt}`); // Kiểu trả về là string thay vì IBackendRes<string>
 };
+<<<<<<< Updated upstream
 
+=======
+export const callAskAIWithFile = (file: File, message?: string) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    if (message) {
+        formData.append('message', message);
+    }
+
+    return axios.post<IChatResponse>(`/api/v1/fileAi`, formData, {
+        headers: {
+            'Content-Type': 'multipart/form-data',
+        },
+    });
+};
+// Notification
+export const callFetchAllNotifications = () => {
+    return axios.get<IBackendRes<Notification[]>>("/api/v1/notifications/all");
+};
+
+// Đếm thông báo CHƯA XEM (viewed) thay vì chưa đọc (read)
+export const callCountUnviewedNotifications = () => {
+    return axios.get<IBackendRes<{ count: number }>>("/api/v1/notifications/count");
+};
+
+// Đánh dấu 1 thông báo là đã đọc
+export const callMarkNotificationAsRead = (id: number) => {
+    return axios.put<IBackendRes<boolean>>(`/api/v1/notifications/${id}/read`);
+};
+
+//  Đánh dấu tất cả là đã XEM 
+export const callMarkAllNotificationsAsViewed = () => {
+    return axios.put<IBackendRes<boolean>>("/api/v1/notifications/mark-all-viewed");
+};
+>>>>>>> Stashed changes
 
 // 
 export const callGetJobByEmail = () => {
     return axios.get<IBackendRes<string>>(`/api/v1/email`);
 }
 
+<<<<<<< Updated upstream
+=======
+
+// thong ke
+export interface IStatisticsFilter {
+    startDate?: string;   // ISO format
+    endDate?: string;     // ISO format
+    timeUnit?: 'WEEK' | 'MONTH'; // Default 'MONTH'
+    topLimit?: number;    // For admin only
+}
+export const getHRStatistics = (filter?: IStatisticsFilter) => {
+    const params: any = {};
+    if (filter?.startDate) params.startDate = filter.startDate;
+    if (filter?.endDate) params.endDate = filter.endDate;
+    if (filter?.timeUnit) params.timeUnit = filter.timeUnit;
+
+    return axios.get<IBackendRes<IHRStatistics>>('/api/v1/statistics/hr', { params });
+}
+
+export const getAdminStatistics = (filter?: IStatisticsFilter) => {
+    const params: any = {};
+    if (filter?.startDate) params.startDate = filter.startDate;
+    if (filter?.endDate) params.endDate = filter.endDate;
+    if (filter?.timeUnit) params.timeUnit = filter.timeUnit;
+    if (filter?.topLimit) params.topLimit = filter.topLimit;
+
+    return axios.get<IBackendRes<IAdminStatistics>>('/api/v1/statistics/admin', { params });
+}
+>>>>>>> Stashed changes
 // Thêm interface cho thống kê
 export interface IJobStatistics {
     level?: string;
@@ -336,6 +434,7 @@ export const callSubmitCv = (data: {
     skills: string;
     photoUrl: string;
     cvTemplate: string;
+    url: string;
 }) => {
     return axios.post<IBackendRes<ICv>>('/api/v1/submit-cv', data);
 }
@@ -351,11 +450,12 @@ export const callCreateCv = (data: {
     skills: string;
     photoUrl: string;
     cvTemplate: string;
+    url: string;
 }) => {
     return axios.post<IBackendRes<ICv>>('/api/v1/cvs', data);
 }
 
-export const callUpdateCv = (id: string, data: {
+export const callUpdateCv = (id: number, data: {
     fullName?: string;
     email?: string;
     phone?: string;
@@ -370,11 +470,11 @@ export const callUpdateCv = (id: string, data: {
     return axios.put<IBackendRes<ICv>>(`/api/v1/cvs/${id}`, data);
 }
 
-export const callFetchCvById = (id: string) => {
+export const callFetchCvById = (id: number) => {
     return axios.get<IBackendRes<ICv>>(`/api/v1/cvs/${id}`);
 }
 
-export const callDeleteCv = (id: string) => {
+export const callDeleteCv = (id: number) => {
     return axios.delete<IBackendRes<ICv>>(`/api/v1/cvs/${id}`);
 }
 
@@ -403,6 +503,6 @@ export const callUploadExcelCv = (file: any) => {
     });
 }
 
-export const callFetchAllJobProfession = (query : string = "") => {
+export const callFetchAllJobProfessionSkillJob = (query: string = "") => {
     return axios.get(`/api/v1/job_professions/tree?${query}`);
 }

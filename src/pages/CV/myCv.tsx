@@ -23,6 +23,7 @@ import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import * as XLSX from 'xlsx';
 import { useNavigate } from 'react-router-dom';
+import { fontRoboto } from './fontRoboto';
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -351,16 +352,75 @@ const CvManagement: React.FC = () => {
     const handleDownloadPDF = async () => {
         if (!cvTemplateRef.current || !selectedCv) return;
         setProcessing(true);
+
+        // Lưu trạng thái edit hiện tại
+        const wasEditing = isEditMode;
+
         try {
-            const canvas = await html2canvas(cvTemplateRef.current, { scale: 2, useCORS: true });
-            const imgData = canvas.toDataURL('image/png');
-            const pdf = new jsPDF('p', 'mm', 'a4');
-            pdf.addImage(imgData, 'PNG', 0, 0, 210, 297); // A4 dimensions
-            pdf.save(`CV_${selectedCv.fullName}.pdf`);
-            message.success('Tải xuống thành công');
+            // 1. Chuyển về chế độ xem (View Mode) để render text thay vì ô input
+            if (wasEditing) {
+                setIsEditMode(false);
+                // Chờ React render lại DOM (từ Input -> Text div)
+                await new Promise(resolve => setTimeout(resolve, 500));
+            }
+
+            // 2. Khởi tạo jsPDF với cấu hình đúng khổ A4
+            const pdf = new jsPDF({
+                orientation: 'p',
+                unit: 'px',
+                format: [794, 1123] // Kích thước chuẩn pixel cho A4 96dpi
+            });
+
+            // 3. Nhúng Font Roboto (QUAN TRỌNG ĐỂ KHÔNG LỖI TIẾNG VIỆT)
+            pdf.addFileToVFS("Roboto-Regular.ttf", fontRoboto);
+            pdf.addFont("Roboto-Regular.ttf", "Roboto", "normal");
+            pdf.setFont("Roboto");
+
+            // 4. Render HTML thành Vector PDF
+            await new Promise<void>((resolve, reject) => {
+                // Kiểm tra lại ref lần nữa cho chắc
+                if (!cvTemplateRef.current) return reject("DOM element not found");
+
+                pdf.html(cvTemplateRef.current, {
+                    callback: (doc) => {
+                        doc.save(`CV_${selectedCv.fullName || 'Document'}.pdf`);
+                        resolve();
+                    },
+                    x: 0,
+                    y: 0,
+                    width: 794,       // Chiều rộng nội dung
+                    windowWidth: 794, // Chiều rộng cửa sổ giả lập
+                    autoPaging: 'text', // Tự động ngắt trang nếu dài
+                    html2canvas: {
+                        scale: 1,
+                        useCORS: true, // Để tải ảnh avatar từ URL khác
+                        letterRendering: true, // Giúp text hiển thị sắc nét hơn
+                    },
+                    // Định nghĩa font cho html2canvas hiểu
+                    fontFaces: [
+                        {
+                            family: 'Roboto',
+                            style: 'normal',
+                            weight: '400',
+                            src: [
+                                {
+                                    url: "data:font/ttf;base64," + fontRoboto,
+                                    format: "truetype"
+                                }
+                            ]
+                        }
+                    ]
+                });
+            });
+
+            message.success('Tải PDF thành công');
+
         } catch (e) {
+            console.error(e);
             message.error('Lỗi khi xuất PDF');
         } finally {
+            // Khôi phục lại trạng thái cũ
+            if (wasEditing) setIsEditMode(true);
             setProcessing(false);
         }
     };

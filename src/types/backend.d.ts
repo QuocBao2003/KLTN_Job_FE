@@ -35,6 +35,30 @@ export interface IAccount {
     }
 }
 
+<<<<<<< Updated upstream
+=======
+export interface Notification {
+    id: number;
+    title: string;
+    description: string;
+    type: NotificationType;
+    isRead: boolean;
+    isViewed: boolean;
+    relatedEntityId: number;
+    navigationUrl: string;
+    createdAt: string;
+    readAt?: string;
+}
+
+export type NotificationType =
+    | 'JOB_APPROVED'
+    | 'JOB_REJECTED'
+    | 'JOB_PENDING_APPROVAL'
+    | 'RESUME_APPROVED'
+    | 'RESUME_REJECTED'
+    | 'RESUME_PENDING';
+
+>>>>>>> Stashed changes
 export interface IGetAccount extends Omit<IAccount, "access_token"> { }
 
 export interface ICompany {
@@ -53,13 +77,20 @@ export interface ICompany {
 export interface ISaveJob {
     id?: string;
     name?: string;
-    companyName?:string;
+    companyName?: string;
     location: string;
+<<<<<<< Updated upstream
     saveTime : Date;
+=======
+    logo?: string;
+    saveTime: Date;
+>>>>>>> Stashed changes
 }
 
+// --- UPDATED INTERFACES FOR SEARCH LOGIC ---
+
 export interface ISkill {
-    id?: string;
+    id?: number; // Đổi thành number để đồng bộ với Job & Profession
     name?: string;
     createdBy?: string;
     isDeleted?: boolean;
@@ -68,11 +99,88 @@ export interface ISkill {
     updatedAt?: string;
 }
 
+export interface IJobProfession {
+    id?: number;
+    name: string;
+    jobs?: IJob[]; // <--- QUAN TRỌNG: Thêm jobs để hiển thị dạng cây (Tree)
+    createdBy?: string;
+    isDeleted?: boolean;
+    deletedAt?: boolean | null;
+    createdAt?: string;
+    updatedAt?: string;
+}
+
+export type SalaryTypeEnum = "SPECIFIC" | "NEGOTIABLE";
+
+export interface IJob {
+    id?: number;
+    name: string;
+    skills: ISkill[]; // Đã có skills, giữ nguyên
+    company?: {
+        id: string;
+        name: string;
+        logo?: string;
+    }
+    jobProfession?: IJobProfession;
+    location: string;
+    minSalary?: number;
+    maxSalary?: number;
+    salaryType: SalaryTypeEnum;
+    quantity: number;
+    level: string;
+    description: string;
+    interest: string;
+    request: string;
+    worklocation: string;
+    worktime: string;
+    startDate: Date;
+    endDate: Date;
+    status: "PENDING" | "APPROVED" | "REJECTED";
+
+    createdBy?: string;
+    isDeleted?: boolean;
+    deletedAt?: boolean | null;
+    createdAt?: string;
+    updatedAt?: string;
+}
+
+// ------------------------------------------
+
 export interface IMessageRoom {
     id: string; // UUID
     candidateId: number;
     employerId: number;
     jobId: number;
+<<<<<<< Updated upstream
+=======
+    jobName?: string;
+    companyName?: string;
+
+    // ✅ Thông tin người chat đối diện
+    otherUserId?: number;
+    otherUserName?: string;
+    otherUserEmail?: string;
+    otherUserAvatar?: string | null;
+
+    // ✅ Thông tin tin nhắn cuối
+    lastMessage?: string;
+    lastMessageTime?: string;
+    lastSenderId?: number;
+
+    // ✅ Số tin nhắn chưa đọc
+    unreadCount?: number;
+
+    // Legacy fields
+    candidateId?: number;
+    employerId?: number;
+    candidateUnreadCount?: number;
+    employerUnreadCount?: number;
+    createdDate?: string;
+
+    candidate?: IUser;
+    employer?: IUser;
+    job?: IJob;
+>>>>>>> Stashed changes
 }
 export interface IMessageContent {
     id: string;
@@ -114,6 +222,7 @@ export interface IUser {
     createdAt?: string;
     updatedAt?: string;
 }
+<<<<<<< Updated upstream
 
 export interface IJob {
     id?: string;
@@ -139,6 +248,8 @@ export interface IJob {
     createdAt?: string;
     updatedAt?: string;
 }
+=======
+>>>>>>> Stashed changes
 
 export interface IResume {
     id?: string;
@@ -149,7 +260,10 @@ export interface IResume {
     companyId: string | {
         id: string;
         name: string;
+<<<<<<< Updated upstream
         logo: string;
+=======
+>>>>>>> Stashed changes
     };
     jobId: string | {
         id: string;
@@ -208,18 +322,101 @@ export interface ISubscribers {
     updatedAt?: string;
 }
 
+<<<<<<< Updated upstream
+=======
+export interface IChatResponse {
+    type: string;
+    message: string;
+    jobs?: IJobSuggestion[];
+}
+export interface IJobSuggestion {
+    id: number;
+    name: string;
+    companyName: string;
+    location: string;
+    logo: string;
+}
+
+export interface ITimeSeriesStatistic {
+    label: string; // "Week 1-2025" hoặc "01/2025"
+    count: number;
+    periodStart: string;
+    periodEnd: string;
+}
+
+export interface IResumeStatusStatistic {
+    status: string;
+    count: number;
+}
+
+export interface IJobResumeStatistic {
+    jobId: number;
+    jobName: string;
+    resumeCount: number;
+    startDate: string;
+    endDate: string;
+}
+
+export interface IHRStatistics {
+    totalApprovedJobs: number;
+    totalRejectedJobs: number;
+    totalPendingJobs: number;
+    totalResumes: number;
+    activeJobsWithResumes: IJobResumeStatistic[];
+    resumesByStatus: IResumeStatusStatistic[];
+    jobsTimeSeries: ITimeSeriesStatistic[];
+    resumesTimeSeries: ITimeSeriesStatistic[];
+    statisticsTime: string;
+    filterStartDate: string;
+    filterEndDate: string;
+    timeUnit: string; // "WEEK" or "MONTH"
+}
+
+export interface ICompanyTopResume {
+    companyId: number;
+    companyName: string;
+    companyLogo: string;
+    totalResumes: number;
+}
+
+export interface ICompanyResumeStatistic {
+    companyId: number;
+    companyName: string;
+    totalResumes: number;
+    approvedResumes: number;
+    rejectedResumes: number;
+    pendingResumes: number;
+}
+
+export interface IAdminStatistics {
+    totalApprovedJobs: number;
+    totalRejectedJobs: number;
+    totalPendingJobs: number;
+    totalCompanies: number;
+    topCompanyByResumes: ICompanyTopResume | null;
+    resumesByStatus: IResumeStatusStatistic[];
+    jobsTimeSeries: ITimeSeriesStatistic[];
+    resumesTimeSeries: ITimeSeriesStatistic[];
+    companyResumeStatistics: ICompanyResumeStatistic[];
+    statisticsTime: string;
+    filterStartDate: string;
+    filterEndDate: string;
+    timeUnit: string; // "WEEK" or "MONTH"
+}
+>>>>>>> Stashed changes
 export interface ICv {
-  id: number;
-  fullName: string;
-  email: string;
-  phone: string;
-  address: string;
-  objective: string;
-  experience: string;
-  education: string;
-  skills: string;
-  photoUrl?: string;
-  cvTemplate?: string;
-  createdAt?: string;
-  updatedAt?: string;
+    id: number;
+    fullName: string;
+    email: string;
+    phone: string;
+    address: string;
+    objective: string;
+    experience: string;
+    education: string;
+    skills: string;
+    photoUrl?: string;
+    cvTemplate?: string;
+    createdAt?: string;
+    updatedAt?: string;
+    url?: string;
 }
