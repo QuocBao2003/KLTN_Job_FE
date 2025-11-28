@@ -5,9 +5,10 @@ import { callFetchJobById, callSavedJob, callJobByJobProfession } from "@/config
 import styles from 'styles/client.module.scss';
 import savejobStyles from 'styles/savejob.module.scss';
 import parse from 'html-react-parser';
-import { Col, Divider, message, Row, Skeleton, Tag, Card, Empty, Spin, Typography, Button } from "antd";
+import { Col, Divider, message, Row, Skeleton, Tag, Card, Empty, Spin, Typography, Button, Breadcrumb } from "antd";
 import { DollarOutlined, EnvironmentOutlined, HistoryOutlined, HeartOutlined } from "@ant-design/icons";
 import { getLocationName, convertSlug } from "@/config/utils";
+import { Link } from "react-router-dom";
 
 const { Title, Text } = Typography;
 import dayjs from 'dayjs';
@@ -119,6 +120,14 @@ const ClientJobDetailPage = (props: any) => {
     }
     return (
         <div className={`${styles["container"]} ${styles["detail-job-section"]}`} style={{ marginTop: '15px' }}>
+            <Breadcrumb 
+                items={[
+                    { title: <Link to="/">Trang chủ</Link> },
+                    { title: <Link to="/job">Việc làm</Link> },
+                    { title: <span style={{ color: '#197bcd' }}>{jobDetail?.name || 'Chi tiết việc làm'}</span> }
+                ]} 
+                style={{ marginBottom: '16px' }}
+            />
             {isLoading ?
                 <Skeleton />
                 :
@@ -228,24 +237,25 @@ const ClientJobDetailPage = (props: any) => {
                                 </div>
 
                                 <Divider />
-                                <h3>Mô tả công việc</h3>
+                                
+                                <h3> <b>Mô tả công việc</b> </h3>
                                 <div className={styles["job-description"]}>
                                     {parse(String(jobDetail.description || ''))}
                                 </div>
-                                <h3>Yêu cầu ứng viên</h3>
+                                <h3> <b>Yêu cầu ứng viên</b></h3>
                                 <div className={styles["job-description"]}>
                                     {parse(String(jobDetail.request || ''))}
                                 </div>
                               
-                                <h3>Quyền lợi được hưởng</h3>
+                                <h3><b>Quyền lợi được hưởng</b></h3>
                                 <div className={styles["job-description"]}>
                                     {parse(String(jobDetail.interest || ''))}
                                 </div>
-                                <h3>Địa điểm làm việc</h3>
+                                <h3><b>Địa điểm làm việc</b></h3>
                                 <div className={styles["job-description"]}>
                                     {parse(String(jobDetail.worklocation || ''))}
                                 </div>
-                                <h3>Thời gian làm việc</h3>
+                                <h3><b>Thời gian làm việc</b></h3>
                                 <div className={styles["job-description"]}>
                                     {parse(String(jobDetail.worktime || ''))}
                                 </div>
@@ -297,8 +307,8 @@ const ClientJobDetailPage = (props: any) => {
                                         zIndex: 1
                                     }}>
                                         <div style={{
-                                            width: '100px',
-                                            height: '100px',
+                                            width: '120px',
+                                            height: '120px',
                                             borderRadius: '50%',
                                             border: '4px solid #ffffff',
                                             overflow: 'hidden',
@@ -306,6 +316,7 @@ const ClientJobDetailPage = (props: any) => {
                                             boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
                                             display: 'flex',
                                             alignItems: 'center',
+                                        
                                             justifyContent: 'center'
                                         }}>
                                             <img
@@ -314,7 +325,7 @@ const ClientJobDetailPage = (props: any) => {
                                                 style={{
                                                     width: '100%',
                                                     height: '100%',
-                                                    objectFit: 'cover'
+                                                    objectFit: 'contain'
                                                 }}
                                             />
                                         </div>
@@ -367,75 +378,79 @@ const ClientJobDetailPage = (props: any) => {
                                 
                                 {/* Card: Danh sách việc làm cùng ngành */}
                                 <Card 
-                                    bordered={false}
-                                    style={{ 
-                                        backgroundColor: '#ffffff',
-                                        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                                        borderRadius: '8px',
-                                        padding: '20px',
-                                        marginTop: '20px'
-                                    }}
-                                >
-                                    <div className={savejobStyles['suggested-title']} style={{ marginBottom: '16px' }}>
-                                        Gợi ý việc làm phù hợp
-                                    </div>
-                                    <Spin spinning={isLoadingRelatedJobs} tip="Loading...">
-                                        {relatedJobs && relatedJobs.length > 0 ? (
-                                            <div className={savejobStyles['suggested-jobs-list']}>
-                                                {relatedJobs.map((item) => {
-                                                    return (
-                                                        <Card 
-                                                            key={item.id}
-                                                            className={savejobStyles['suggested-job-card']}
-                                                            hoverable
-                                                            onClick={() => handleViewDetailJob(item)}
-                                                            size="small"
-                                                        >
-                                                            <div className={savejobStyles['suggested-job-content']}>
-                                                                <div className={savejobStyles['job-left']}>
-                                                                    <img
-                                                                        src={item?.company?.logo || "https://via.placeholder.com/200x200?text=No+Logo"}
-                                                                        alt={item.company?.name}
-                                                                        className={savejobStyles['company-logo-small']}
-                                                                    />
-                                                                </div>
-                                                                <div className={savejobStyles['job-right']}>
-                                                                    <Title level={5} className={savejobStyles['job-title']}>
-                                                                        {item.name}
-                                                                    </Title>
-                                                                    
-                                                                    <div className={savejobStyles['job-info']}>
-                                                                        <Tag className={savejobStyles['salary-tag']}>
-                                                                            {formatSalary(item)}
-                                                                        </Tag>
-                                                                        <Tag className={savejobStyles['location-tag']}>
-                                                                            {getLocationName(item.location)}
-                                                                        </Tag>
-                                                                    </div>
-                                                                </div>
-                                                                <div className={savejobStyles['job-actions']}>
-                                                                    <Button
-                                                                        type="text"
-                                                                        icon={<HeartOutlined />}
-                                                                        className={savejobStyles['save-btn']}
-                                                                        onClick={(e) => {
-                                                                            e.stopPropagation();
-                                                                            handleSaveJob(e, item.id);
-                                                                        }}
-                                                                    />
-                                                                </div>
-                                                            </div>
-                                                        </Card>
-                                                    )
-                                                })}
+                        bordered={false}
+                        style={{ 
+                            backgroundColor: '#ffffff',
+                            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                            borderRadius: '8px',
+                            padding: '20px',
+                            marginTop: '20px'
+                        }}
+                    >
+                        <div className={savejobStyles['suggested-title']}>
+                            Việc tương tự
+                        </div>
+                        <Spin spinning={isLoadingRelatedJobs} tip="Loading...">
+                            {relatedJobs && relatedJobs.length > 0 ? (
+                                <div className={savejobStyles['suggested-jobs-list']}>
+                                    {relatedJobs.map((item) => {
+                                        return (
+                                            <div 
+                                                key={item.id}
+                                                className={savejobStyles['suggested-job-card']}
+                                                onClick={() => handleViewDetailJob(item)}
+                                            >
+                                                <div className={savejobStyles['suggested-job-content']}>
+                                                    <div className={savejobStyles['job-left']}>
+                                                        <img
+                                                            src={item?.company?.logo || "https://via.placeholder.com/200x200?text=No+Logo"}
+                                                            alt={item.company?.name}
+                                                            className={savejobStyles['company-logo-small']}
+                                                        />
+                                                    </div>
+                                                    <div className={savejobStyles['job-right']}>
+                                                        <Text className={savejobStyles['company-name']}>
+                                                            {item.company?.name}
+                                                        </Text>
+                                                        <Title level={5} className={savejobStyles['job-title']}>
+                                                            {item.name}
+                                                        </Title>
+                                                        <div className={savejobStyles['job-info']}>
+                                                            <span className={savejobStyles['location-icon']}>
+                                                                <EnvironmentOutlined />
+                                                                <span className={savejobStyles['location-text']}>
+                                                                    {getLocationName(item.location)}
+                                                                </span>
+                                                            </span>
+                                                            <span className={savejobStyles['salary-tag']}>
+                                                                <DollarOutlined />
+                                                                {formatSalary(item)}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                    <div className={savejobStyles['job-actions']}>
+                                                        <Button
+                                                            type="text"
+                                                            icon={<HeartOutlined />}
+                                                            className={savejobStyles['save-btn']}
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                handleSaveJob(e, item.id);
+                                                            }}
+                                                        />
+                                                    </div>
+                                                </div>
                                             </div>
-                                        ) : (
-                                            !isLoadingRelatedJobs && (
-                                                <Empty description="Không có việc làm cùng ngành" />
-                                            )
-                                        )}
-                                    </Spin>
-                                </Card>
+                                        )
+                                    })}
+                                </div>
+                            ) : (
+                                !isLoadingRelatedJobs && (
+                                    <Empty description="Không có việc làm cùng ngành" />
+                                )
+                            )}
+                        </Spin>
+        </Card>
                             </Col>
                         </>
                     }

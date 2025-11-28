@@ -14,7 +14,13 @@ export interface IModelPaginate<T> {
     },
     result: T[]
 }
-
+export interface IJobStatistics {
+    level?: string;
+    location?: string;
+    companyName?: string;
+    jobCount: number;
+    averageSalary: number;
+}
 export interface IAccount {
     access_token: string;
     user: {
@@ -182,6 +188,7 @@ export interface IJob {
         name: string;
         logo?: string;
     }
+    logo?: string;
     jobProfession?: IJobProfession;
     location: string;
     minSalary?: number;
@@ -198,6 +205,9 @@ export interface IJob {
     endDate: Date;
     status: "PENDING" | "APPROVED" | "REJECTED";
 
+    packageType?: 'PRIORITY_DISPLAY' | 'PRIORITY_BOLD_TITLE' | 'FEATURED_JOB';
+    isFeatured?: boolean;
+    hasBoldTitle?: boolean;
     createdBy?: string;
     isDeleted?: boolean;
     deletedAt?: boolean | null;
@@ -360,6 +370,7 @@ export interface IAdminStatistics {
     filterStartDate: string;
     filterEndDate: string;
     timeUnit: string; // "WEEK" or "MONTH"
+}
 export interface ICv {
   id: number;
   fullName: string;
@@ -374,4 +385,45 @@ export interface ICv {
   cvTemplate?: string;
   createdAt?: string;
   updatedAt?: string;
+}
+export interface IServicePackage {
+    id: number;
+    name: string;
+    description: string;
+    price: number;
+    packageType: 'PRIORITY_DISPLAY' | 'PRIORITY_BOLD_TITLE' | 'FEATURED_JOB';
+    jobLimit: number;
+    durationDays: number;
+    active: boolean;
+}
+
+export interface IUserPackage {
+    id: number;
+    servicePackage: IServicePackage;
+    startDate: string;
+    endDate: string;
+    usedJobCount: number;
+    remainingJobCount: number;
+    status: 'ACTIVE' | 'EXPIRED' | 'INACTIVE';
+    expired: boolean;
+    daysRemaining: number;
+}
+
+export interface IPackageOrder {
+    id: number;
+    orderCode: string;
+    servicePackage: IServicePackage;
+    amount: number;
+    orderType: 'NEW_PURCHASE' | 'RENEWAL';
+    paymentMethod: 'MOMO';
+    paymentStatus: 'PENDING' | 'PAID' | 'FAILED' | 'CANCELLED';
+    transactionId?: string;
+    createdAt: string;
+}
+
+export interface IMoMoPayment {
+    payUrl: string;
+    orderCode: string;
+    requestId: string;
+    message: string;
 }

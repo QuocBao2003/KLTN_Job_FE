@@ -10,6 +10,7 @@ import {
     AliwangwangOutlined,
     BugOutlined,
     ScheduleOutlined,
+    DollarOutlined,
 } from '@ant-design/icons';
 import { Layout, Menu, Dropdown, Space, message, Avatar, Button } from 'antd';
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
@@ -79,6 +80,15 @@ const LayoutAdmin = () => {
                 item.apiPath === ALL_PERMISSIONS.JOBPROFESSIONS.GET_PAGINATE.apiPath
                 && item.method === ALL_PERMISSIONS.JOBPROFESSIONS.GET_PAGINATE.method
             )
+            const viewServicePackagesAdmin = permissions?.find(item =>
+                item.apiPath === ALL_PERMISSIONS.PACKAGES.GET_ALL_ADMIN.apiPath
+                && item.method === ALL_PERMISSIONS.PACKAGES.GET_ALL_ADMIN.method
+            );
+
+            const viewMyPackages = permissions?.find(item =>
+                item.apiPath === ALL_PERMISSIONS.PACKAGES.GET_MY_PACKAGES.apiPath
+                && item.method === ALL_PERMISSIONS.PACKAGES.GET_MY_PACKAGES.method
+            );
 
             const full = [
                 {
@@ -124,13 +134,31 @@ const LayoutAdmin = () => {
                     key: '/admin/skill',
                     icon: <ExceptionOutlined />
                 }] : []),
-
+                
                 ...(viewJobProfession || ACL_ENABLE === 'false' ? [{
                     label: <Link to='/admin/job-profession'>Job Profession</Link>,
                     key: '/admin/job-profession',
                     icon: <ExceptionOutlined />
                 }] : []),
-
+                ...(viewServicePackagesAdmin || viewMyPackages || ACL_ENABLE === 'false' ? [{
+                    label: 'Packages',
+                    key: '/admin/packages',
+                    icon: <DollarOutlined />,
+                    children: [
+                        // Admin only - Quản lý gói dịch vụ
+                        ...(viewServicePackagesAdmin || ACL_ENABLE === 'false' ? [{
+                            label: <Link to='/admin/service-packages'>Quản lý gói dịch vụ</Link>,
+                            key: '/admin/service-packages',
+                            icon: <DollarOutlined />,
+                        }] : []),
+                        // HR - Xem gói của mình
+                        ...(viewMyPackages || ACL_ENABLE === 'false' ? [{
+                            label: <Link to='/admin/my-packages'>Gói của tôi</Link>,
+                            key: '/admin/my-packages',
+                            icon: <DollarOutlined />,
+                        }] : []),
+                    ]
+                }] : []),
             ];
 
             setMenuItems(full);

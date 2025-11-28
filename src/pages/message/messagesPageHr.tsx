@@ -30,6 +30,8 @@ const MessagesPageHR = () => {
     const connectionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const isLoadingRoomRef = useRef<boolean>(false);
     const currentRoomIdRef = useRef<string | null>(null);
+    const previousMessagesLengthRef = useRef<number>(0);
+    const shouldScrollRef = useRef<boolean>(false);
 
     const roomIdParam = searchParams.get('roomId');
 
@@ -58,8 +60,16 @@ const MessagesPageHR = () => {
     }, [roomIdParam]);
 
     useEffect(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [chatMessages]);
+        // Chỉ scroll khi có tin nhắn mới được thêm vào (length tăng), không scroll khi load lại
+        if (chatMessages.length > previousMessagesLengthRef.current && messagesEndRef.current && shouldScrollRef.current) {
+            // Sử dụng setTimeout để đảm bảo DOM đã render
+            setTimeout(() => {
+                messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
+                shouldScrollRef.current = false; // Reset flag sau khi scroll
+            }, 50);
+        }
+        previousMessagesLengthRef.current = chatMessages.length;
+    }, [chatMessages.length]);
 
     const fetchRooms = async () => {
         setLoading(true);
@@ -104,6 +114,8 @@ const MessagesPageHR = () => {
 
             const messagesRes = await getMessagesInRoom(room.id);
             const messages = messagesRes?.data || [];
+            shouldScrollRef.current = false; // Không scroll khi load lại tin nhắn
+            previousMessagesLengthRef.current = 0; // Reset để không scroll khi set messages
             setChatMessages(messages);
 
             // ✅ Update unread count - HR xem unreadCount
@@ -159,6 +171,15 @@ const MessagesPageHR = () => {
                     stompClient.subscribe(`/topic/room/${roomId}`, (message) => {
                         try {
                             const newMessage: IMessageResponse = JSON.parse(message.body);
+                            
+                            // Chỉ scroll khi nhận tin nhắn từ người khác, không scroll khi mình gửi
+                            if (user && newMessage.senderId !== Number(user.id)) {
+                                shouldScrollRef.current = true;
+                                markRoomAsRead(roomId);
+                            } else {
+                                shouldScrollRef.current = false; // Không scroll khi là tin nhắn của mình
+                            }
+                            
                             setChatMessages(prev => [...prev, newMessage]);
                             
                             setRooms(prev => prev.map(r =>
@@ -169,10 +190,6 @@ const MessagesPageHR = () => {
                                     lastSenderId: newMessage.senderId
                                 } : r
                             ));
-                            
-                            if (user && newMessage.senderId !== Number(user.id)) {
-                                markRoomAsRead(roomId);
-                            }
                         } catch (error) {
                             console.error('Error parsing message:', error);
                         }
@@ -218,7 +235,12 @@ const MessagesPageHR = () => {
         }
     };
 
-    const handleSendMessage = async () => {
+    const handleSendMessage = async (e?: React.MouseEvent | React.KeyboardEvent) => {
+        if (e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        
         if (!chatMessage.trim() || !currentRoom || !stompClientRef.current?.connected || !user?.id) return;
 
         try {
@@ -232,6 +254,7 @@ const MessagesPageHR = () => {
                 body: JSON.stringify(messageRequest)
             });
             setChatMessage('');
+            // Không scroll khi mình gửi tin nhắn, chỉ scroll khi nhận tin nhắn từ người khác
         } catch (error) {
             console.error('Error sending message:', error);
             antMessage.error('Không thể gửi tin nhắn');
@@ -239,7 +262,11 @@ const MessagesPageHR = () => {
     };
 
     const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
-        if (e.key === 'Enter') handleSendMessage();
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            e.stopPropagation();
+            handleSendMessage(e);
+        }
     };
 
     // ✅ Sử dụng các field mới từ DTO
@@ -254,7 +281,7 @@ const MessagesPageHR = () => {
 
     return (
         <div className={messageJobApplyStyles['message-jobapply-container']}>
-            <Row gutter={0} style={{ height: '100vh' }}>
+            <Row gutter={0} style={{ height: 'calc(100vh - 64px)', maxHeight: 'calc(100vh - 64px)' }}>
                 {/* Left Side - Chat Interface */}
                 <Col xs={24} lg={12} className={messageJobApplyStyles['chat-section']}>
                     <div className={messageJobApplyStyles['chat-wrapper']}>
@@ -361,6 +388,7 @@ const MessagesPageHR = () => {
                                     disabled={!stompClientRef.current?.connected}
                                 />
                                 <Button
+                                    htmlType="button"
                                     type="primary"
                                     icon={<SendOutlined />}
                                     onClick={handleSendMessage}

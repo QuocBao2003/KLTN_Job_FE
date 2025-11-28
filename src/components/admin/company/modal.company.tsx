@@ -284,7 +284,7 @@ const ModalCompany = (props: IProps) => {
                                                             uid: uuidv4(),
                                                             name: dataInit?.logo ?? "",
                                                             status: 'done',
-                                                            url: `${import.meta.env.VITE_BACKEND_URL}/storage/company/${dataInit?.logo}`,
+                                                            url: `${dataInit?.logo}`,
                                                         }
                                                     ] : []
                                             }
@@ -324,7 +324,7 @@ const ModalCompany = (props: IProps) => {
                                                             uid: uuidv4(),
                                                             name: dataInit?.banner ?? "",
                                                             status: 'done',
-                                                            url: `${import.meta.env.VITE_BACKEND_URL}/storage/bannerCompany/${dataInit?.banner}`,
+                                                            url: `${dataInit?.banner}`,
                                                         }
                                                     ] : []
                                             }

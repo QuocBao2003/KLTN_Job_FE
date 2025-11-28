@@ -50,6 +50,22 @@ export const ALL_PERMISSIONS = {
         UPDATE: { method: "PUT", apiPath: '/api/v1/job_professions/{id}', module: "JOBPROFESSIONS" },
         DELETE: { method: "DELETE", apiPath: '/api/v1/job_professions/{id}', module: "JOBPROFESSIONS" },
     },
+    PACKAGES: {
+        // Admin only
+        GET_ALL_ADMIN: { method: "GET", apiPath: '/api/v1/packages/service-packages/all', module: "PACKAGES" },
+        GET_BY_ID: { method: "GET", apiPath: '/api/v1/packages/service-packages/{id}', module: "PACKAGES" },
+        CREATE: { method: "POST", apiPath: '/api/v1/packages/service-packages', module: "PACKAGES" },
+        UPDATE: { method: "PUT", apiPath: '/api/v1/packages/service-packages/{id}', module: "PACKAGES" },
+        DELETE: { method: "DELETE", apiPath: '/api/v1/packages/service-packages/{id}', module: "PACKAGES" },
+        TOGGLE_STATUS: { method: "PUT", apiPath: '/api/v1/packages/service-packages/{id}/toggle-status', module: "PACKAGES" },
+        
+        // Public/HR
+        GET_ACTIVE: { method: "GET", apiPath: '/api/v1/packages/service-packages', module: "PACKAGES" },
+        GET_MY_PACKAGES: { method: "GET", apiPath: '/api/v1/packages/my-packages', module: "PACKAGES" },
+        GET_ACTIVE_PACKAGES: { method: "GET", apiPath: '/api/v1/packages/my-packages/active', module: "PACKAGES" },
+        CREATE_ORDER: { method: "POST", apiPath: '/api/v1/packages/orders', module: "PACKAGES" },
+        GET_MY_ORDERS: { method: "GET", apiPath: '/api/v1/packages/orders', module: "PACKAGES" },
+    }
 }
 
 export const ALL_MODULES = {
@@ -63,4 +79,5 @@ export const ALL_MODULES = {
     SUBSCRIBERS: 'SUBSCRIBERS',
     SKILLS: 'SKILLS',
     JOBPROFESSIONS: 'JOBPROFESSIONS',
+    PACKAGES: 'PACKAGES',
 }

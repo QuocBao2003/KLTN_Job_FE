@@ -1,5 +1,5 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
-import { callFetchAllJobProfession } from '@/config/api';
+import { callFetchAllJobProfession, callFetchAllJobProfessionAll } from '@/config/api';
 import { IJobProfession } from '@/types/backend';
 
 interface IState {

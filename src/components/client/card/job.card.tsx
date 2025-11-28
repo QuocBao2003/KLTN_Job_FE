@@ -1,18 +1,16 @@
 import { callFetchJob, callSavedJob } from '@/config/api';
 import { convertSlug, getLocationName } from '@/config/utils';
 import { IJob } from '@/types/backend';
-import { EnvironmentOutlined, DollarOutlined, HeartOutlined } from '@ant-design/icons';
-import { Card, Col, Empty, Pagination, Row, Spin, message } from 'antd';
+import { EnvironmentOutlined, DollarOutlined, HeartOutlined, FireOutlined } from '@ant-design/icons';
+import { Card, Col, Empty, Pagination, Row, Spin, message, Tag } from 'antd';
 import { useState, useEffect } from 'react';
 import { isMobile } from 'react-device-detect';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import styles from 'styles/client.module.scss';
 import { sfIn } from "spring-filter-query-builder";
-
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 dayjs.extend(relativeTime);
-
 
 interface IProps {
     showPagination?: boolean;
@@ -20,10 +18,8 @@ interface IProps {
 
 const JobCard = (props: IProps) => {
     const { showPagination = false } = props;
-
     const [displayJob, setDisplayJob] = useState<IJob[] | null>(null);
     const [isLoading, setIsLoading] = useState<boolean>(false);
-
     const [current, setCurrent] = useState(1);
     const [pageSize, setPageSize] = useState(9);
     const [total, setTotal] = useState(0);
@@ -47,7 +43,6 @@ const JobCard = (props: IProps) => {
             query += `&${sortQuery}`;
         }
 
-        //check query string
         const queryLocation = searchParams.get("location");
         const querySkills = searchParams.get("skills")
         if (queryLocation || querySkills) {
@@ -73,8 +68,6 @@ const JobCard = (props: IProps) => {
         setIsLoading(false);
     }
 
-
-
     const handleOnchangePage = (pagination: { current: number, pageSize: number }) => {
         if (pagination && pagination.current !== current) {
             setCurrent(pagination.current)
@@ -91,7 +84,7 @@ const JobCard = (props: IProps) => {
     }
 
     const handleSaveJob = async (e: React.MouseEvent, jobId?: string) => {
-        e.stopPropagation(); // Ngăn chặn event bubble lên card
+        e.stopPropagation();
         if (!jobId) {
             message.error('Không tìm thấy ID công việc!');
             return;
@@ -133,6 +126,10 @@ const JobCard = (props: IProps) => {
                         </Col>
 
                         {displayJob?.map(item => {
+                            // Kiểm tra các feature của gói dịch vụ
+                            const isFeatured = item.isFeatured || false;
+                            const hasBoldTitle = item.hasBoldTitle || false;
+                            console.log("item", item);
                             return (
                                 <Col span={24} md={8} key={item.id}>
                                     <Card 
@@ -141,36 +138,71 @@ const JobCard = (props: IProps) => {
                                         hoverable
                                         className={styles["job-card-wrapper"]}
                                         onClick={() => handleViewDetailJob(item)}
+                                        style={{
+                                            border: hasBoldTitle ? '2px solidrgb(19, 81, 97)' : undefined,
+                                            boxShadow: hasBoldTitle ? '0 4px 18px rgba(214, 15, 18, 0.2)' : undefined
+                                        }}
                                     >
+                                        {isFeatured && (
+                                            <Tag 
+                                                color="red" 
+                                                icon={<FireOutlined />}
+                                                style={{ 
+                                                    position: 'absolute', 
+                                                    top: 10, 
+                                                    left: 10,
+                                                    zIndex: 1,
+                                                    fontSize: 12,
+                                                    fontWeight: 'bold'
+                                                }}
+                                            >
+                                                Việc làm hấp dẫn
+                                            </Tag>
+                                        )}
+                                        
                                         <HeartOutlined 
                                             className={styles["heart-icon"]}
                                             onClick={(e) => handleSaveJob(e, item.id)}
                                         />
+                                        
                                         <div className={styles["card-job-content"]}>
                                             <div className={styles["card-job-left"]}>
                                                 <img
                                                     alt="example"
-                                                    src={item?.company?.logo || "https://via.placeholder.com/200x200?text=No+Logo"}
+                                                    src={item.logo || "https://via.placeholder.com/200x200?text=No+Logo"}
                                                 />
                                             </div>
                                             <div className={styles["card-job-right"]}>
-                                                <div className={styles["job-title"]}>{item.name}</div>
-                                                <div className={styles["job-location"]}><EnvironmentOutlined style={{ color: 'gray' }} />&nbsp;{getLocationName(item.location)}</div>
+                                                <div 
+                                                    className={styles["job-title"]}
+                                                    style={{
+                                                        color: hasBoldTitle ? '#ff4d4f' : undefined,
+                                                        fontWeight: hasBoldTitle ? 'bold' : undefined
+                                                    }}
+                                                >
+                                                    {item.name}
+                                                </div>
+                                                <div className={styles["job-location"]}>
+                                                    <EnvironmentOutlined style={{ color: 'gray' }} />
+                                                    &nbsp;{getLocationName(item.location)}
+                                                </div>
                                                 <div>
                                                     <DollarOutlined style={{ color: '#2580ff' }} />&nbsp;
                                                     <span style={{ color: '#2580ff' }}>
                                                         {formatSalary(item)}
                                                     </span>
                                                 </div>
-                                                <div className={styles["job-updatedAt"]}>{item.updatedAt ? dayjs(item.updatedAt).locale('en').fromNow() : dayjs(item.createdAt).locale('en').fromNow()}</div>
+                                                <div className={styles["job-updatedAt"]}>
+                                                    {item.updatedAt 
+                                                        ? dayjs(item.updatedAt).locale('en').fromNow() 
+                                                        : dayjs(item.createdAt).locale('en').fromNow()}
+                                                </div>
                                             </div>
                                         </div>
-
                                     </Card>
                                 </Col>
                             )
                         })}
-
 
                         {(!displayJob || displayJob && displayJob.length === 0)
                             && !isLoading &&

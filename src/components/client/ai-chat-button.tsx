@@ -9,7 +9,7 @@ const AIchatButton = () =>{
 
     return(
         <>
-        <Badge dot>
+        <Badge >
             <Button
                 type='primary'
                 shape='circle'

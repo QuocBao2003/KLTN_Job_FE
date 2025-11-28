@@ -40,6 +40,11 @@ import SkillPage from "./pages/admin/job/skill";
 import MessagesContainer from "./pages/message/messagesContainer";
 import JobProfessionPage from "./pages/admin/job/job-profession";
 import CvManagement from "./pages/CV/myCv";
+import AdminServicePackages from "./pages/admin/service-package";
+import MyPackages from "./pages/admin/myPackage";
+import PaymentReturn from "./pages/admin/payMentReturn";
+import ServicePackages from "./pages/admin/servicePackageHR";
+import PackageOrder from "./pages/admin/packageOrder";
 
 
 const LayoutClient = () => {
@@ -185,6 +190,44 @@ export default function App() {
             </ProtectedRoute>
           ),
         },
+        {
+          path: "service-packages",
+          element: (
+            <ProtectedRoute>
+              <AdminServicePackages />
+            </ProtectedRoute>
+          ),
+        },
+        {
+          path: "my-packages",
+          element: (
+            <ProtectedRoute>
+              <MyPackages />
+            </ProtectedRoute>
+          ),
+        },
+        {
+          path: "packages",
+          element: (
+            <ProtectedRoute>
+              <ServicePackages />
+            </ProtectedRoute>
+          ),
+        },
+        {
+          path: "packages/order",
+          element: (
+            <ProtectedRoute>
+              <PackageOrder />
+            </ProtectedRoute>
+          ),
+        },
+        {
+          path: "payment/return",
+          element: <PaymentReturn />,
+        },
+
+
         {
           path: "skill",
           element: (

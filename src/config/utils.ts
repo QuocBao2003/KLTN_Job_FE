@@ -23,6 +23,36 @@ export const LOCATION_LIST =
         { label: "Hà Nội", value: "HANOI" },
         { label: "Hồ Chí Minh", value: "HOCHIMINH" },
         { label: "Đà Nẵng", value: "DANANG" },
+        { label: "Huế", value: "HUE" },
+        { label: "Quảng Nam", value: "QUANGNAM" },
+        { label: "Quảng Ngãi", value: "QUANGNGAI" },
+        { label: "Quảng Trị", value: "QUANGTRI" },
+        { label: "Thừa Thiên Huế", value: "THUATHIENHUE" },
+        { label: "Đà Lạt", value: "DALAT" },
+        { label: "Đà Nẵng", value: "DANANG" },
+        { label: "Đồng Nai", value: "DONGNAI" },
+        { label: "Đồng Tháp", value: "DONGTHAP" },
+        { label: "Gia Lai", value: "GIALAI" },
+        { label: "Hà Giang", value: "HAGIANG" },
+        { label: "Hà Nam", value: "HANAM" },
+        { label: "Hà Tĩnh", value: "HATINH" },
+        { label: "Hải Phòng", value: "HAIPHONG" },
+        { label: "Hải Phòng", value: "HAIPHONG" },
+        { label: "Bình Dương", value: "BINHDUONG" },
+        { label: "Bình Thuận", value: "BINHTHUAN" },
+        { label: "Bình Phước", value: "BINHPHUOC" },
+        { label: "Cà Mau", value: "CAMAU" },
+        { label: "Cần Thơ", value: "CANTHO" },
+        { label: "Cao Bằng", value: "CAOBANG" },
+        { label: "Đà Nẵng", value: "DANANG" },
+        { label: "Đắk Lắk", value: "DAKLK" },
+        { label: "Đắk Nông", value: "DAKNONG" },
+        { label: "Điện Biên", value: "DIENBIEN" },
+       
+        
+
+       
+
         { label: "Others", value: "OTHER" },
     ];
 

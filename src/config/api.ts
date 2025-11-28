@@ -1,4 +1,4 @@
-import { IBackendRes, ICompany, IAccount, IUser, IModelPaginate, IGetAccount, IJob, IResume, IPermission, IRole, ISkill, ISubscribers, ISaveJob, IMessageRoom, IMessageContent, IMessageResponse, IChatResponse, IJobProfession, IAdminStatistics, IHRStatistics } from '@/types/backend';
+import { IBackendRes, ICompany, IAccount, IUser, IModelPaginate, IGetAccount, IJob, IResume, IPermission, IRole, ISkill, ISubscribers, ISaveJob, IMessageRoom, IMessageContent, IMessageResponse, IChatResponse, IJobProfession, IAdminStatistics, IHRStatistics, ICv, IServicePackage, IUserPackage, IMoMoPayment, IPackageOrder } from '@/types/backend';
 import axios from 'config/axios-customize';
 
 /**
@@ -147,10 +147,13 @@ export const updateJobApprove = (id:string) =>{
 export const updateJobReject = (id:string) =>{
     return axios.put<IBackendRes<void>>(`/api/v1/jobs/${id}/reject`);
 }
-export const callCreateJob = (job: IJob) => {
-    return axios.post<IBackendRes<IJob>>('/api/v1/jobs', { ...job })
-}
-
+export const callCreateJob = (data: any, userPackageId?: number) => {
+    let url = '/api/v1/jobs';
+    if (userPackageId) {
+        url += `?userPackageId=${userPackageId}`;
+    }
+    return axios.post<IBackendRes<IJob>>(url, data);
+};
 export const callUpdateJob = (job: IJob, id: string) => {
     return axios.put<IBackendRes<IJob>>(`/api/v1/jobs`, { id, ...job })
 }
@@ -313,7 +316,7 @@ export const callDeleteJobProfession = (id: string) => {
 export const callFetchJobProfessionById = (id: string) => {
     return axios.get<IBackendRes<IJobProfession>>(`/api/v1/job_professions/${id}`);
 };
-export const callFetchAllJobProfession = (query: string) => {
+export const callFetchAllJobProfessionAll = (query: string) => {
     return axios.get<IBackendRes<IModelPaginate<IJobProfession>>>(`/api/v1/job_professions?${query}`);
 };
 
@@ -414,6 +417,7 @@ export const getAdminStatistics = (filter?: IStatisticsFilter) => {
     if (filter?.topLimit) params.topLimit = filter.topLimit;
     
     return axios.get<IBackendRes<IAdminStatistics>>('/api/v1/statistics/admin', { params });
+    }
 // Thêm interface cho thống kê
 export interface IJobStatistics {
     level?: string;
@@ -526,6 +530,78 @@ export const callUploadExcelCv = (file: any) => {
     });
 }
 
+
 export const callFetchAllJobProfession = (query : string = "") => {
     return axios.get(`/api/v1/job_professions/tree?${query}`);
+}
+
+// SERVICE PACKAGE APIs
+// Service Package APIs (Public)
+export const callGetServicePackages = () => {
+    return axios.get<IBackendRes<IServicePackage[]>>('/api/v1/packages/service-packages');
+}
+
+// Service Package APIs (Admin)
+export const callGetAllServicePackages = () => {
+    return axios.get<IBackendRes<IServicePackage[]>>('/api/v1/packages/service-packages/all');
+}
+
+export const callGetServicePackageById = (id: number) => {
+    return axios.get<IBackendRes<IServicePackage>>(`/api/v1/packages/service-packages/${id}`);
+}
+
+export const callCreateServicePackage = (data: {
+    name: string;
+    description: string;
+    price: number;
+    packageType: 'PRIORITY_DISPLAY' | 'PRIORITY_BOLD_TITLE' | 'FEATURED_JOB';
+    jobLimit: number;
+    durationDays: number;
+    active: boolean;
+}) => {
+    return axios.post<IBackendRes<IServicePackage>>('/api/v1/packages/service-packages', data);
+}
+
+export const callUpdateServicePackage = (id: number, data: {
+    name?: string;
+    description?: string;
+    price?: number;
+    packageType?: 'PRIORITY_DISPLAY' | 'PRIORITY_BOLD_TITLE' | 'FEATURED_JOB';
+    jobLimit?: number;
+    durationDays?: number;
+    active?: boolean;
+}) => {
+    return axios.put<IBackendRes<IServicePackage>>(`/api/v1/packages/service-packages/${id}`, data);
+}
+
+export const callDeleteServicePackage = (id: number) => {
+    return axios.delete<IBackendRes<void>>(`/api/v1/packages/service-packages/${id}`);
+}
+
+export const callToggleServicePackageStatus = (id: number) => {
+    return axios.put<IBackendRes<void>>(`/api/v1/packages/service-packages/${id}/toggle-status`);
+}
+
+// ============ USER PACKAGE APIs ============
+
+export const callGetMyPackages = () => {
+    return axios.get<IBackendRes<IUserPackage[]>>('/api/v1/packages/my-packages');
+}
+
+export const callGetActivePackages = () => {
+    return axios.get<IBackendRes<IUserPackage[]>>('/api/v1/packages/my-packages/active');
+}
+
+// ============ ORDER APIs ============
+
+export const callCreateOrder = (data: {
+    servicePackageId: number;
+    userPackageId?: number;
+    orderType: 'NEW_PURCHASE' | 'RENEWAL';
+}) => {
+    return axios.post<IBackendRes<IMoMoPayment>>('/api/v1/packages/orders', data);
+}
+
+export const callGetMyOrders = () => {
+    return axios.get<IBackendRes<IPackageOrder[]>>('/api/v1/packages/orders');
 }
