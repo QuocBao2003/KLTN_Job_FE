@@ -2,19 +2,31 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { Modal, Input, List, Tag, Button, Checkbox, Spin, Empty, Tooltip } from 'antd';
 import { RightOutlined, SearchOutlined, CheckCircleFilled } from '@ant-design/icons';
 import { ProFormItem } from '@ant-design/pro-components';
-import { callFetchAllJobProfession } from '@/config/api'; // Đảm bảo đường dẫn đúng
+import { callFetchAllJobProfession, callFetchAllJobProfessionSkillJob } from '@/config/api'; // Đảm bảo đường dẫn đúng
 import { debounce, uniqBy } from 'lodash'; // Cần cài: npm i lodash
+import { Form } from 'antd';
+import viVN from 'antd/es/locale/vi_VN';
+
+export const JOB_LEVELS = [
+    { id: 'INTERN', name: 'Intern / Thực tập sinh' },
+    { id: 'FRESHER', name: 'Fresher' },
+    { id: 'JUNIOR', name: 'Junior' },
+    { id: 'MIDDLE', name: 'Middle' },
+    { id: 'SENIOR', name: 'Senior' },
+    { id: 'LEAD', name: 'Team Lead' },
+    { id: 'MANAGER', name: 'Manager' },
+];
 
 // --- Interfaces ---
-interface ISkill { id: number; name: string; }
-interface IJob { id: number; name: string; skills?: ISkill[]; }
-interface IProfession { id: number; name: string; jobs?: IJob[]; }
+interface ISkill { id: string | number; name: string; }
+interface IJob { id: string | number; name: string; skills?: ISkill[]; }
+interface IProfession { id: string | number; name: string; jobs?: IJob[]; }
 
 // Interface lưu trữ kết quả chọn để hiển thị
 interface ISelectedTag {
     id: number;
     name: string;
-    type: 'PROFESSION' | 'SKILL';
+    type: 'PROFESSION' | 'SKILL' | 'LEVEL';
 }
 
 interface IProps {
@@ -32,26 +44,44 @@ const JobTypeSelector = ({ form, fieldName }: IProps) => {
     // --- Interaction States (Dùng để điều khiển hiển thị cột) ---
     const [hoveredProfession, setHoveredProfession] = useState<IProfession | null>(null); // Điều khiển Cột 2
     const [viewMode, setViewMode] = useState<'BY_PROFESSION' | 'BY_SKILL'>('BY_PROFESSION'); // Điều khiển Cột 3
-    
+
     // Dữ liệu tạm để render Cột 3
-    const [jobsDisplaySource, setJobsDisplaySource] = useState<IJob[]>([]); 
+    const [jobsDisplaySource, setJobsDisplaySource] = useState<IJob[]>([]);
     const [activeFilterLabel, setActiveFilterLabel] = useState<string>(""); // Label header cho cột 3
 
     // --- Selection States (Lưu giá trị người dùng TICK chọn) ---
     const [selectedProfessions, setSelectedProfessions] = useState<IProfession[]>([]);
     const [selectedSkills, setSelectedSkills] = useState<ISkill[]>([]);
 
+    const [selectedLevels, setSelectedLevels] = useState<any[]>([]);
+
+    useEffect(() => {
+        if (isModalOpen) {
+            const rawValue = form.getFieldValue(fieldName) || [];
+            setSelectedProfessions(rawValue.filter((i: any) => i.type === 'PROFESSION'));
+            setSelectedSkills(rawValue.filter((i: any) => i.type === 'SKILL' || (!i.type && typeof i.id === 'number')));
+            setSelectedLevels(rawValue.filter((i: any) => i.type === 'LEVEL'));
+        }
+    }, [isModalOpen]);
+
     // 1. Fetch Data
     const fetchData = async (keyword: string = "") => {
         setLoading(true);
         try {
             const query = keyword ? `keyword=${keyword}` : "";
-            const res = await callFetchAllJobProfession(query);
+            const res = await callFetchAllJobProfessionSkillJob(query);
+            
             if (res && res.data) {
-                const professions = res.data as IProfession[];
-                setData(professions);
+                // FIX 1: Xử lý trường hợp dữ liệu nằm trong biến 'result' (phân trang)
+                const rawData = res.data as any;
+                const professions = Array.isArray(rawData) ? rawData : (rawData.result || []);
 
-                // Mặc định ban đầu: Hover & Click vào item đầu tiên để UI không bị trống
+                // DEBUG: Kiểm tra cấu trúc dữ liệu trên console
+                console.log("Data fetched:", professions); 
+
+                setData(professions as IProfession[]);
+
+                // Logic mặc định hover item đầu tiên
                 if (professions.length > 0 && !keyword) {
                     const firstProf = professions[0];
                     setHoveredProfession(firstProf);
@@ -59,7 +89,7 @@ const JobTypeSelector = ({ form, fieldName }: IProps) => {
                 }
             }
         } catch (error) {
-            console.error(error);
+            console.error("Fetch error:", error);
         } finally {
             setLoading(false);
         }
@@ -92,7 +122,7 @@ const JobTypeSelector = ({ form, fieldName }: IProps) => {
         if (!hoveredProfession) return;
         setViewMode('BY_SKILL');
         // Lọc trong Profession đang hover, job nào có skill này
-        const filteredJobs = (hoveredProfession.jobs || []).filter(job => 
+        const filteredJobs = (hoveredProfession.jobs || []).filter(job =>
             job.skills?.some(s => s.id === skill.id)
         );
         setJobsDisplaySource(filteredJobs);
@@ -117,36 +147,45 @@ const JobTypeSelector = ({ form, fieldName }: IProps) => {
         }
     };
 
+    const toggleLevelSelection = (level: any, checked: boolean) => {
+        if (checked) {
+            setSelectedLevels(prev => [...prev, level]);
+        } else {
+            setSelectedLevels(prev => prev.filter(item => item.id !== level.id));
+        }
+    };
+
     // Kiểm tra xem có đang chọn không
     const isProfSelected = (id: number) => selectedProfessions.some(p => p.id === id);
     const isSkillSelected = (id: number) => selectedSkills.some(s => s.id === id);
+    const isLevelSelected = (id: string) => selectedLevels.some(l => l.id === id);
+
 
     // --- HANDLE CONFIRM ---
     const handleConfirm = () => {
-        // Gom data để hiển thị ra UI bên ngoài
         const displayData: ISelectedTag[] = [
             ...selectedProfessions.map(p => ({ id: p.id, name: p.name, type: 'PROFESSION' } as ISelectedTag)),
-            ...selectedSkills.map(s => ({ id: s.id, name: s.name, type: 'SKILL' } as ISelectedTag))
+            ...selectedSkills.map(s => ({ id: s.id, name: s.name, type: 'SKILL' } as ISelectedTag)),
+            ...selectedLevels.map(l => ({ id: l.id, name: l.name, type: 'LEVEL' } as ISelectedTag))
         ];
 
-        // Lưu vào Form:
-        // Tùy backend bạn cần gì. Ví dụ ở đây mình lưu object chứa 2 mảng ids
-        // Hoặc nếu fieldName chỉ nhận 1 mảng id chung thì bạn map ra id.
-        // Ở đây mình giả sử lưu full object để dễ xử lý sau này.
-        form.setFieldValue(fieldName, displayData); 
+        form.setFieldValue(fieldName, displayData);
         setIsModalOpen(false);
+        // form.submit(); // Tự động submit sau khi chọn xong
     };
 
     // Load data từ form khi mở modal (Optional - Xử lý sơ bộ để hiển thị lại cái đã chọn)
-    const savedData = form.getFieldValue(fieldName) as ISelectedTag[];
-    const displayText = savedData && savedData.length > 0 
-        ? savedData.map(i => i.name).join(', ') 
-        : '';
+    const rawData = form.getFieldValue(fieldName);
+    // Đảm bảo savedData luôn là mảng và các phần tử là Object hợp lệ
+    const savedData = Array.isArray(rawData)
+        ? rawData.filter((item: any) => (typeof item === 'object' && item !== null) || typeof item === 'number')
+        : [];
 
     return (
         <>
+            <Form.Item name={fieldName} hidden />
             {/* UI Input Trigger */}
-            <ProFormItem label="Tiêu chí tìm việc (Ngành/Kỹ năng)">
+            <ProFormItem label="Tiêu chí tìm việc (Ngành/Kỹ năng/Cấp bậc)">
                 <div
                     onClick={() => setIsModalOpen(true)}
                     style={{
@@ -155,18 +194,36 @@ const JobTypeSelector = ({ form, fieldName }: IProps) => {
                         display: 'flex', alignItems: 'center', justifyContent: 'space-between'
                     }}
                 >
-                    <div style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', width: '90%' }}>
+                    {/* <div style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', width: '90%' }}>
                         {savedData && savedData.length > 0 ? (
                             <>
-                                {savedData.map((item, idx) => (
-                                    <Tag key={`${item.type}_${item.id}`} color={item.type === 'PROFESSION' ? 'blue' : 'green'}>
-                                        {item.name}
-                                    </Tag>
-                                ))}
+                                {savedData.map((item, idx) => {
+                                    // Xử lý item có thể là object hoặc số (nếu logic cũ còn sót)
+                                    const name = item.name ? item.name : `ID: ${item.id || item}`;
+                                    const type = item.type || 'SKILL';
+
+                                    return (
+                                        <Tag key={idx} color={type === 'PROFESSION' ? 'blue' : 'green'}>
+                                            {name}
+                                        </Tag>
+                                    )
+                                })}
                             </>
                         ) : (
                             <span style={{ color: '#bfbfbf' }}>Chọn nhóm ngành hoặc kỹ năng...</span>
                         )}
+                    </div> */}
+                    <div style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', width: '90%' }}>
+                         {/* Logic hiển thị Tags (Update thêm màu cho Level) */}
+                         {form.getFieldValue(fieldName)?.map((item: any, idx: number) => {
+                             let color = 'green';
+                             if (item.type === 'PROFESSION') color = 'blue';
+                             if (item.type === 'LEVEL') color = 'orange'; // Màu cho Level
+                             return (
+                                 <Tag key={idx} color={color}>{item.name}</Tag>
+                             )
+                         })}
+                         {(!form.getFieldValue(fieldName) || form.getFieldValue(fieldName).length === 0) && <span style={{ color: '#bfbfbf' }}>Chọn Ngành, Kỹ năng, Cấp bậc...</span>}
                     </div>
                     <RightOutlined style={{ fontSize: '10px', color: '#ccc' }} />
                 </div>
@@ -183,10 +240,10 @@ const JobTypeSelector = ({ form, fieldName }: IProps) => {
                     <Button key="back" onClick={() => {
                         setSelectedProfessions([]);
                         setSelectedSkills([]);
+                        setSelectedLevels([]);
                     }}>Xóa chọn</Button>,
                     <Button key="submit" type="primary" onClick={handleConfirm} style={{ background: '#00b14f' }}>
-                        Áp dụng ({selectedProfessions.length + selectedSkills.length})
-                    </Button>
+                        Áp dụng ({selectedProfessions.length + selectedSkills.length + selectedLevels.length})                    </Button>
                 ]}
                 bodyStyle={{ padding: 0, height: '550px', overflow: 'hidden' }}
                 destroyOnClose
@@ -208,9 +265,9 @@ const JobTypeSelector = ({ form, fieldName }: IProps) => {
                         </div>
                     ) : (
                         <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
-                            
+
                             {/* --- CỘT 1: NHÓM NGÀNH (PROFESSION) --- */}
-                            <div style={{ width: '30%', borderRight: '1px solid #f0f0f0', display: 'flex', flexDirection: 'column' }}>
+                            <div style={{ width: '33%', borderRight: '1px solid #f0f0f0', display: 'flex', flexDirection: 'column' }}>
                                 <div style={{ padding: '8px 12px', background: '#fafafa', fontWeight: 'bold', color: '#555', borderBottom: '1px solid #eee' }}>
                                     1. CHỌN NHÓM NGÀNH
                                 </div>
@@ -220,7 +277,7 @@ const JobTypeSelector = ({ form, fieldName }: IProps) => {
                                         renderItem={(item) => {
                                             const isHovered = hoveredProfession?.id === item.id;
                                             // View mode BY_PROFESSION và đang view đúng job của group này
-                                            const isViewingJobs = viewMode === 'BY_PROFESSION' && item.jobs === jobsDisplaySource; 
+                                            const isViewingJobs = viewMode === 'BY_PROFESSION' && item.jobs === jobsDisplaySource;
 
                                             return (
                                                 <div
@@ -237,12 +294,12 @@ const JobTypeSelector = ({ form, fieldName }: IProps) => {
                                                     }}
                                                 >
                                                     {/* Checkbox chọn Ngành */}
-                                                    <Checkbox 
+                                                    <Checkbox
                                                         checked={isProfSelected(item.id)}
                                                         onClick={(e) => e.stopPropagation()} // Chặn click row
                                                         onChange={(e) => toggleProfessionSelection(item, e.target.checked)}
                                                     />
-                                                    
+
                                                     <div style={{ flex: 1, fontWeight: isViewingJobs ? 600 : 400, color: isViewingJobs ? '#00b14f' : 'inherit' }}>
                                                         {item.name}
                                                     </div>
@@ -255,7 +312,7 @@ const JobTypeSelector = ({ form, fieldName }: IProps) => {
                             </div>
 
                             {/* --- CỘT 2: KỸ NĂNG (SKILL - Theo Hover Cột 1) --- */}
-                            <div style={{ width: '35%', borderRight: '1px solid #f0f0f0', display: 'flex', flexDirection: 'column' }}>
+                            <div style={{ width: '34%', borderRight: '1px solid #f0f0f0', display: 'flex', flexDirection: 'column' }}>
                                 <div style={{ padding: '8px 12px', background: '#fafafa', fontWeight: 'bold', color: '#555', borderBottom: '1px solid #eee' }}>
                                     2. CHỌN KỸ NĂNG {hoveredProfession ? `(${hoveredProfession.name})` : ''}
                                 </div>
@@ -280,7 +337,7 @@ const JobTypeSelector = ({ form, fieldName }: IProps) => {
                                                             borderBottom: '1px solid #f5f5f5'
                                                         }}
                                                     >
-                                                        <Checkbox 
+                                                        <Checkbox
                                                             checked={isSkillSelected(skill.id)}
                                                             onClick={(e) => e.stopPropagation()}
                                                             onChange={(e) => toggleSkillSelection(skill, e.target.checked)}
@@ -297,41 +354,34 @@ const JobTypeSelector = ({ form, fieldName }: IProps) => {
                                 </div>
                             </div>
 
-                            {/* --- CỘT 3: DANH SÁCH JOBS (Kết quả lọc) --- */}
-                            <div style={{ width: '35%', display: 'flex', flexDirection: 'column', background: '#fff' }}>
+                            {/* --- CỘT 3: LEVEL (33%) --- */}
+                            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: '#fff' }}>
                                 <div style={{ padding: '8px 12px', background: '#fafafa', fontWeight: 'bold', color: '#555', borderBottom: '1px solid #eee' }}>
-                                    3. DANH SÁCH CÔNG VIỆC
+                                    3. CHỌN CẤP BẬC
                                 </div>
-                                {/* Header phụ để biết đang xem jobs theo tiêu chí nào */}
-                                {activeFilterLabel && (
-                                    <div style={{ padding: '8px 12px', background: '#fffbe6', color: '#d48806', fontSize: '12px', borderBottom: '1px solid #ffe58f' }}>
-                                        {activeFilterLabel}
-                                    </div>
-                                )}
-                                
-                                <div style={{ overflowY: 'auto', flex: 1, padding: '0' }}>
-                                    {jobsDisplaySource.length > 0 ? (
-                                        <List
-                                            dataSource={jobsDisplaySource}
-                                            renderItem={(job) => (
-                                                <div style={{ padding: '12px', borderBottom: '1px solid #f0f0f0' }}>
-                                                    <div style={{ fontWeight: 500, marginBottom: '4px' }}>{job.name}</div>
-                                                    {/* Hiển thị các skill của job này dưới dạng tag nhỏ */}
-                                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-                                                        {job.skills?.slice(0, 3).map(s => (
-                                                            <Tag key={s.id} style={{ fontSize: '10px', margin: 0 }}>{s.name}</Tag>
-                                                        ))}
-                                                        {(job.skills?.length || 0) > 3 && <Tag style={{ fontSize: '10px' }}>...</Tag>}
-                                                    </div>
-                                                </div>
-                                            )}
-                                        />
-                                    ) : (
-                                        <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Không có công việc phù hợp" style={{ marginTop: 40 }} />
-                                    )}
+                                <div style={{ overflowY: 'auto', flex: 1 }}>
+                                    <List
+                                        dataSource={JOB_LEVELS}
+                                        renderItem={(level) => (
+                                            <div
+                                                onClick={() => toggleLevelSelection(level, !isLevelSelected(level.id))}
+                                                style={{
+                                                    padding: '10px 12px', cursor: 'pointer',
+                                                    display: 'flex', alignItems: 'center', gap: '8px',
+                                                    borderBottom: '1px solid #f5f5f5',
+                                                    backgroundColor: isLevelSelected(level.id) ? '#fff7e6' : '#fff' // Highlight nhẹ
+                                                }}
+                                            >
+                                                <Checkbox
+                                                    checked={isLevelSelected(level.id)}
+                                                    onClick={(e) => { e.stopPropagation(); toggleLevelSelection(level, e.target.checked); }}
+                                                />
+                                                <div style={{ flex: 1 }}>{level.name}</div>
+                                            </div>
+                                        )}
+                                    />
                                 </div>
                             </div>
-
                         </div>
                     )}
                 </div>

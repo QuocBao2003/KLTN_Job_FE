@@ -46,14 +46,14 @@ export interface Notification {
     description: string;
     type: NotificationType;
     isRead: boolean;
-    isViewed: boolean; 
+    isViewed: boolean;
     relatedEntityId: number;
     navigationUrl: string;
     createdAt: string;
-    readAt?: string; 
-  }
-  
-  export type NotificationType = 
+    readAt?: string;
+}
+
+export type NotificationType =
     | 'JOB_APPROVED'
     | 'JOB_REJECTED'
     | 'JOB_PENDING_APPROVAL'
@@ -79,14 +79,14 @@ export interface ICompany {
 export interface ISaveJob {
     id?: string;
     name?: string;
-    companyName?:string;
+    companyName?: string;
     location: string;
-    logo?:string;
-    saveTime : Date;
+    logo?: string;
+    saveTime: Date;
 }
 
 export interface ISkill {
-    id?: string;
+    id?: number;
     name?: string;
     jobProfession?: IJobProfession;
     createdBy?: string;
@@ -101,21 +101,21 @@ export interface IMessageRoom {
     jobId: number;
     jobName?: string;
     companyName?: string;
-    
+
     // ✅ Thông tin người chat đối diện
     otherUserId?: number;
     otherUserName?: string;
     otherUserEmail?: string;
     otherUserAvatar?: string | null;
-    
+
     // ✅ Thông tin tin nhắn cuối
     lastMessage?: string;
     lastMessageTime?: string;
     lastSenderId?: number;
-    
+
     // ✅ Số tin nhắn chưa đọc
     unreadCount?: number;
-    
+
     // Legacy fields (có thể giữ để tương thích)
     candidateId?: number;
     employerId?: number;
@@ -172,6 +172,7 @@ export interface IUser {
 export interface IJobProfession {
     id?: string;
     name?: string;
+    jobs?: IJob[];
     createdBy?: string;
     isDeleted?: boolean;
     deletedAt?: boolean | null;
@@ -197,10 +198,10 @@ export interface IJob {
     quantity: number;
     level: string;
     description: string;
-    interest : string;
-    request : string;
-    worklocation : string;
-    worktime : string;
+    interest: string;
+    request: string;
+    worklocation: string;
+    worktime: string;
     startDate: Date;
     endDate: Date;
     status: "PENDING" | "APPROVED" | "REJECTED";
@@ -225,7 +226,7 @@ export interface IResume {
     companyId: string | {
         id: string;
         name: string;
-        
+
     };
     companyName?: string;
     jobId: string | {
@@ -294,7 +295,7 @@ export interface IChatResponse {
     type: string;
     message: string;
     jobs?: IJobSuggestion[];
-} 
+}
 export interface IJobSuggestion {
     id: number;
     name: string;
@@ -372,19 +373,20 @@ export interface IAdminStatistics {
     timeUnit: string; // "WEEK" or "MONTH"
 }
 export interface ICv {
-  id: number;
-  fullName: string;
-  email: string;
-  phone: string;
-  address: string;
-  objective: string;
-  experience: string;
-  education: string;
-  skills: string;
-  photoUrl?: string;
-  cvTemplate?: string;
-  createdAt?: string;
-  updatedAt?: string;
+    id: number;
+    fullName: string;
+    email: string;
+    phone: string;
+    address: string;
+    objective: string;
+    experience: string;
+    education: string;
+    skills: string;
+    photoUrl?: string;
+    cvTemplate?: string;
+    createdAt?: string;
+    updatedAt?: string;
+    url?: string;
 }
 export interface IServicePackage {
     id: number;

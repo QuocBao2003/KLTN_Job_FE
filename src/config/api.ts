@@ -605,3 +605,7 @@ export const callCreateOrder = (data: {
 export const callGetMyOrders = () => {
     return axios.get<IBackendRes<IPackageOrder[]>>('/api/v1/packages/orders');
 }
+
+export const callFetchAllJobProfessionSkillJob = (query: string = "") => {
+    return axios.get(`/api/v1/job_professions/tree?${query}`);
+}

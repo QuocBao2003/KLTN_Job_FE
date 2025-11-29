@@ -1,16 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Layout, Row, Col, Card, Button, Modal, Input, Spin, message, Typography, Empty, Space, Tooltip, Tag, Upload } from 'antd';
-import { 
-    FileTextOutlined, 
-    PlusOutlined, 
-    EditOutlined, 
-    DeleteOutlined, 
-    EyeOutlined, 
-    DownloadOutlined, 
-    MailOutlined, 
-    PhoneOutlined, 
-    EnvironmentOutlined, 
-    SaveOutlined, 
+import {
+    FileTextOutlined,
+    PlusOutlined,
+    EditOutlined,
+    DeleteOutlined,
+    EyeOutlined,
+    DownloadOutlined,
+    MailOutlined,
+    PhoneOutlined,
+    EnvironmentOutlined,
+    SaveOutlined,
     CameraOutlined,
     FileExcelOutlined,
     FilePdfOutlined,
@@ -23,6 +23,7 @@ import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import * as XLSX from 'xlsx';
 import { useNavigate } from 'react-router-dom';
+import { fontRoboto } from './fontRoboto';
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -116,7 +117,7 @@ const PhotoBlock = ({ src, editing, onUpload, size = 140 }: { src?: string; edit
                 <CameraOutlined style={{ fontSize: 40, color: 'rgba(255,255,255,0.8)' }} />
             )}
             {editing && (
-                <Upload 
+                <Upload
                     showUploadList={false}
                     accept="image/*"
                     beforeUpload={async (file) => {
@@ -134,8 +135,8 @@ const PhotoBlock = ({ src, editing, onUpload, size = 140 }: { src?: string; edit
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                         opacity: 0, transition: 'opacity 0.3s', cursor: 'pointer', color: '#fff'
                     }}
-                    onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
-                    onMouseLeave={(e) => e.currentTarget.style.opacity = '0'}>
+                        onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
+                        onMouseLeave={(e) => e.currentTarget.style.opacity = '0'}>
                         {uploading ? <Spin size="small" /> : 'Đổi ảnh'}
                     </div>
                 </Upload>
@@ -154,9 +155,9 @@ const CvTemplateRenderer = React.memo(({ cv, editing, onChange }: { cv: ICv; edi
         const fileUrlMatch = cv.skills?.match(/\[CV_FILE_URL\](.*?)\[\/CV_FILE_URL\]/);
         const fileUrl = fileUrlMatch ? fileUrlMatch[1] : '';
         const imageUrl = fileUrl ? `${import.meta.env.VITE_BACKEND_URL}/images/resume/${fileUrl}` : '';
-        
+
         return (
-             <div style={{ width: 794, minHeight: 1123, background: '#fff', boxShadow: '0 0 20px rgba(0,0,0,0.1)', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ width: 794, minHeight: 1123, background: '#fff', boxShadow: '0 0 20px rgba(0,0,0,0.1)', display: 'flex', flexDirection: 'column' }}>
                 <div style={{ padding: 40, background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: '#fff' }}>
                     <Title level={2} style={{ color: '#fff', margin: 0 }}>{cv.fullName || 'CV Uploaded'}</Title>
                     <Space split="•">
@@ -176,7 +177,7 @@ const CvTemplateRenderer = React.memo(({ cv, editing, onChange }: { cv: ICv; edi
                         )}
                     </Card>
                 </div>
-             </div>
+            </div>
         );
     }
 
@@ -269,7 +270,7 @@ const CvManagement: React.FC = () => {
     const [loading, setLoading] = useState<boolean>(false);
     const [isEditMode, setIsEditMode] = useState<boolean>(false);
     const [processing, setProcessing] = useState<boolean>(false);
-    
+
     // Ref for PDF generation
     const cvTemplateRef = useRef<HTMLDivElement>(null);
     const navigate = useNavigate();
@@ -351,17 +352,86 @@ const CvManagement: React.FC = () => {
     const handleDownloadPDF = async () => {
         if (!cvTemplateRef.current || !selectedCv) return;
         setProcessing(true);
+
+        const wasEditing = isEditMode;
+
         try {
-            const canvas = await html2canvas(cvTemplateRef.current, { scale: 2, useCORS: true });
-            const imgData = canvas.toDataURL('image/png');
-            const pdf = new jsPDF('p', 'mm', 'a4');
-            pdf.addImage(imgData, 'PNG', 0, 0, 210, 297); // A4 dimensions
-            pdf.save(`CV_${selectedCv.fullName}.pdf`);
-            message.success('Tải xuống thành công');
+            // 1. Chuyển về chế độ xem (View Mode)
+            if (wasEditing) {
+                setIsEditMode(false);
+                await new Promise(resolve => setTimeout(resolve, 500));
+            }
+
+            // --- BƯỚC QUAN TRỌNG NHẤT: INJECT FONT VÀO DOM ---
+            // Tạo thẻ style chứa @font-face để trình duyệt nhận diện font ngay lập tức
+            const styleId = 'dynamic-roboto-font';
+            if (!document.getElementById(styleId)) {
+                const style = document.createElement('style');
+                style.id = styleId;
+                style.innerHTML = `
+                    @font-face {
+                        font-family: 'Roboto';
+                        src: url(data:font/ttf;base64,${fontRoboto}) format('truetype');
+                        font-weight: normal;
+                        font-style: normal;
+                    }
+                    /* Ép buộc phần tử in PDF phải dùng font Roboto */
+                    .cv-pdf-content, .cv-pdf-content * {
+                        font-family: 'Roboto', sans-serif !important;
+                    }
+                `;
+                document.head.appendChild(style);
+            }
+            // Chờ một chút để trình duyệt load font
+            await new Promise(resolve => setTimeout(resolve, 300));
+            // ---------------------------------------------------
+
+            const pdf = new jsPDF({
+                orientation: 'p',
+                unit: 'px',
+                format: [794, 1123]
+            });
+
+            // Vẫn giữ lại phần add font cho jsPDF (phòng hờ)
+            pdf.addFileToVFS("Roboto-Regular.ttf", fontRoboto);
+            pdf.addFont("Roboto-Regular.ttf", "Roboto", "normal");
+            pdf.setFont("Roboto");
+
+            await new Promise<void>((resolve, reject) => {
+                if (!cvTemplateRef.current) return reject("DOM element not found");
+
+                pdf.html(cvTemplateRef.current, {
+                    callback: (doc) => {
+                        doc.save(`CV_${selectedCv.fullName || 'Document'}.pdf`);
+                        resolve();
+                    },
+                    x: 0,
+                    y: 0,
+                    width: 794,
+                    windowWidth: 794,
+                    autoPaging: 'text',
+                    html2canvas: {
+                        scale: 1,
+                        useCORS: true,
+                        letterRendering: true,
+                        // Quan trọng: Đảm bảo logging để debug nếu cần
+                        logging: false,
+                    }
+                });
+            });
+
+            message.success('Tải PDF thành công');
+
         } catch (e) {
+            console.error(e);
             message.error('Lỗi khi xuất PDF');
         } finally {
+            if (wasEditing) setIsEditMode(true);
             setProcessing(false);
+
+            // (Tuỳ chọn) Xóa thẻ style sau khi xong để tránh rác DOM
+            // const styleTag = document.getElementById('dynamic-roboto-font');
+            // if (styleTag) styleTag.remove();
         }
     };
 
@@ -403,10 +473,10 @@ const CvManagement: React.FC = () => {
                         <Text type="secondary">Danh sách các hồ sơ bạn đã tạo trên hệ thống</Text>
                     </Col>
                     <Col>
-                        <Button 
-                            type="primary" 
-                            size="large" 
-                            icon={<PlusOutlined />} 
+                        <Button
+                            type="primary"
+                            size="large"
+                            icon={<PlusOutlined />}
                             onClick={() => navigate('/listCv')}
                             style={{ borderRadius: 8, background: 'linear-gradient(135deg, #1890ff 0%, #096dd9 100%)', border: 'none' }}
                         >
@@ -435,9 +505,9 @@ const CvManagement: React.FC = () => {
                                 >
                                     <div style={{ padding: 24, background: 'linear-gradient(135deg, #f5f7fa 0%, #e6e9f0 100%)', borderBottom: '1px solid #f0f0f0' }}>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                                            <div style={{ 
-                                                width: 48, height: 48, borderRadius: '50%', 
-                                                background: '#1890ff', color: '#fff', 
+                                            <div style={{
+                                                width: 48, height: 48, borderRadius: '50%',
+                                                background: '#1890ff', color: '#fff',
                                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                                                 fontSize: 20, fontWeight: 'bold'
                                             }}>
@@ -453,7 +523,7 @@ const CvManagement: React.FC = () => {
                                             </div>
                                         </div>
                                     </div>
-                                    
+
                                     <div style={{ padding: 24, flex: 1 }}>
                                         <Space direction="vertical" style={{ width: '100%' }} size="small">
                                             <Text type="secondary" style={{ fontSize: 13 }}><MailOutlined /> {cv.email || 'Chưa có email'}</Text>
@@ -500,11 +570,11 @@ const CvManagement: React.FC = () => {
                 {selectedCv && (
                     <Layout style={{ background: '#fff', height: '90vh' }}>
                         {/* Toolbar */}
-                        <div style={{ 
-                            padding: '12px 24px', 
-                            borderBottom: '1px solid #e8e8e8', 
-                            display: 'flex', 
-                            justifyContent: 'space-between', 
+                        <div style={{
+                            padding: '12px 24px',
+                            borderBottom: '1px solid #e8e8e8',
+                            display: 'flex',
+                            justifyContent: 'space-between',
                             alignItems: 'center',
                             background: '#fff',
                             boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
@@ -520,10 +590,10 @@ const CvManagement: React.FC = () => {
                                 {isEditMode ? (
                                     <>
                                         <Button icon={<EyeOutlined />} onClick={() => setIsEditMode(false)}>Xem trước</Button>
-                                        <Button 
-                                            type="primary" 
-                                            icon={<SaveOutlined />} 
-                                            loading={processing} 
+                                        <Button
+                                            type="primary"
+                                            icon={<SaveOutlined />}
+                                            loading={processing}
                                             onClick={handleSave}
                                         >
                                             Lưu thay đổi
@@ -537,11 +607,11 @@ const CvManagement: React.FC = () => {
                                         <Tooltip title="Xuất file Excel">
                                             <Button icon={<FileExcelOutlined />} onClick={handleExportExcel} loading={processing} />
                                         </Tooltip>
-                                        <Button 
-                                            type="primary" 
+                                        <Button
+                                            type="primary"
                                             danger
-                                            icon={<FilePdfOutlined />} 
-                                            onClick={handleDownloadPDF} 
+                                            icon={<FilePdfOutlined />}
+                                            onClick={handleDownloadPDF}
                                             loading={processing}
                                         >
                                             Tải PDF
@@ -553,17 +623,19 @@ const CvManagement: React.FC = () => {
 
                         {/* CV Content Area */}
                         <div style={{ flex: 1, overflow: 'auto', background: '#525659', padding: '40px 0', display: 'flex', justifyContent: 'center' }}>
-                            <div 
+                            <div
                                 ref={cvTemplateRef}
-                                style={{ 
+                                className="cv-pdf-content"
+                                style={{
                                     transformOrigin: 'top center',
-                                    boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
+                                    boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+                                    fontFamily: "'Roboto', sans-serif"
                                 }}
                             >
-                                <CvTemplateRenderer 
-                                    cv={selectedCv} 
-                                    editing={isEditMode} 
-                                    onChange={handleFieldChange} 
+                                <CvTemplateRenderer
+                                    cv={selectedCv}
+                                    editing={isEditMode}
+                                    onChange={handleFieldChange}
                                 />
                             </div>
                         </div>
