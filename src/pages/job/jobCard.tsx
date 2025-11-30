@@ -35,7 +35,7 @@ const JobCard = ({ job }: IProps) => {
                     <Avatar
                         shape="square"
                         size={80}
-                        src={job.company?.logo || "https://via.placeholder.com/80"}
+                        src={job.logo || "https://via.placeholder.com/80"}
                         style={{ border: '1px solid #eee' }}
                     />
                 </div>

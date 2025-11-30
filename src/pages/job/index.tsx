@@ -6,6 +6,7 @@ import { callFetchAllJobProfessionSkillJob, callFetchJob } from '@/config/api';
 import { IJob, IJobProfession, ISkill } from '@/types/backend';
 import JobCard from './jobCard';
 import { JOB_LEVELS } from './jobTypeSelector';
+import { sfIn, sfLike } from "spring-filter-query-builder";
 
 const ClientJobPage = () => {
     const [searchParams, setSearchParams] = useSearchParams();
@@ -66,46 +67,49 @@ const ClientJobPage = () => {
         try {
             const current = params.get('current') || '1';
             const pageSize = params.get('pageSize') || '10';
-
-            const queryParts: string[] = [];
-
-            // Backend Spring Boot page bắt đầu từ 0
-            queryParts.push(`page=${Number(current) - 1}`);
-            queryParts.push(`size=${pageSize}`);
-
-            // Sort
             const sort = params.get('sort') || 'createdAt,desc';
-            queryParts.push(`sort=${sort}`);
 
-            // --- QUAN TRỌNG: ĐỔI TÊN THAM SỐ ĐỂ KHỚP BACKEND ---
+            let query = `page=${Number(current) - 1}&size=${pageSize}&sort=${sort}`;
+            const filterParts = [];
 
-            // Lấy từ URL là 'jobProfession' -> Gửi xuống Backend là 'professionIds'
-            if (params.get('jobProfession')) {
-                queryParts.push(`professionIds=${encodeURIComponent(params.get('jobProfession')!)}`);
+            // --- 1. Xử lý Location ---
+            const locationParam = params.get('location');
+            if (locationParam) {
+                filterParts.push(sfIn("location", locationParam.split(",")).toString());
             }
 
-            // Lấy từ URL là 'skills' -> Gửi xuống Backend là 'skillIds'
-            if (params.get('skills')) {
-                queryParts.push(`skillIds=${encodeURIComponent(params.get('skills')!)}`);
+            // --- 2. Xử lý Skills ---
+            const skillsParam = params.get('skills');
+            if (skillsParam) {
+                // Giả sử field backend là skills.id
+                filterParts.push(sfIn("skills.id", skillsParam.split(",").map(Number)).toString());
             }
 
-            // Lấy từ URL là 'level' -> Gửi xuống Backend là 'jobLevels'
-            if (params.get('level')) {
-                queryParts.push(`jobLevels=${encodeURIComponent(params.get('level')!)}`);
+            // --- 3. Xử lý Job Profession ---
+            const professionParam = params.get('jobProfession');
+            if (professionParam) {
+                // Giả sử field backend là jobProfession.id
+                filterParts.push(sfIn("jobProfession.id", professionParam.split(",").map(Number)).toString());
             }
-            // ----------------------------------------------------
 
-            // Các field search cơ bản (name, location) giữ nguyên
-            if (params.get('name')) queryParts.push(`name=${encodeURIComponent(params.get('name')!)}`);
-            if (params.get('location')) queryParts.push(`location=${encodeURIComponent(params.get('location')!)}`);
+            // --- 4. Xử lý NAME (QUAN TRỌNG: Đưa vào Filter) ---
+            const keyword = params.get('name');
+            if (keyword) {
+                // Dùng sfLike để tìm kiếm gần đúng: name ~ '*keyword*'
+                // Nếu bạn không import được sfLike, dùng chuỗi thủ công: `name~'*${keyword}*'`
+                filterParts.push(sfLike("name", `*${keyword}*`).toString());
+            }
 
-            const query = queryParts.join('&');
+            // --- Ghép chuỗi Filter ---
+            if (filterParts.length > 0) {
+                // Nối các điều kiện bằng 'and'
+                const filterQuery = filterParts.join(" and ");
+                query += `&filter=${encodeURIComponent(filterQuery)}`;
+            }
 
-            // Log để kiểm tra: Bạn phải thấy professionIds ở đây
             console.log(">>> API Query:", query);
 
             const res = await callFetchJob(query);
-
             if (res && res.data) {
                 setJobs(res.data.result);
                 setTotal(res.data.meta.total);
@@ -137,12 +141,17 @@ const ClientJobPage = () => {
 
     const onSearch = (value: string) => {
         const newParams = new URLSearchParams(searchParams);
+
+        // Reset page về 1 khi tìm kiếm mới
+        newParams.set('current', '1');
+
         if (value) {
             newParams.set('name', value);
         } else {
             newParams.delete('name');
         }
-        newParams.set('current', '1');
+
+
         setSearchParams(newParams);
     };
 
