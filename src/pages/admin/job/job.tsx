@@ -63,7 +63,7 @@ const JobPage = () => {
         },
         {
             title: 'Công ty',
-            dataIndex: ["company", "name"],
+            dataIndex: "companyName",
             sorter: true,
             hideInSearch: true,
         },
@@ -72,7 +72,10 @@ const JobPage = () => {
             dataIndex: 'salary',
             sorter: true,
             render(dom, entity, index, action, schema) {
-                const str = "" + entity.salary;
+                const str = "" + entity.minSalary + " - " + entity.maxSalary;
+                if(entity.salaryType === "NEGOTIABLE") {
+                    return <>Thỏa thuận</>
+                }
                 return <>{str?.replace(/\B(?=(\d{3})+(?!\d))/g, ',')} đ</>
             },
         },

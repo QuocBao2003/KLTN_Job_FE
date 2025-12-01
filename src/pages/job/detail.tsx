@@ -5,8 +5,8 @@ import { callFetchJobById, callSavedJob, callJobByJobProfession } from "@/config
 import styles from 'styles/client.module.scss';
 import savejobStyles from 'styles/savejob.module.scss';
 import parse from 'html-react-parser';
-import { Col, Divider, message, Row, Skeleton, Tag, Card, Empty, Spin, Typography, Button, Breadcrumb } from "antd";
-import { DollarOutlined, EnvironmentOutlined, HistoryOutlined, HeartOutlined } from "@ant-design/icons";
+import { Col, Divider, message, Row, Skeleton, Tag, Card, Empty, Spin, Typography, Button, Breadcrumb, Tooltip } from "antd";
+import { DollarOutlined, EnvironmentOutlined, HistoryOutlined, HeartOutlined, FireOutlined, StarOutlined, ClockCircleOutlined } from "@ant-design/icons";
 import { getLocationName, convertSlug } from "@/config/utils";
 import { Link } from "react-router-dom";
 
@@ -388,62 +388,96 @@ const ClientJobDetailPage = (props: any) => {
                         }}
                     >
                         <div className={savejobStyles['suggested-title']}>
-                            Việc tương tự
+                            <h2 style={{ fontSize: '20px', fontWeight: '600', color: '#333',textAlign :"center" }}>Việc làm tương tự</h2>
                         </div>
                         <Spin spinning={isLoadingRelatedJobs} tip="Loading...">
                             {relatedJobs && relatedJobs.length > 0 ? (
-                                <div className={savejobStyles['suggested-jobs-list']}>
+                                <Row gutter={[16, 16]}>
                                     {relatedJobs.map((item) => {
+                                        const isFeatured = item.isFeatured || false;
+                                        const hasBoldTitle = item.hasBoldTitle || false;
+                                        const hotJob = isFeatured && hasBoldTitle;
+                                        const topJob = !isFeatured && hasBoldTitle;
                                         return (
-                                            <div 
-                                                key={item.id}
-                                                className={savejobStyles['suggested-job-card']}
-                                                onClick={() => handleViewDetailJob(item)}
-                                            >
-                                                <div className={savejobStyles['suggested-job-content']}>
-                                                    <div className={savejobStyles['job-left']}>
-                                                        <img
-                                                            src={item?.company?.logo || "https://via.placeholder.com/200x200?text=No+Logo"}
-                                                            alt={item.company?.name}
-                                                            className={savejobStyles['company-logo-small']}
-                                                        />
-                                                    </div>
-                                                    <div className={savejobStyles['job-right']}>
-                                                        <Text className={savejobStyles['company-name']}>
-                                                            {item.company?.name}
-                                                        </Text>
-                                                        <Title level={5} className={savejobStyles['job-title']}>
-                                                            {item.name}
-                                                        </Title>
-                                                        <div className={savejobStyles['job-info']}>
-                                                            <span className={savejobStyles['location-icon']}>
-                                                                <EnvironmentOutlined />
-                                                                <span className={savejobStyles['location-text']}>
-                                                                    {getLocationName(item.location)}
-                                                                </span>
-                                                            </span>
-                                                            <span className={savejobStyles['salary-tag']}>
-                                                                <DollarOutlined />
-                                                                {formatSalary(item)}
-                                                            </span>
+                                            <Col span={24} key={item.id}>
+                                                <Card
+                                                    hoverable
+                                                    className={`${savejobStyles['related-job-card']} ${isFeatured ? savejobStyles['featured'] : ''}`}
+                                                    bodyStyle={{ padding: 16 }}
+                                                    onClick={() => handleViewDetailJob(item)}
+                                                >
+                                                    <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                        <div className={savejobStyles['related-logo']}>
+                                                            <img
+                                                                src={item?.company?.logo || "https://via.placeholder.com/200x200?text=No+Logo"}
+                                                                alt={item.company?.name}
+                                                                style={{
+                                                                    width: '65px',
+                                                                    height: '65px',
+                                                                    objectFit: 'contain',
+                                                                    marginRight: '30px',
+                                                                }}
+                                                            />
                                                         </div>
+                                                        <div className={savejobStyles['related-info']}>
+                                                            <div className={savejobStyles['related-title-row']}>
+                                                                <div className={savejobStyles['related-title']}>
+                                                                    <span className={hasBoldTitle ? savejobStyles['highlight'] : ''}
+                                                                    style={{fontSize: '16px', fontWeight: '600', color: '#1f2937'}}>
+                                                                        {item.name}
+                                                                    </span>
+                                                                    <div className={savejobStyles['related-badges']}>
+                                                                        {hotJob && (
+                                                                            <Tag
+                                                                                icon={<FireOutlined />}
+                                                                                style={{
+                                                                                    margin: 0,
+                                                                                    fontSize: 10,
+                                                                                    background: 'linear-gradient(to right, #ed613c, #fd953d)',
+                                                                                    color: '#fff',
+                                                                                    border: 'none'
+                                                                                }}
+                                                                            >
+                                                                                Hấp dẫn
+                                                                            </Tag>
+                                                                        )}
+                                                                        {topJob && (
+                                                                            <Tag
+                                                                                icon={<StarOutlined />}
+                                                                                color="gold"
+                                                                                style={{ margin: 0, fontSize: 10, fontWeight: 600 }}
+                                                                            >
+                                                                                TOP
+                                                                            </Tag>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                                <div className={savejobStyles['related-salary']}>
+                                                                    <DollarOutlined style={{marginRight: '5px'}} />
+                                                                    {formatSalary(item)}
+                                                                </div>
+                                                            </div>
+                                                            {/* <div className={savejobStyles['related-company']}>
+                                                                {item.company?.name || 'Công ty không xác định'}
+                                                            </div> */}
+                                                            <div className={savejobStyles['related-meta']}>
+                                                                <Tag
+                                                                    icon={<EnvironmentOutlined />}
+                                                                    color="default"
+                                                                    style={{ border: 'none', background: '#f2f4f5', color: '#555' }}
+                                                                >
+                                                                    {getLocationName(item.location)}
+                                                                </Tag>
+                                                                
+                                                            </div>
+                                                        </div>
+                                                       
                                                     </div>
-                                                    <div className={savejobStyles['job-actions']}>
-                                                        <Button
-                                                            type="text"
-                                                            icon={<HeartOutlined />}
-                                                            className={savejobStyles['save-btn']}
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                handleSaveJob(e, item.id);
-                                                            }}
-                                                        />
-                                                    </div>
-                                                </div>
-                                            </div>
+                                                </Card>
+                                            </Col>
                                         )
                                     })}
-                                </div>
+                                </Row>
                             ) : (
                                 !isLoadingRelatedJobs && (
                                     <Empty description="Không có việc làm cùng ngành" />

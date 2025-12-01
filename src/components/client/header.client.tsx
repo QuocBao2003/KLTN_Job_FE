@@ -104,17 +104,17 @@ const Header = (props: any) => {
     {
       label: <Link to={"/"}>Trang Chủ</Link>,
       key: "/",
-      icon: <TwitterOutlined />,
+      // icon: <TwitterOutlined />,
     },
     {
       label: <Link to={"/job"}>Việc Làm </Link>,
       key: "/job",
-      icon: <CodeOutlined />,
+      // icon: <CodeOutlined />,
     },
     {
       label: <Link to={"/company"}>Top Công ty</Link>,
       key: "/company",
-      icon: <RiseOutlined />,
+      // icon: <RiseOutlined />,
     },
     {
       label: <Link to={"/listCV"}>Tạo CV</Link>,

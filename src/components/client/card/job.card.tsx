@@ -1,7 +1,7 @@
 import { callFetchJob, callSavedJob } from '@/config/api';
 import { convertSlug, getLocationName } from '@/config/utils';
 import { IJob } from '@/types/backend';
-import { EnvironmentOutlined, DollarOutlined, HeartOutlined, FireOutlined, StarOutlined, LeftOutlined, RightOutlined } from '@ant-design/icons';
+import { EnvironmentOutlined, DollarOutlined, HeartOutlined, FireOutlined, StarOutlined, LeftOutlined, RightOutlined, SketchOutlined } from '@ant-design/icons';
 import { Card, Col, Empty, Pagination, Row, Spin, message, Tag, Button } from 'antd';
 import { useState, useEffect } from 'react';
 import { isMobile } from 'react-device-detect';
@@ -200,13 +200,15 @@ const JobCard = (props: IProps) => {
                                                         flexWrap: 'wrap'
                                                     }}
                                                 >
+
                                                     <span>{item.name}</span>
+                                                    
                                                     {hotJob && (
                                                         <Tag 
                                                             icon={<FireOutlined />}
                                                             style={{ 
                                                                 margin: 0,
-                                                                fontSize: '10px',
+                                                                fontSize: '11px',
                                                                 background: 'linear-gradient(to right, #ed613c, #fd953d)',
                                                                 color: 'white',
                                                                 border: 'none'
@@ -215,20 +217,21 @@ const JobCard = (props: IProps) => {
                                                            Hấp dẫn
                                                         </Tag>
                                                     )}
-                                                    {/* {topJob && (
+                                                    
+                                                    {topJob && (
                                                         <Tag 
-                                                            color="green" 
-                                                            icon={<StarOutlined />}
+                                                            color="#00b14f" 
+                                                            icon={<SketchOutlined />}
                                                             style={{ 
                                                                 margin: 0,
-                                                                fontSize: 9,
+                                                                fontSize: "11px",
                                                                 fontWeight: 'bold',
-                                                               
+                                                                 color : 'white'
                                                             }}
                                                         >
                                                             TOP
                                                         </Tag>
-                                                    )} */}
+                                                    )}
                                                 </div>
                                                 <div className={styles["job-location"]}>
                                                     <EnvironmentOutlined style={{ color: 'gray' }} />
