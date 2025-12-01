@@ -10,11 +10,11 @@ const HomePage = () => {
             <div className="search-content" style={{ marginTop: 20 }}>
                 <SearchClient />
             </div>
-            <Divider />
+          
             <CompanyCard />
             <div style={{ margin: 50 }}></div>
-            <Divider />
             <JobCard />
+          
             <AIchatButton/>
         </div>
     )

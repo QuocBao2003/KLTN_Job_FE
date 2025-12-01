@@ -1,8 +1,8 @@
 import { callFetchJob, callSavedJob } from '@/config/api';
 import { convertSlug, getLocationName } from '@/config/utils';
 import { IJob } from '@/types/backend';
-import { EnvironmentOutlined, DollarOutlined, HeartOutlined, FireOutlined } from '@ant-design/icons';
-import { Card, Col, Empty, Pagination, Row, Spin, message, Tag } from 'antd';
+import { EnvironmentOutlined, DollarOutlined, HeartOutlined, FireOutlined, StarOutlined, LeftOutlined, RightOutlined } from '@ant-design/icons';
+import { Card, Col, Empty, Pagination, Row, Spin, message, Tag, Button } from 'antd';
 import { useState, useEffect } from 'react';
 import { isMobile } from 'react-device-detect';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
@@ -64,6 +64,7 @@ const JobCard = (props: IProps) => {
         if (res && res.data) {
             setDisplayJob(res.data.result);
             setTotal(res.data.meta.total)
+            console.log("displayJob", res.data.result);
         }
         setIsLoading(false);
     }
@@ -75,6 +76,19 @@ const JobCard = (props: IProps) => {
         if (pagination && pagination.pageSize !== pageSize) {
             setPageSize(pagination.pageSize)
             setCurrent(1);
+        }
+    }
+
+    const handlePrevPage = () => {
+        if (current > 1) {
+            setCurrent(current - 1);
+        }
+    }
+
+    const handleNextPage = () => {
+        const totalPages = Math.ceil(total / pageSize);
+        if (current < totalPages) {
+            setCurrent(current + 1);
         }
     }
 
@@ -118,7 +132,27 @@ const JobCard = (props: IProps) => {
                     <Row gutter={[16, 16]}>
                         <Col span={24}>
                             <div className={isMobile ? styles["dflex-mobile"] : styles["dflex-pc"]}>
-                                <span className={styles["title"]}>Công Việc Mới Nhất</span>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+                                    <span className={styles["title"]}>Công Việc Mới Nhất</span>
+                                    <div style={{ display: 'flex', gap: 8 }}>
+                                        <Button
+                                            type="default"
+                                            shape="circle"
+                                            icon={<LeftOutlined />}
+                                            onClick={handlePrevPage}
+                                            disabled={current === 1 || isLoading}
+                                            size="small"
+                                        />
+                                        <Button
+                                            type="default"
+                                            shape="circle"
+                                            icon={<RightOutlined />}
+                                            onClick={handleNextPage}
+                                            disabled={current >= Math.ceil(total / pageSize) || isLoading}
+                                            size="small"
+                                        />
+                                    </div>
+                                </div>
                                 {!showPagination &&
                                     <Link to="job">Xem tất cả</Link>
                                 }
@@ -127,39 +161,21 @@ const JobCard = (props: IProps) => {
 
                         {displayJob?.map(item => {
                             // Kiểm tra các feature của gói dịch vụ
-                            const isFeatured = item.isFeatured || false;
+                            const isFeatured = item.isFeatured || false; 
+                        
                             const hasBoldTitle = item.hasBoldTitle || false;
-                            console.log("item", item);
+                            const hotJob = isFeatured && hasBoldTitle; // Gói 3: FEATURED_JOB
+                            const topJob = !isFeatured && hasBoldTitle;
                             return (
                                 <Col span={24} md={8} key={item.id}>
                                     <Card 
                                         size="small" 
                                         title={null} 
                                         hoverable
-                                        className={styles["job-card-wrapper"]}
+                                        className={`${styles["job-card-wrapper"]} ${isFeatured ? styles["featured-job"] : ''}`}
                                         onClick={() => handleViewDetailJob(item)}
-                                        style={{
-                                            border: hasBoldTitle ? '2px solidrgb(19, 81, 97)' : undefined,
-                                            boxShadow: hasBoldTitle ? '0 4px 18px rgba(214, 15, 18, 0.2)' : undefined
-                                        }}
+                                       
                                     >
-                                        {isFeatured && (
-                                            <Tag 
-                                                color="red" 
-                                                icon={<FireOutlined />}
-                                                style={{ 
-                                                    position: 'absolute', 
-                                                    top: 10, 
-                                                    left: 10,
-                                                    zIndex: 1,
-                                                    fontSize: 12,
-                                                    fontWeight: 'bold'
-                                                }}
-                                            >
-                                                Việc làm hấp dẫn
-                                            </Tag>
-                                        )}
-                                        
                                         <HeartOutlined 
                                             className={styles["heart-icon"]}
                                             onClick={(e) => handleSaveJob(e, item.id)}
@@ -177,10 +193,42 @@ const JobCard = (props: IProps) => {
                                                     className={styles["job-title"]}
                                                     style={{
                                                         color: hasBoldTitle ? '#ff4d4f' : undefined,
-                                                        fontWeight: hasBoldTitle ? 'bold' : undefined
+                                                        fontWeight: hasBoldTitle ? 'bold' : undefined,
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        gap: 8,
+                                                        flexWrap: 'wrap'
                                                     }}
                                                 >
-                                                    {item.name}
+                                                    <span>{item.name}</span>
+                                                    {hotJob && (
+                                                        <Tag 
+                                                            icon={<FireOutlined />}
+                                                            style={{ 
+                                                                margin: 0,
+                                                                fontSize: '10px',
+                                                                background: 'linear-gradient(to right, #ed613c, #fd953d)',
+                                                                color: 'white',
+                                                                border: 'none'
+                                                            }}
+                                                        >
+                                                           Hấp dẫn
+                                                        </Tag>
+                                                    )}
+                                                    {/* {topJob && (
+                                                        <Tag 
+                                                            color="green" 
+                                                            icon={<StarOutlined />}
+                                                            style={{ 
+                                                                margin: 0,
+                                                                fontSize: 9,
+                                                                fontWeight: 'bold',
+                                                               
+                                                            }}
+                                                        >
+                                                            TOP
+                                                        </Tag>
+                                                    )} */}
                                                 </div>
                                                 <div className={styles["job-location"]}>
                                                     <EnvironmentOutlined style={{ color: 'gray' }} />

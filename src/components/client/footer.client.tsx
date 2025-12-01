@@ -11,7 +11,7 @@ const Footer: React.FC = () => {
         <div className={styles['footer-section']}>
           <h3>Về chúng tôi</h3>
          
-          <p className={styles['company-name']}>Vieclam24h.vn - Công Ty Cổ Phần Việc Làm 24h</p>
+          <p className={styles['company-name']}>TOPJob</p>
           <p>Địa chỉ: Trường Đại học Công Nghiệp TP.HCM</p>
           <p>Điện thoại : (028) 969 6987 || (028) 987 8965</p>
           <p>Email: itvieclam@gmail.com</p>
@@ -20,9 +20,9 @@ const Footer: React.FC = () => {
         <div className={styles['footer-section']}>
           <h3>Thông tin</h3>
           <ul className={styles['info-list']}>
-            <li><a href="#">Cẩm nang nghề nghiệp</a></li>
-            <li><a href="#">Chính sách đã liệu cỡ nhân</a></li>
-            <li><a href="#">Tuân thủ và sự đồng ý của Khách Hàng</a></li>
+            <li><a href="#">Việc làm</a></li>
+            <li><a href="#">Công ty</a></li>
+            <li><a href="#">Tạo CV</a></li>
           </ul>
         </div>
 
