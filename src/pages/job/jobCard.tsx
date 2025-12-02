@@ -7,6 +7,7 @@ import relativeTime from 'dayjs/plugin/relativeTime';
 import 'dayjs/locale/vi';
 import { useNavigate } from 'react-router-dom';
 import { convertSlug, getLocationName } from '@/config/utils';
+import { ThunderboltOutlined } from '@ant-design/icons'; // Import thêm icon
 
 dayjs.extend(relativeTime);
 
@@ -97,19 +98,19 @@ const JobCard = ({ job }: IProps) => {
                                 </Tag>
                             )}
                             {topJob && (
-                                                        <Tag 
-                                                            color="#00b14f" 
-                                                            icon={<SketchOutlined />}
-                                                            style={{ 
-                                                                margin: 0,
-                                                                fontSize: "11px",
-                                                                fontWeight: 'bold',
-                                                                 color : 'white'
-                                                            }}
-                                                        >
-                                                            TOP
-                                                        </Tag>
-                                                    )}
+                                <Tag
+                                    color="#00b14f"
+                                    icon={<SketchOutlined />}
+                                    style={{
+                                        margin: 0,
+                                        fontSize: "11px",
+                                        fontWeight: 'bold',
+                                        color: 'white'
+                                    }}
+                                >
+                                    TOP
+                                </Tag>
+                            )}
                         </div>
                     </div>
 
@@ -129,6 +130,9 @@ const JobCard = ({ job }: IProps) => {
                             style={{ border: 'none', background: '#f2f4f5', color: '#555' }}
                         >
                             {getLocationName(job.location)}
+                        </Tag>
+                        <Tag icon={<ThunderboltOutlined />} color="orange">
+                            {job.level}
                         </Tag>
                         <Tag
                             icon={<ClockCircleOutlined />}
@@ -151,7 +155,7 @@ const JobCard = ({ job }: IProps) => {
                     </div> */}
                 </div>
 
-                <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'flex-end',justifyContent: 'space-between' }} onClick={e => e.stopPropagation()}>
+                <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'flex-end', justifyContent: 'space-between' }} onClick={e => e.stopPropagation()}>
                     <Tooltip title="Lưu tin">
                         <Button icon={<HeartOutlined />} shape="circle" />
                     </Tooltip>

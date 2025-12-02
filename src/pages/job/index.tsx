@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { Row, Col, Checkbox, Radio, Divider, Pagination, Empty, Spin, Select, ConfigProvider, Input } from 'antd';
-import { FilterOutlined } from '@ant-design/icons';
+import { Row, Col, Checkbox, Divider, Pagination, Empty, Spin, Select, Input, Button } from 'antd';
+// 1. Import thêm Icon sort
+import { FilterOutlined, SortAscendingOutlined, SortDescendingOutlined } from '@ant-design/icons';
 import { useSearchParams } from 'react-router-dom';
 import { callFetchAllJobProfessionSkillJob, callFetchJob } from '@/config/api';
 import { IJob, IJobProfession, ISkill } from '@/types/backend';
@@ -19,8 +20,18 @@ const ClientJobPage = () => {
     const [selectedProfessions, setSelectedProfessions] = useState<string[]>([]);
     const [selectedLevels, setSelectedLevels] = useState<string[]>([]);
     const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
-    // Mặc định là tìm theo tên job
-    const [searchType, setSearchType] = useState('job');
+
+    // Mặc định là createdAt và desc (Mới nhất)
+    const sortParam = searchParams.get('sort') || 'createdAt,desc';
+    const [sortField, sortOrder] = sortParam.split(',');
+    const [paramField, paramOrder] = sortParam.split(',');
+
+    let currentSortField = paramField;
+    if (paramField === 'minSalary' || paramField === 'maxSalary') {
+        currentSortField = 'salary';
+    }
+
+    const currentSortOrder = paramOrder;
 
     useEffect(() => {
         const fetchMasterData = async () => {
@@ -32,7 +43,6 @@ const ClientJobPage = () => {
         fetchMasterData();
     }, []);
 
-    // 2. CORE LOGIC: Đồng bộ URL -> State & Gọi API
     useEffect(() => {
         const professionIds = searchParams.get('jobProfession')?.split(',').filter(Boolean) || [];
         const levels = searchParams.get('level')?.split(',').filter(Boolean) || [];
@@ -61,53 +71,36 @@ const ClientJobPage = () => {
         return allSkills;
     }, [selectedProfessions, professions]);
 
-    // 3. Hàm gọi API
     const fetchJobs = async (params: URLSearchParams) => {
         setLoading(true);
         try {
             const current = params.get('current') || '1';
             const pageSize = params.get('pageSize') || '10';
+            // Lấy trực tiếp sort từ URL để gọi API
             const sort = params.get('sort') || 'createdAt,desc';
 
             let query = `page=${Number(current) - 1}&size=${pageSize}&sort=${sort}`;
             const filterParts = [];
 
-            // --- 1. Xử lý Location ---
             const locationParam = params.get('location');
-            if (locationParam) {
-                filterParts.push(sfIn("location", locationParam.split(",")).toString());
-            }
+            if (locationParam) filterParts.push(sfIn("location", locationParam.split(",")).toString());
 
-            // --- 2. Xử lý Skills ---
             const skillsParam = params.get('skills');
-            if (skillsParam) {
-                // Giả sử field backend là skills.id
-                filterParts.push(sfIn("skills.id", skillsParam.split(",").map(Number)).toString());
-            }
+            if (skillsParam) filterParts.push(sfIn("skills.id", skillsParam.split(",").map(Number)).toString());
 
-            // --- 3. Xử lý Job Profession ---
             const professionParam = params.get('jobProfession');
-            if (professionParam) {
-                // Giả sử field backend là jobProfession.id
-                filterParts.push(sfIn("jobProfession.id", professionParam.split(",").map(Number)).toString());
-            }
+            if (professionParam) filterParts.push(sfIn("jobProfession.id", professionParam.split(",").map(Number)).toString());
+            
+            const levelParam = params.get('level');
+            if (levelParam) filterParts.push(sfIn("level", levelParam.split(",")).toString());
 
-            // --- 4. Xử lý NAME (QUAN TRỌNG: Đưa vào Filter) ---
             const keyword = params.get('name');
-            if (keyword) {
-                // Dùng sfLike để tìm kiếm gần đúng: name ~ '*keyword*'
-                // Nếu bạn không import được sfLike, dùng chuỗi thủ công: `name~'*${keyword}*'`
-                filterParts.push(sfLike("name", `*${keyword}*`).toString());
-            }
-
-            // --- Ghép chuỗi Filter ---
+            if (keyword) filterParts.push(sfLike("name", `*${keyword}*`).toString());
+        
             if (filterParts.length > 0) {
-                // Nối các điều kiện bằng 'and'
                 const filterQuery = filterParts.join(" and ");
                 query += `&filter=${encodeURIComponent(filterQuery)}`;
             }
-
-            console.log(">>> API Query:", query);
 
             const res = await callFetchJob(query);
             if (res && res.data) {
@@ -141,45 +134,46 @@ const ClientJobPage = () => {
 
     const onSearch = (value: string) => {
         const newParams = new URLSearchParams(searchParams);
-
-        // Reset page về 1 khi tìm kiếm mới
         newParams.set('current', '1');
-
-        if (value) {
-            newParams.set('name', value);
-        } else {
-            newParams.delete('name');
-        }
-
-
+        if (value) newParams.set('name', value);
+        else newParams.delete('name');
         setSearchParams(newParams);
     };
 
-    // Hàm xử lý Sort
-    const handleSortChange = (value: string) => {
+    // --- 2. HÀM XỬ LÝ SORT CHUNG (Field + Order) ---
+    const handleSortUpdate = (uiField: string, uiOrder: string) => {
         const newParams = new URLSearchParams(searchParams);
-        if (value === 'newest') newParams.set('sort', 'createdAt,desc');
-        else if (value === 'salary') newParams.set('sort', 'salary,desc'); // Field này cần khớp Backend
+        
+        let dbField = uiField;
 
+        // Nếu người dùng chọn sort theo Lương
+        if (uiField === 'salary') {
+            if (uiOrder === 'asc') {
+                // Thấp đến Cao -> Sort theo minSalary
+                dbField = 'minSalary';
+            } else {
+                // Cao đến Thấp -> Sort theo maxSalary
+                dbField = 'maxSalary';
+            }
+        }
+        
+        // Set giá trị sort thực tế gửi cho Backend
+        newParams.set('sort', `${dbField},${uiOrder}`);
         newParams.set('current', '1');
         setSearchParams(newParams);
-    }
+    };
 
     const currentPageFromUrl = Number(searchParams.get('current')) || 1;
     const pageSizeFromUrl = Number(searchParams.get('pageSize')) || 10;
     const currentKeyword = searchParams.get('name') || '';
-
-    // Xác định giá trị Sort để hiển thị lên UI Select
-    let currentSort = 'newest';
-    const sortParam = searchParams.get('sort');
-    if (sortParam === 'salary,desc') currentSort = 'salary';
 
     return (
         <div style={{ backgroundColor: '#f4f5f5', minHeight: '100vh', padding: '20px 0' }}>
             <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 15px' }}>
                 <Row gutter={[24, 24]}>
                     <Col xs={24} md={6}>
-                        <div style={{ backgroundColor: '#fff', borderRadius: 8, padding: '16px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
+                       {/* ... (Giữ nguyên phần Sidebar Filter) ... */}
+                       <div style={{ backgroundColor: '#fff', borderRadius: 8, padding: '16px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16, borderBottom: '1px solid #eee', paddingBottom: 8 }}>
                                 <FilterOutlined style={{ color: '#00b14f', fontSize: 18 }} />
                                 <span style={{ fontWeight: 700, fontSize: 16 }}>Lọc nâng cao</span>
@@ -255,35 +249,36 @@ const ClientJobPage = () => {
                             />
                         </div>
 
-                        {/* Header Filter & Sort */}
+                        {/* --- HEADER FILTER & SORT (ĐÃ CẬP NHẬT) --- */}
                         <div style={{
                             backgroundColor: '#fff', borderRadius: 8, padding: '12px 16px',
                             marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                             boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
                         }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                                <span style={{ color: '#555' }}>Tìm kiếm theo:</span>
-                                <Radio.Group
-                                    value={searchType}
-                                    onChange={(e) => setSearchType(e.target.value)}
-                                    buttonStyle="solid"
-                                >
-                                    <Radio.Button value="job">Tên việc làm</Radio.Button>
-                                    <Radio.Button value="company">Tên công ty</Radio.Button>
-                                </Radio.Group>
-                            </div>
-
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                                 <span style={{ color: '#555' }}>Sắp xếp theo:</span>
+                                
+                                {/* Select chọn Field: createdAt hoặc salary */}
                                 <Select
-                                    value={currentSort} // Bind value vào state URL
+                                    value={currentSortField} 
                                     style={{ width: 150 }}
                                     bordered={false}
-                                    onChange={handleSortChange} // Thêm sự kiện onChange
+                                    // Khi đổi field, giữ nguyên order hiện tại
+                                    onChange={(newField) => handleSortUpdate(newField, currentSortOrder)}
                                 >
-                                    <Select.Option value="newest">Mới nhất</Select.Option>
-                                    <Select.Option value="salary">Lương cao nhất</Select.Option>
+                                    <Select.Option value="createdAt">Ngày đăng</Select.Option>
+                                    <Select.Option value="salary">Mức lương</Select.Option>
                                 </Select>
+
+                                {/* Button đảo chiều: asc <-> desc */}
+                                <Button 
+                                    type="text" // Dùng type text cho nhẹ nhàng
+                                    icon={currentSortOrder === 'asc' ? <SortAscendingOutlined /> : <SortDescendingOutlined />}
+                                    // Khi click, giữ nguyên field, đổi order
+                                    onClick={() => handleSortUpdate(currentSortField, currentSortOrder === 'asc' ? 'desc' : 'asc')}
+                                >
+                                    {currentSortOrder === 'asc' ? 'Thấp đến Cao' : 'Cao đến Thấp'}
+                                </Button>
                             </div>
                         </div>
 
@@ -307,7 +302,6 @@ const ClientJobPage = () => {
                                     ))
                                 )}
 
-                                {/* Pagination */}
                                 {jobs.length > 0 && (
                                     <div style={{ display: 'flex', justifyContent: 'center', marginTop: 24 }}>
                                         <Pagination

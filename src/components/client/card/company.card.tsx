@@ -5,7 +5,8 @@ import { Card, Col, Empty, Pagination, Row, Spin } from 'antd';
 import { EnvironmentOutlined } from '@ant-design/icons';
 import { useState, useEffect } from 'react';
 import { isMobile } from 'react-device-detect';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+
 import styles from 'styles/client.module.scss';
 
 interface IProps {
@@ -14,6 +15,8 @@ interface IProps {
 
 const CompanyCard = (props: IProps) => {
     const { showPagination = false } = props;
+
+    const [searchParams] = useSearchParams();
 
     const [displayCompany, setDisplayCompany] = useState<ICompany[] | null>(null);
     const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -28,14 +31,36 @@ const CompanyCard = (props: IProps) => {
 
     useEffect(() => {
         fetchCompany();
-    }, [current, pageSize, filter, sortQuery]);
+    }, [current, pageSize, filter, sortQuery, searchParams]);
 
     const fetchCompany = async () => {
         setIsLoading(true)
         let query = `page=${current}&size=${pageSize}`;
-        if (filter) {
-            query += `&${filter}`;
+
+        // --- 4. LOGIC XÂY DỰNG FILTER TỪ URL ---
+        const nameParam = searchParams.get('name');
+        // const locationParam = searchParams.get('location');
+        
+        const filterParts = [];
+
+        // Filter theo tên (dùng toán tử ~ like)
+        if (nameParam) {
+            filterParts.push(`name~'${nameParam}'`);
         }
+
+        // Filter theo địa điểm (dùng toán tử in)
+        // if (locationParam) {
+        //     // URL dạng: Hanoi,Ho Chi Minh -> convert thành: 'Hanoi','Ho Chi Minh'
+        //     const locations = locationParam.split(',').map(loc => `'${loc}'`).join(',');
+        //     filterParts.push(`address in [${locations}]`);
+        // }
+
+        // Ghép chuỗi filter
+        if (filterParts.length > 0) {
+            query += `&filter=${encodeURIComponent(filterParts.join(' and '))}`;
+        }
+        // ---------------------------------------
+
         if (sortQuery) {
             query += `&${sortQuery}`;
         }
@@ -45,14 +70,13 @@ const CompanyCard = (props: IProps) => {
             setDisplayCompany(res.data.result);
             setTotal(res.data.meta.total)
             
-            // Fetch job counts for each company
+            // ... (Giữ nguyên phần fetch job counts) ...
             const counts = new Map<string, number>();
             const promises = res.data.result.map(async (company: ICompany) => {
                 if (!company.id) return;
                 try {
                     const countRes = await callCountJobByCompanyIdAndStatus(company.id);
                     if (countRes && countRes.data) {
-                        // Handle both object and number response
                         const count = typeof countRes.data === 'object' && 'approvedJobsCount' in countRes.data
                             ? (countRes.data as any).approvedJobsCount
                             : countRes.data;
@@ -68,7 +92,6 @@ const CompanyCard = (props: IProps) => {
         }
         setIsLoading(false)
     }
-
 
     const handleOnchangePage = (pagination: { current: number, pageSize: number }) => {
         if (pagination && pagination.current !== current) {
