@@ -447,7 +447,7 @@ const DashboardPage = () => {
                 </Row>
 
                 {/* Charts Row 2: Time Series */}
-                 <Row gutter={[20, 20]} style={{ marginTop: 20 }}>
+                 {/* <Row gutter={[20, 20]} style={{ marginTop: 20 }}>
                     <Col span={24} md={12}>
                         <Card title={`Công việc được tạo theo ${timeUnit === 'WEEK' ? 'Tuần' : 'Tháng'}`} bordered={false}>
                             <ResponsiveContainer width="100%" height={300}>
@@ -480,7 +480,7 @@ const DashboardPage = () => {
                 </Row> 
 
                 {/* Bar Chart: Top Jobs by Applications */}
-                <Row gutter={[20, 20]} style={{ marginTop: 20 }}>
+                {/* <Row gutter={[20, 20]} style={{ marginTop: 20 }}>
                     <Col span={24}>
                         <Card title="Công việc có nhiều ứng tuyển nhất" bordered={false}>
                             <ResponsiveContainer width="100%" height={400}>
@@ -501,7 +501,7 @@ const DashboardPage = () => {
                             </ResponsiveContainer>
                         </Card>
                     </Col>
-                </Row>
+                </Row>  */}
 
                 {/* Active Jobs Table */}
                 <Row gutter={[20, 20]} style={{ marginTop: 20 }}>
@@ -672,7 +672,7 @@ const DashboardPage = () => {
                 {/* Charts Row 1: Pie Charts */}
                 <Row gutter={[20, 20]} style={{ marginTop: 20 }}>
                     <Col span={24} md={12}>
-                        <Card title="Job Status Distribution" bordered={false}>
+                        <Card title="Trạng thái công việc" bordered={false}>
                             <ResponsiveContainer width="100%" height={300}>
                                 <PieChart>
                                     <Pie
@@ -697,7 +697,7 @@ const DashboardPage = () => {
                     </Col>
 
                     <Col span={24} md={12}>
-                        <Card title="Application Status Distribution" bordered={false}>
+                        <Card title="Trạng thái đơn ứng tuyển" bordered={false}>
                             <ResponsiveContainer width="100%" height={300}>
                                 <PieChart>
                                     <Pie
@@ -723,7 +723,7 @@ const DashboardPage = () => {
                 </Row>
 
                 {/* Charts Row 2: Time Series */}
-                <Row gutter={[20, 20]} style={{ marginTop: 20 }}>
+                {/* <Row gutter={[20, 20]} style={{ marginTop: 20 }}>
                     <Col span={24} md={12}>
                         <Card title={`Jobs Created by ${timeUnit === 'WEEK' ? 'Week' : 'Month'}`} bordered={false}>
                             <ResponsiveContainer width="100%" height={300}>
@@ -753,12 +753,12 @@ const DashboardPage = () => {
                             </ResponsiveContainer>
                         </Card>
                     </Col>
-                </Row>
+                </Row> */}
 
                 {/* Bar Chart: Top Companies */}
                 <Row gutter={[20, 20]} style={{ marginTop: 20 }}>
                     <Col span={24}>
-                        <Card title={`Top ${topLimit} Companies by Applications`} bordered={false}>
+                        <Card title={`Top ${topLimit} Công ty có nhiều ứng tuyển nhất`} bordered={false}>
                             <ResponsiveContainer width="100%" height={400}>
                                 <BarChart data={companyResumeData}>
                                     <CartesianGrid strokeDasharray="3 3" />
