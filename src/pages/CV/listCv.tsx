@@ -12,18 +12,22 @@ import {
     DownloadOutlined,
     CheckCircleOutlined
 } from '@ant-design/icons';
-import { Link } from 'react-router-dom';
-import { useState, useRef } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useState, useRef, useEffect } from 'react';
 // Giả định các hàm api này đã được bạn define trong project
 import { callSubmitCv, callUploadSingleFile } from 'config/api';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import * as XLSX from 'xlsx';
 import type { UploadProps } from 'antd';
+import TemplateCV from '../../img/TemplateCV.jpg'
+
 
 import { fontRoboto } from './fontRoboto';
 
 const { Header, Content } = Layout;
+
+import { useAppSelector } from "@/redux/hooks";
 
 // --- Interfaces ---
 interface CvFormValues {
@@ -154,90 +158,133 @@ const PhotoBlock = ({ src, editing, onUpload, size = 140 }: { src?: string; edit
 
 // 4. TEMPLATE TIÊU CHUẨN
 const TemplateTieuChuan = ({ data, editing, onChange }: { data: CvFormValues; editing: boolean; onChange: (patch: Partial<CvFormValues>) => void }) => {
+    // Định nghĩa màu sắc mới theo ảnh mẫu
+    const theme = {
+        sidebarBg: '#2A70B8',
+        sidebarText: '#ffffff',
+        contentBg: '#ffffff',
+        contentText: '#333333',
+        sectionTitleBg: '#EBF5FF', 
+        sectionTitleText: '#333333' 
+    };
+
+    // Style chung cho tiêu đề các mục bên phải (Kinh nghiệm, Học vấn...)
+    const rightSectionTitleStyle: React.CSSProperties = {
+        color: theme.sectionTitleText,
+        background: theme.sectionTitleBg,
+        padding: '10px 16px', // Tạo khoảng cách trong hộp màu
+        textTransform: 'uppercase',
+        marginBottom: 20,
+        fontWeight: 700,
+        borderRadius: 2 // Bo góc nhẹ cho mềm mại
+    };
+
+    // Style chung cho tiêu đề các mục bên trái (Liên hệ, Kỹ năng...)
+    const leftSectionTitleStyle: React.CSSProperties = {
+        color: theme.sidebarText,
+        fontWeight: 700,
+        textTransform: 'uppercase',
+        marginBottom: 12,
+        marginTop: 24 // Thêm margin top vì đã bỏ Divider
+    };
+
     return (
         <div style={{
             width: 794, // Kích thước chuẩn A4 (px) cho html2canvas
             minHeight: 1123,
-            background: '#ffffff', display: 'flex',
-            fontFamily: 'Roboto, Arial, sans-serif', // <--- THÊM DÒNG NÀY
+            background: theme.contentBg, display: 'flex',
+            fontFamily: 'Roboto, Arial, sans-serif',
             boxShadow: '0 0 20px rgba(0,0,0,0.1)', overflow: 'hidden'
-            
         }}>
             {/* Sidebar Left */}
-            <div style={{ width: 280, background: '#2c3e50', color: '#ecf0f1', padding: '40px 24px', display: 'flex', flexDirection: 'column', gap: 24 }}>
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 20 }}>
-                    <PhotoBlock src={data.photoUrl} editing={editing} onUpload={(b64) => onChange({ photoUrl: b64 })} />
+            <div style={{ width: 280, background: theme.sidebarBg, color: theme.sidebarText, padding: '40px 24px', display: 'flex', flexDirection: 'column', gap: 20 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 10 }}>
+                    {/* Tăng kích thước ảnh lên một chút cho giống mẫu */}
+                    <PhotoBlock src={data.photoUrl} editing={editing} onUpload={(b64) => onChange({ photoUrl: b64 })} size={160} />
                     <div style={{ width: '100%', marginTop: 24, textAlign: 'center' }}>
                         {editing ? (
                             <FieldInput value={data.fullName} placeholder="NGUYỄN VĂN A" onChange={(v) => onChange({ fullName: v?.toUpperCase() })} />
                         ) : (
-                            <h1 style={{ color: '#fff', fontSize: 24, margin: 0, textTransform: 'uppercase', lineHeight: 1.3, textAlign: 'center' }}>{data.fullName || 'NGUYỄN VĂN A'}</h1>
+                            <h1 style={{ color: theme.sidebarText, fontSize: 26, margin: '0 0 8px 0', textTransform: 'uppercase', lineHeight: 1.3, textAlign: 'center', fontWeight: 700 }}>
+                                {data.fullName || 'NGUYỄN VĂN A'}
+                            </h1>
+                        )}
+                        {/* Thêm vị trí công việc dưới tên nếu muốn giống ảnh mẫu */}
+                         {!editing && data.objective && (
+                            <div style={{ fontSize: 16, fontWeight: 500, opacity: 0.9 }}>{data.objective.split('\n')[0]}</div>
                         )}
                     </div>
                 </div>
 
                 {/* Contact Info */}
-                <div style={{ fontSize: 13 }}>
-                    <Divider style={{ borderColor: 'rgba(255,255,255,0.2)', margin: '12px 0' }} />
-                    <div style={{ color: '#3498db', fontWeight: 700, textTransform: 'uppercase', marginBottom: 8 }}>Liên hệ</div>
+                <div style={{ fontSize: 14, lineHeight: 1.8 }}>
+                    {/* Đã bỏ Divider */}
+                    <div style={leftSectionTitleStyle}>Liên hệ</div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                         {editing ? (
                             <>
                                 <FieldInput value={data.email} placeholder="Email" onChange={(v) => onChange({ email: v })} />
                                 <FieldInput value={data.phone} placeholder="Số điện thoại" onChange={(v) => onChange({ phone: v })} />
-                                <FieldInput value={data.address} placeholder="Địa chỉ" onChange={(v) => onChange({ address: v })} />
+                                <FieldInput value={data.address} placeholder="Địa chỉ/Link" onChange={(v) => onChange({ address: v })} />
                             </>
                         ) : (
                             <>
-                                <div style={{ wordBreak: 'break-all' }}>{data.email}</div>
-                                <div>{data.phone}</div>
-                                <div>{data.address}</div>
+                                {/* Thêm icon giả lập cho sinh động giống mẫu */}
+                                <div style={{ wordBreak: 'break-all' }}>📧 {data.email}</div>
+                                <div>📞 {data.phone}</div>
+                                <div>🌐 {data.address}</div>
                             </>
                         )}
                     </div>
                 </div>
 
                 {/* Skills */}
-                <div style={{ flex: 1 }}>
-                    <Divider style={{ borderColor: 'rgba(255,255,255,0.2)', margin: '12px 0' }} />
-                    <div style={{ color: '#3498db', fontWeight: 700, textTransform: 'uppercase', marginBottom: 12 }}>Kỹ năng</div>
+                <div style={{ flex: 1, fontSize: 14 }}>
+                     {/* Đã bỏ Divider */}
+                    <div style={leftSectionTitleStyle}>Kỹ năng liên quan</div>
                     {editing ? (
                         <FieldInput multiline rows={10} value={data.skills} placeholder="• Kỹ năng 1&#10;• Kỹ năng 2" onChange={(v) => onChange({ skills: v })} />
                     ) : (
-                        <FieldText value={data.skills} style={{ color: '#ecf0f1', fontSize: 13 }} />
+                        <FieldText value={data.skills} style={{ color: theme.sidebarText, fontSize: 14, lineHeight: 1.8 }} />
                     )}
                 </div>
             </div>
 
             {/* Main Content Right */}
-            <div style={{ flex: 1, padding: '40px 32px', color: '#2c3e50' }}>
-                {/* Objective */}
+            <div style={{ flex: 1, padding: '40px 32px', color: theme.contentText }}>
+                {/* Objective - Mục tiêu nghề nghiệp */}
                 <section style={{ marginBottom: 32 }}>
-                    <h3 style={{ color: '#2c3e50', textTransform: 'uppercase', borderBottom: '2px solid #3498db', paddingBottom: 8, marginBottom: 16, fontWeight: 700 }}>Mục tiêu nghề nghiệp</h3>
+                    <h3 style={rightSectionTitleStyle}>Mục tiêu nghề nghiệp</h3>
                     {editing ? (
                         <FieldInput multiline rows={4} value={data.objective} placeholder="Mô tả ngắn gọn..." onChange={(v) => onChange({ objective: v })} />
                     ) : (
-                        <FieldText value={data.objective} />
+                        <div style={{ padding: '0 8px' }}>
+                            <FieldText value={data.objective} />
+                        </div>
                     )}
                 </section>
 
-                {/* Experience */}
+                {/* Experience - Kinh nghiệm */}
                 <section style={{ marginBottom: 32 }}>
-                    <h3 style={{ color: '#2c3e50', textTransform: 'uppercase', borderBottom: '2px solid #3498db', paddingBottom: 8, marginBottom: 16, fontWeight: 700 }}>Kinh nghiệm làm việc</h3>
+                    <h3 style={rightSectionTitleStyle}>Kinh nghiệm làm việc</h3>
                     {editing ? (
                         <FieldInput multiline rows={12} value={data.experience} placeholder={"• Tên công ty (2022 - Nay)\n  Vị trí: Developer\n  - Mô tả..."} onChange={(v) => onChange({ experience: v })} />
                     ) : (
-                        <FieldText value={data.experience} />
+                         <div style={{ padding: '0 8px' }}>
+                            <FieldText value={data.experience} />
+                        </div>
                     )}
                 </section>
 
-                {/* Education */}
+                {/* Education - Học vấn */}
                 <section>
-                    <h3 style={{ color: '#2c3e50', textTransform: 'uppercase', borderBottom: '2px solid #3498db', paddingBottom: 8, marginBottom: 16, fontWeight: 700 }}>Học vấn</h3>
+                    <h3 style={rightSectionTitleStyle}>Học vấn</h3>
                     {editing ? (
                         <FieldInput multiline rows={6} value={data.education} placeholder={"• Đại học Bách Khoa (2018 - 2022)\n  GPA: 3.5"} onChange={(v) => onChange({ education: v })} />
                     ) : (
-                        <FieldText value={data.education} />
+                         <div style={{ padding: '0 8px' }}>
+                            <FieldText value={data.education} />
+                        </div>
                     )}
                 </section>
             </div>
@@ -248,7 +295,16 @@ const TemplateTieuChuan = ({ data, editing, onChange }: { data: CvFormValues; ed
 // --- Main Page Component ---
 
 const PageListCV = () => {
-    const [formValues, setFormValues] = useState<CvFormValues>({});
+    const isAuthenticated = useAppSelector(state => state.account.isAuthenticated);
+    const user = useAppSelector(state => state.account.user); // Lấy thông tin user để điền sẵn (nếu muốn)
+    const navigate = useNavigate();
+
+    const [formValues, setFormValues] = useState<CvFormValues>({
+        // Có thể điền sẵn thông tin từ User Redux nếu có
+        fullName: user?.name || "",
+        email: user?.email || "",
+    });
+
     const [isEditing, setIsEditing] = useState<boolean>(false);
     const [isPreview, setIsPreview] = useState<boolean>(false);
     const [saving, setSaving] = useState<boolean>(false);
@@ -257,6 +313,22 @@ const PageListCV = () => {
 
     const cvTemplateRef = useRef<HTMLDivElement>(null);
 
+    useEffect(() => {
+        if (!isAuthenticated) {
+            message.warning("Vui lòng đăng nhập để tạo và lưu CV!");
+            // Chuyển hướng về trang login và lưu lại đường dẫn hiện tại để login xong quay lại
+            navigate(`/login`);
+        }
+    }, [isAuthenticated, navigate]);
+
+    if (!isAuthenticated) {
+        return (
+            <div style={{ height: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                <Spin tip="Đang chuyển hướng đến trang đăng nhập..." size="large" />
+            </div>
+        );
+    }
+
     const handleStart = () => {
         setIsEditing(true);
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -264,11 +336,19 @@ const PageListCV = () => {
 
     // --- XỬ LÝ LƯU PDF VÀ DATA ---
     const handleSubmit = async () => {
-        // 1. Validate
-        if (!formValues.fullName?.trim()) {
-            message.warning('Vui lòng nhập họ tên!');
+        // --- 1. Validate: Kiểm tra các trường quan trọng ---
+        // Chúng ta kiểm tra cả null, undefined và chuỗi rỗng sau khi trim()
+        const isNameEmpty = !formValues.fullName || !formValues.fullName.trim();
+        const isEmailEmpty = !formValues.email || !formValues.email.trim();
+        const isPhoneEmpty = !formValues.phone || !formValues.phone.trim();
+        const isSkillsEmpty = !formValues.skills || !formValues.skills.trim();
+
+        // Bạn có thể thêm các trường khác như experience, education vào đây nếu muốn bắt buộc
+        if (isNameEmpty || isEmailEmpty || isPhoneEmpty || isSkillsEmpty) {
+            message.error("Bạn chưa nhập thông tin"); // <-- Thông báo lỗi theo yêu cầu
             return;
         }
+
         if (!cvTemplateRef.current) return;
 
         try {
@@ -289,9 +369,6 @@ const PageListCV = () => {
             });
 
             // --- QUAN TRỌNG: NHÚNG FONT TIẾNG VIỆT ---
-            // Thêm file font vào hệ thống ảo của jsPDF
-            // 'Roboto-Regular.ttf' là tên file ảo bạn tự đặt
-            // fontRoboto là chuỗi base64 (đã bỏ đoạn đầu "data:font/ttf;base64,")
             doc.addFileToVFS("Roboto-Regular.ttf", fontRoboto);
             doc.addFont("Roboto-Regular.ttf", "Roboto", "normal");
             doc.setFont("Roboto"); // Set font mặc định cho toàn bộ doc
@@ -394,38 +471,92 @@ const PageListCV = () => {
         maxCount: 1,
         accept: ".xlsx,.xls",
         showUploadList: false,
+        beforeUpload: (file) => {
+            const isExcel =
+                file.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
+                file.type === 'application/vnd.ms-excel' ||
+                file.name.endsWith('.xlsx') ||
+                file.name.endsWith('.xls');
+
+            if (!isExcel) {
+                message.error(`${file.name} không phải là file Excel!`);
+                return Upload.LIST_IGNORE;
+            }
+            return true;
+        },
         customRequest: async ({ file, onSuccess }) => {
             setUploadingExcel(true);
             try {
                 const reader = new FileReader();
                 reader.onload = (e) => {
                     const data = e.target?.result;
-                    const workbook = XLSX.read(data, { type: 'binary' });
-                    const sheetName = workbook.SheetNames[0];
-                    const jsonData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]) as any[];
+                    try {
+                        const workbook = XLSX.read(data, { type: 'binary' });
+                        const sheetName = workbook.SheetNames[0];
+                        // Lấy dữ liệu dạng JSON (mảng các dòng)
+                        const jsonData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]) as any[];
 
-                    if (jsonData?.length > 0) {
-                        const row = jsonData[0]; // Lấy dòng đầu tiên
-                        // Map dữ liệu từ Excel vào Form
-                        setFormValues(prev => ({
-                            ...prev,
-                            fullName: row['Họ và tên'] || row.fullName || prev.fullName,
-                            email: row['Email'] || row.email || prev.email,
-                            phone: row['Số điện thoại'] || row.phone || prev.phone,
-                            address: row['Địa chỉ'] || row.address || prev.address,
-                            objective: row['Mục tiêu'] || row.objective || prev.objective,
-                            experience: row['Kinh nghiệm'] || row.experience || prev.experience,
-                            education: row['Học vấn'] || row.education || prev.education,
-                            skills: row['Kỹ năng'] || row.skills || prev.skills,
-                        }));
-                        message.success("Đã nhập dữ liệu từ Excel!");
-                        setIsEditing(true);
+                        if (jsonData?.length > 0) {
+                            const firstRow = jsonData[0]; // Dòng đầu dùng để check cột và lấy info cơ bản
+
+                            // --- 1. VALIDATION ---
+                            const requiredColumns = ['Họ và tên', 'Email', 'Số điện thoại', 'Kỹ năng'];
+                            const uploadedKeys = Object.keys(firstRow);
+                            const isValid = requiredColumns.every(col => uploadedKeys.includes(col));
+
+                            if (!isValid) {
+                                message.error("File Excel thiếu cột bắt buộc! Vui lòng kiểm tra lại file mẫu.");
+                                setUploadingExcel(false);
+                                return;
+                            }
+
+                            // --- 2. HÀM HELPER ĐỂ GỘP DÒNG ---
+                            // Hàm này sẽ lấy dữ liệu của 1 cột từ TẤT CẢ các dòng, lọc bỏ dòng trống, và nối lại bằng xuống dòng
+                            const getMergedColumnData = (keys: string[]) => {
+                                return jsonData
+                                    .map((row) => {
+                                        // Tìm giá trị trong các key (ưu tiên tiếng Việt trước, tiếng Anh sau)
+                                        for (const key of keys) {
+                                            if (row[key]) return row[key];
+                                        }
+                                        return null;
+                                    })
+                                    .filter((val) => val) // Loại bỏ các dòng trống/null/undefined
+                                    .join('\n'); // Nối các dòng lại, ngăn cách bằng dấu xuống dòng
+                            };
+
+                            // --- 3. MAP DỮ LIỆU ---
+                            setFormValues(prev => ({
+                                ...prev,
+                                // A. Thông tin cá nhân (Chỉ lấy dòng đầu tiên)
+                                fullName: firstRow['Họ và tên'] || firstRow.fullName || prev.fullName,
+                                email: firstRow['Email'] || firstRow.email || prev.email,
+                                phone: firstRow['Số điện thoại'] || firstRow.phone || prev.phone,
+                                address: firstRow['Địa chỉ'] || firstRow.address || prev.address,
+                                photoUrl: firstRow['Ảnh'] || firstRow.photoUrl || prev.photoUrl, // Nếu có link ảnh
+
+                                // B. Thông tin chi tiết (Gộp từ NHIỀU dòng)
+                                // Tự động nối các dòng Kinh nghiệm lại với nhau
+                                objective: getMergedColumnData(['Mục tiêu', 'Objective']) || prev.objective,
+                                experience: getMergedColumnData(['Kinh nghiệm', 'Experience']) || prev.experience,
+                                education: getMergedColumnData(['Học vấn', 'Education']) || prev.education,
+                                skills: getMergedColumnData(['Kỹ năng', 'Skills']) || prev.skills,
+                            }));
+
+                            message.success(`Đã nhập dữ liệu từ ${jsonData.length} dòng Excel!`);
+                            setIsEditing(true);
+                        } else {
+                            message.warning("File Excel không có dữ liệu!");
+                        }
+                    } catch (readError) {
+                        console.error(readError);
+                        message.error("Lỗi khi đọc nội dung file Excel.");
                     }
                 };
                 reader.readAsBinaryString(file as File);
                 if (onSuccess) onSuccess("ok");
             } catch (e) {
-                message.error("Lỗi đọc file Excel");
+                message.error("Lỗi upload file");
             } finally {
                 setUploadingExcel(false);
             }
@@ -436,11 +567,14 @@ const PageListCV = () => {
     return (
         <div className={styles["container"]} style={{ minHeight: '100vh', background: isEditing ? '#f0f2f5' : '#fff' }}>
             {!isEditing ? (
-                // Màn hình Intro (Giữ nguyên như code cũ của bạn nhưng thêm nút Download Template)
+                // Màn hình Intro
                 <div style={{ padding: '40px 20px', maxWidth: 1200, margin: '0 auto' }}>
                     <Breadcrumb items={[{ title: <Link to={'/'}>Trang chủ</Link> }, { title: 'Tạo CV' }]} style={{ marginBottom: 40 }} />
                     <Row gutter={[48, 48]} align="middle">
                         <Col xs={24} md={12}>
+                            <p style={{ fontSize: 18, color: '#666', marginBottom: 32 }}>
+                                Xin chào <strong>{user?.name}</strong>, hãy tạo CV chuyên nghiệp ngay hôm nay.
+                            </p>
                             <h1 style={{ fontSize: 48, fontWeight: 800, marginBottom: 24 }}>
                                 Tạo CV <span style={{ color: '#1677ff' }}>Chuyên Nghiệp</span>
                             </h1>
@@ -466,10 +600,45 @@ const PageListCV = () => {
                             </div>
                         </Col>
                         <Col xs={24} md={12}>
-                            {/* Preview Image Placeholder */}
-                            <div style={{ padding: 20, background: '#fff', borderRadius: 16, boxShadow: '0 20px 40px rgba(0,0,0,0.1)', transform: 'rotate(-2deg)' }}>
-                                <div style={{ height: 300, background: '#f5f5f5', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#aaa' }}>
-                                    Preview Template
+                            {/* Preview Image: Tạo hiệu ứng khung tranh 3D */}
+                            <div style={{
+                                padding: 10,
+                                background: '#fff',
+                                borderRadius: 8,
+                                boxShadow: '0 20px 40px rgba(0,0,0,0.15)', // Đổ bóng đậm hơn chút cho nổi
+                                transform: 'rotate(-3deg)', // Xoay nhẹ tạo phong cách
+                                transition: 'transform 0.3s',
+                                cursor: 'pointer'
+                            }}
+                                // Thêm hiệu ứng hover cho sinh động
+                                onMouseEnter={(e) => e.currentTarget.style.transform = 'rotate(0deg) scale(1.02)'}
+                                onMouseLeave={(e) => e.currentTarget.style.transform = 'rotate(-3deg)'}
+                            >
+                                {/* THAY THẾ DIV CŨ BẰNG THẺ IMG */}
+                                <img
+                                    src={TemplateCV}
+                                    style={{
+                                        width: '100%',
+                                        height: 'auto',
+                                        borderRadius: 4,
+                                        display: 'block',
+                                        border: '1px solid #f0f0f0' // Viền nhẹ cho ảnh tách biệt
+                                    }}
+                                />
+
+                                {/* (Optional) Thêm nhãn "Mẫu hot" nếu thích */}
+                                <div style={{
+                                    position: 'absolute',
+                                    top: 20,
+                                    right: -10,
+                                    background: '#ff4d4f',
+                                    color: '#fff',
+                                    padding: '4px 12px',
+                                    borderRadius: '4px 0 0 4px',
+                                    fontWeight: 'bold',
+                                    boxShadow: '-2px 2px 4px rgba(0,0,0,0.2)'
+                                }}>
+                                    Mẫu Chuẩn
                                 </div>
                             </div>
                         </Col>
@@ -494,7 +663,7 @@ const PageListCV = () => {
                                     <Button icon={<FileExcelOutlined />} loading={uploadingExcel}>Nhập Excel</Button>
                                 </Upload>
                                 <Button type="primary" icon={<SaveOutlined />} loading={saving} onClick={handleSubmit}>
-                                    Lưu & Nộp CV
+                                    Lưu & Tạo CV
                                 </Button>
                             </Space>
                         </Header>

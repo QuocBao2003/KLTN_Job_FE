@@ -150,13 +150,14 @@ const PhotoBlock = ({ src, editing, onUpload, size = 140 }: { src?: string; edit
 const CvTemplateRenderer = React.memo(({ cv, editing, onChange }: { cv: ICv; editing: boolean; onChange: (field: string, value: string) => void; }) => {
     const isUploadTemplate = cv.cvTemplate === 'Upload CV' || (cv.skills && cv.skills.includes('[CV_FILE_URL]'));
 
-    // 1. Render Uploaded CV (Special Case)
+    // Giữ nguyên phần Render Uploaded CV (Case 1)
     if (isUploadTemplate) {
-        const fileUrlMatch = cv.skills?.match(/\[CV_FILE_URL\](.*?)\[\/CV_FILE_URL\]/);
-        const fileUrl = fileUrlMatch ? fileUrlMatch[1] : '';
-        const imageUrl = fileUrl ? `${import.meta.env.VITE_BACKEND_URL}/images/resume/${fileUrl}` : '';
+         // ... (Giữ nguyên code cũ của phần này)
+         const fileUrlMatch = cv.skills?.match(/\[CV_FILE_URL\](.*?)\[\/CV_FILE_URL\]/);
+         const fileUrl = fileUrlMatch ? fileUrlMatch[1] : '';
+         const imageUrl = fileUrl ? `${import.meta.env.VITE_BACKEND_URL}/images/resume/${fileUrl}` : '';
 
-        return (
+         return (
             <div style={{ width: 794, minHeight: 1123, background: '#fff', boxShadow: '0 0 20px rgba(0,0,0,0.1)', display: 'flex', flexDirection: 'column' }}>
                 <div style={{ padding: 40, background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: '#fff' }}>
                     <Title level={2} style={{ color: '#fff', margin: 0 }}>{cv.fullName || 'CV Uploaded'}</Title>
@@ -181,26 +182,61 @@ const CvTemplateRenderer = React.memo(({ cv, editing, onChange }: { cv: ICv; edi
         );
     }
 
-    // 2. Render Standard Template (Default)
-    // Mapping ICv to the structure expected by the standard template logic
+    // --- ĐỒNG BỘ MÀU SẮC TẠI ĐÂY ---
+    const theme = {
+        sidebarBg: '#2A70B8',        // Màu xanh dương giống PageListCV
+        sidebarText: '#ffffff',
+        contentBg: '#ffffff',
+        contentText: '#333333',
+        sectionTitleBg: '#EBF5FF',   // Màu nền tiêu đề mục bên phải
+        sectionTitleText: '#333333',
+        dividerColor: 'rgba(255,255,255,0.2)'
+    };
+
+    const rightTitleStyle: React.CSSProperties = {
+        color: theme.sectionTitleText,
+        background: theme.sectionTitleBg,
+        padding: '10px 16px',
+        textTransform: 'uppercase',
+        marginBottom: 20,
+        fontWeight: 700,
+        borderRadius: 2,
+        fontSize: '16px' // Font size cho tiêu đề giống mẫu
+    };
+
+    const leftTitleStyle: React.CSSProperties = {
+        color: theme.sidebarText,
+        fontWeight: 700,
+        textTransform: 'uppercase',
+        marginBottom: 12,
+        marginTop: 24,
+        fontSize: '14px'
+    };
+
+    // 2. Render Standard Template (Updated Colors)
     return (
-        <div style={{ width: 794, minHeight: 1123, background: '#ffffff', display: 'flex', boxShadow: '0 0 20px rgba(0,0,0,0.1)', overflow: 'hidden' }}>
-            {/* Sidebar */}
-            <div style={{ width: 280, background: '#2c3e50', color: '#ecf0f1', padding: '40px 24px', display: 'flex', flexDirection: 'column', gap: 24 }}>
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                    <PhotoBlock src={cv.photoUrl} editing={editing} onUpload={(b64) => onChange('photoUrl', b64)} />
+        <div style={{ width: 794, minHeight: 1123, background: theme.contentBg, display: 'flex', boxShadow: '0 0 20px rgba(0,0,0,0.1)', overflow: 'hidden', fontFamily: 'Roboto, Arial, sans-serif' }}>
+            {/* Sidebar Left */}
+            <div style={{ width: 280, background: theme.sidebarBg, color: theme.sidebarText, padding: '40px 24px', display: 'flex', flexDirection: 'column', gap: 20 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 10 }}>
+                    <PhotoBlock src={cv.photoUrl} editing={editing} onUpload={(b64) => onChange('photoUrl', b64)} size={160} />
                     <div style={{ width: '100%', marginTop: 24, textAlign: 'center' }}>
                         {editing ? (
-                            <FieldInput value={cv.fullName} placeholder="HỌ TÊN" onChange={(v) => onChange('fullName', v?.toUpperCase())} />
+                            <FieldInput value={cv.fullName} placeholder="NGUYỄN VĂN A" onChange={(v) => onChange('fullName', v?.toUpperCase())} />
                         ) : (
-                            <Title level={3} style={{ color: '#fff', margin: 0, textTransform: 'uppercase', textAlign: 'center' }}>{cv.fullName}</Title>
+                            <h1 style={{ color: theme.sidebarText, fontSize: 26, margin: '0 0 8px 0', textTransform: 'uppercase', lineHeight: 1.3, textAlign: 'center', fontWeight: 700 }}>
+                                {cv.fullName || 'NGUYỄN VĂN A'}
+                            </h1>
+                        )}
+                        {!editing && cv.objective && (
+                           <div style={{ fontSize: 16, fontWeight: 500, opacity: 0.9 }}>{cv.objective.split('\n')[0]}</div>
                         )}
                     </div>
                 </div>
 
-                <div style={{ fontSize: 13 }}>
-                    <div style={{ height: 1, background: 'rgba(255,255,255,0.2)', margin: '12px 0' }} />
-                    <div style={{ color: '#3498db', fontWeight: 700, textTransform: 'uppercase', marginBottom: 12 }}>Liên hệ</div>
+                {/* Contact */}
+                <div style={{ fontSize: 14, lineHeight: 1.8 }}>
+                    <div style={leftTitleStyle}>Liên hệ</div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                         {editing ? (
                             <>
@@ -210,49 +246,60 @@ const CvTemplateRenderer = React.memo(({ cv, editing, onChange }: { cv: ICv; edi
                             </>
                         ) : (
                             <>
-                                <Space><MailOutlined /> {cv.email}</Space>
-                                <Space><PhoneOutlined /> {cv.phone}</Space>
-                                <Space><EnvironmentOutlined /> {cv.address}</Space>
+                                <div style={{ wordBreak: 'break-all' }}>📧 {cv.email}</div>
+                                <div>📞 {cv.phone}</div>
+                                <div>🌐 {cv.address}</div>
                             </>
                         )}
                     </div>
                 </div>
 
-                <div style={{ flex: 1 }}>
-                    <div style={{ height: 1, background: 'rgba(255,255,255,0.2)', margin: '12px 0' }} />
-                    <div style={{ color: '#3498db', fontWeight: 700, textTransform: 'uppercase', marginBottom: 12 }}>Kỹ năng</div>
+                {/* Skills */}
+                <div style={{ flex: 1, fontSize: 14 }}>
+                    <div style={leftTitleStyle}>Kỹ năng liên quan</div>
                     {editing ? (
-                        <FieldInput multiline rows={10} value={cv.skills} placeholder="• Skill 1..." onChange={(v) => onChange('skills', v)} />
+                        <FieldInput multiline rows={10} value={cv.skills} placeholder="• Kỹ năng..." onChange={(v) => onChange('skills', v)} />
                     ) : (
-                        <FieldText value={cv.skills} style={{ color: '#ecf0f1' }} />
+                        <FieldText value={cv.skills} style={{ color: theme.sidebarText, fontSize: 14, lineHeight: 1.8 }} />
                     )}
                 </div>
             </div>
 
-            {/* Content */}
-            <div style={{ flex: 1, padding: '40px 32px', color: '#2c3e50' }}>
+            {/* Content Right */}
+            <div style={{ flex: 1, padding: '40px 32px', color: theme.contentText }}>
+                {/* Objective */}
                 <section style={{ marginBottom: 32 }}>
-                    <h3 style={{ color: '#2c3e50', textTransform: 'uppercase', borderBottom: '2px solid #3498db', paddingBottom: 8, fontWeight: 700 }}>Mục tiêu nghề nghiệp</h3>
+                    <h3 style={rightTitleStyle}>Mục tiêu nghề nghiệp</h3>
                     {editing ? (
                         <FieldInput multiline rows={4} value={cv.objective} placeholder="Mục tiêu..." onChange={(v) => onChange('objective', v)} />
                     ) : (
-                        <FieldText value={cv.objective} />
+                        <div style={{ padding: '0 8px' }}>
+                            <FieldText value={cv.objective} />
+                        </div>
                     )}
                 </section>
+
+                {/* Experience */}
                 <section style={{ marginBottom: 32 }}>
-                    <h3 style={{ color: '#2c3e50', textTransform: 'uppercase', borderBottom: '2px solid #3498db', paddingBottom: 8, fontWeight: 700 }}>Kinh nghiệm làm việc</h3>
+                    <h3 style={rightTitleStyle}>Kinh nghiệm làm việc</h3>
                     {editing ? (
                         <FieldInput multiline rows={12} value={cv.experience} placeholder="Kinh nghiệm..." onChange={(v) => onChange('experience', v)} />
                     ) : (
-                        <FieldText value={cv.experience} />
+                        <div style={{ padding: '0 8px' }}>
+                            <FieldText value={cv.experience} />
+                        </div>
                     )}
                 </section>
+
+                {/* Education */}
                 <section>
-                    <h3 style={{ color: '#2c3e50', textTransform: 'uppercase', borderBottom: '2px solid #3498db', paddingBottom: 8, fontWeight: 700 }}>Học vấn</h3>
+                    <h3 style={rightTitleStyle}>Học vấn</h3>
                     {editing ? (
                         <FieldInput multiline rows={6} value={cv.education} placeholder="Học vấn..." onChange={(v) => onChange('education', v)} />
                     ) : (
-                        <FieldText value={cv.education} />
+                        <div style={{ padding: '0 8px' }}>
+                            <FieldText value={cv.education} />
+                        </div>
                     )}
                 </section>
             </div>

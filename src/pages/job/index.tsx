@@ -239,7 +239,7 @@ const ClientJobPage = () => {
                             marginBottom: 16, boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
                         }}>
                             <Input.Search
-                                placeholder="Tìm kiếm công việc, kỹ năng, công ty..."
+                                placeholder="Tìm kiếm công việc"
                                 allowClear
                                 enterButton="Tìm kiếm"
                                 size="large"
