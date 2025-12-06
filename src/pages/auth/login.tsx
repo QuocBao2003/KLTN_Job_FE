@@ -1,6 +1,6 @@
 import { Button, Divider, Form, Input, message, notification, Modal } from "antd";
 import { useLocation, useNavigate } from "react-router-dom";
-import { callLogin } from "config/api";
+import { callLogin, callForgotPassword } from "config/api";
 import { useState, useEffect } from "react";
 import { useDispatch } from "react-redux";
 import { setUserLoginInfo } from "@/redux/slice/accountSlide";
@@ -14,6 +14,8 @@ const LoginPage = () => {
   const navigate = useNavigate();
   const [isSubmit, setIsSubmit] = useState(false);
   const [roleModalOpen, setRoleModalOpen] = useState(false);
+  const [forgotPasswordModalOpen, setForgotPasswordModalOpen] = useState(false);
+  const [forgotPasswordLoading, setForgotPasswordLoading] = useState(false);
   const dispatch = useDispatch();
   const isAuthenticated = useAppSelector(
     (state) => state.account.isAuthenticated
@@ -60,10 +62,7 @@ const LoginPage = () => {
     } else {
       notification.error({
         message: "Có lỗi xảy ra",
-        description:
-          res.message && Array.isArray(res.message)
-            ? res.message[0]
-            : res.message,
+        description: "Tài khoản không tồn tại",
         duration: 5,
       });
     }
@@ -112,9 +111,14 @@ const LoginPage = () => {
                 <Form.Item
                 // wrapperCol={{ offset: 6, span: 16 }}
                 >
+                  <div style={{ display: "flex", justifyContent: "space-between" }}>
                   <Button type="primary" htmlType="submit" loading={isSubmit}>
                     Đăng nhập
                   </Button>
+                  <Button type="link" onClick={() => setForgotPasswordModalOpen(true)}>
+                    Quên mật khẩu?
+                  </Button>
+                  </div>
                 </Form.Item>
                 <Divider>Or</Divider>
                 <p className="text text-normal">
@@ -219,6 +223,60 @@ const LoginPage = () => {
             </div>
           </div>
         </div>
+      </Modal>
+
+      {/* Forgot Password Modal */}
+      <Modal
+        open={forgotPasswordModalOpen}
+        onCancel={() => {
+          setForgotPasswordModalOpen(false);
+        }}
+        footer={null}
+        centered
+        width={450}
+        title="Quên mật khẩu"
+      >
+        <Form
+          layout="vertical"
+          onFinish={async (values) => {
+            setForgotPasswordLoading(true);
+            try {
+              const res = await callForgotPassword(values.email);
+              if (res && res.data) {
+                message.success(res.data.message || "Email đã được gửi thành công!");
+                setForgotPasswordModalOpen(false);
+              }
+            } catch (error: any) {
+              message.error(
+                error?.response?.data?.message || "Có lỗi xảy ra khi gửi email"
+              );
+            } finally {
+              setForgotPasswordLoading(false);
+            }
+          }}
+        >
+          <Form.Item
+            label="Email"
+            name="email"
+            rules={[
+              { required: true, message: "Email không được để trống!" },
+              { type: "email", message: "Email không hợp lệ!" },
+            ]}
+          >
+            <Input placeholder="Nhập email của bạn" size="large" />
+          </Form.Item>
+
+          <Form.Item>
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
+              <Button onClick={() => setForgotPasswordModalOpen(false)}>
+                Hủy
+              </Button>
+              <Button type="primary" htmlType="submit" loading={forgotPasswordLoading}>
+                Gửi email
+              </Button>
+            </div>
+          </Form.Item>
+        </Form>
       </Modal>
       <Footer />
     </>

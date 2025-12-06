@@ -59,18 +59,18 @@ const CompanyPage = () => {
             hideInSearch: true,
         },
         {
-            title: 'Name',
+            title: 'Tên công ty',
             dataIndex: 'name',
             sorter: true,
         },
         {
-            title: 'Address',
+            title: 'Địa điểm',
             dataIndex: 'address',
             sorter: true,
         },
 
         {
-            title: 'CreatedAt',
+            title: 'Thời gian tạo',
             dataIndex: 'createdAt',
             width: 200,
             sorter: true,
@@ -82,7 +82,7 @@ const CompanyPage = () => {
             hideInSearch: true,
         },
         {
-            title: 'UpdatedAt',
+            title: 'Thời gian cập nhật',
             dataIndex: 'updatedAt',
             width: 200,
             sorter: true,
@@ -225,7 +225,8 @@ const CompanyPage = () => {
                             >
                                 <Button
                                     icon={<PlusOutlined />}
-                                    type="primary"
+                                    
+                                    style={{backgroundImage: ' linear-gradient(135deg, #36d1dc, #5b86e5)',color :"white" ,fontSize :"15px",fontFamily:"'Roboto', sans-serif"}}
                                     onClick={() => setOpenModal(true)}
                                 >
                                     Thêm mới

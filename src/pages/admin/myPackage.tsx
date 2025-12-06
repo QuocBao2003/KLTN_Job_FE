@@ -72,11 +72,11 @@ const MyPackages = () => {
     };
 
     return (
-        <div style={{ padding: '24px', background: '#f0f2f5', minHeight: '100vh' }}>
+        <div style={{ padding: '24px', background: 'white', minHeight: '100vh', }}>
             <div style={{ maxWidth: 1200, margin: '0 auto' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
                     <h1 style={{ margin: 0, fontSize: 28 }}>Gói Dịch Vụ Của Tôi</h1>
-                    <Button type="primary" size="large" onClick={() => navigate('/admin/packages')}>
+                    <Button  style={{backgroundImage: ' linear-gradient(135deg, #36d1dc, #5b86e5)',color :"white" ,fontSize :"15px",fontFamily:"'Roboto', sans-serif"}} onClick={() => navigate('/admin/packages')}>
                         Mua thêm gói dịch vụ
                     </Button>
                 </div>
@@ -104,7 +104,9 @@ const MyPackages = () => {
                                         <Card
                                             style={{
                                                 borderLeft: `4px solid ${getPackageColor(pkg.servicePackage.packageType)}`,
-                                                height: '100%'
+                                                height: '100%',
+                                                border :"4px solid #e3eef8",
+                                                boxShadow :"0 0 15px 0 rgba(40, 67, 223, 0.2)"
                                             }}
                                         >
                                             <div style={{ marginBottom: 16 }}>

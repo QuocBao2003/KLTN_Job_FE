@@ -47,3 +47,21 @@
     box-shadow: 0 6px 20px rgba(0, 0, 0, 0.06);
     padding: 16px;
 }
+
+// Sidebar menu styling
+:global(.ant-layout-sider) {
+    :global(.ant-menu) {
+        font-size: 16px !important;
+        
+        :global(.ant-menu-item),
+        :global(.ant-menu-submenu-title) {
+            font-size: 16px !important;
+            height: 48px !important;
+            line-height: 48px !important;
+            
+            :global(.anticon) {
+                font-size: 18px !important;
+            }
+        }
+    }
+}

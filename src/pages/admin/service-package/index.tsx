@@ -193,6 +193,7 @@ const AdminServicePackages = () => {
                 <Button
                     type="primary"
                     icon={<PlusOutlined />}
+                    style={{backgroundImage: ' linear-gradient(135deg, #36d1dc, #5b86e5)',color :"white" ,fontSize :"15px",fontFamily:"'Roboto', sans-serif"}}
                     onClick={handleCreate}
                 >
                     Thêm gói dịch vụ

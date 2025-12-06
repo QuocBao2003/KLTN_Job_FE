@@ -21,7 +21,7 @@ const JobCard = (props: IProps) => {
     const [displayJob, setDisplayJob] = useState<IJob[] | null>(null);
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [current, setCurrent] = useState(1);
-    const [pageSize, setPageSize] = useState(9);
+    const [pageSize, setPageSize] = useState(12);
     const [total, setTotal] = useState(0);
     const [filter, setFilter] = useState("");
     const [sortQuery, setSortQuery] = useState("sort=updatedAt,desc");
@@ -133,7 +133,7 @@ const JobCard = (props: IProps) => {
                         <Col span={24}>
                             <div className={isMobile ? styles["dflex-mobile"] : styles["dflex-pc"]}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
-                                    <span className={styles["title"]}>Công Việc Mới Nhất</span>
+                                    <span className={styles["title"]} style={{fontSize:"28px",fontWeight:"550",color:"#00b14f"}}>Công Việc Mới Nhất</span>
                                     <div style={{ display: 'flex', gap: 8 }}>
                                         <Button
                                             type="default"
@@ -154,14 +154,14 @@ const JobCard = (props: IProps) => {
                                     </div>
                                 </div>
                                 {!showPagination &&
-                                    <Link to="job">Xem tất cả</Link>
+                                    <Link to="job" style={{fontSize:"16px",fontWeight:"550"}}>Xem tất cả</Link>
                                 }
                             </div>
                         </Col>
 
                         {displayJob?.map(item => {
                             // Kiểm tra các feature của gói dịch vụ
-                            const isFeatured = item.isFeatured || false; 
+                            const isFeatured = item.isFeatured || false;
                         
                             const hasBoldTitle = item.hasBoldTitle || false;
                             const hotJob = isFeatured && hasBoldTitle; // Gói 3: FEATURED_JOB

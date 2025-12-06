@@ -1,4 +1,4 @@
-import { IBackendRes, ICompany, IAccount, IUser, IModelPaginate, IGetAccount, IJob, IResume, IPermission, IRole, ISkill, ISubscribers, ISaveJob, IMessageRoom, IMessageContent, IMessageResponse, IChatResponse, IJobProfession, IAdminStatistics, IHRStatistics, ICv, IServicePackage, IUserPackage, IMoMoPayment, IPackageOrder } from '@/types/backend';
+import { IBackendRes, ICompany, IAccount, IUser, IModelPaginate, IGetAccount, IJob, IResume, IPermission, IRole, ISkill, ISubscribers, ISaveJob, IMessageRoom, IMessageContent, IMessageResponse, IChatResponse, IJobProfession, IAdminStatistics, IHRStatistics, ICv, IServicePackage, IUserPackage, IMoMoPayment, IPackageOrder, IPackageRevenueStatistics } from '@/types/backend';
 import axios from 'config/axios-customize';
 
 /**
@@ -26,6 +26,10 @@ export const callRefreshToken = () => {
 
 export const callLogout = () => {
     return axios.post<IBackendRes<string>>('/api/v1/auth/logout')
+}
+
+export const callForgotPassword = (email: string) => {
+    return axios.post<IBackendRes<{ message: string }>>('/api/v1/forgot-password', { email })
 }
 
 /**
@@ -450,7 +454,14 @@ export const callGetJobStatisticsOverview = () => {
         averageSalary: number;
     }>>('/api/v1/jobs/statistics/overview');
 }
-
+export const getRevenueStatistics = (filter?: IStatisticsFilter) => {
+    const params: any = {};
+    if (filter?.startDate) params.startDate = filter.startDate;
+    if (filter?.endDate) params.endDate = filter.endDate;
+    if (filter?.timeUnit) params.timeUnit = filter.timeUnit;
+    
+    return axios.get<IBackendRes<IPackageRevenueStatistics>>('/api/v1/statistics/revenue', { params });
+}
 
 export const callSubmitCv = (data: {
     fullName: string;

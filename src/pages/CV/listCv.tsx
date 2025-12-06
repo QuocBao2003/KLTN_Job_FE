@@ -576,13 +576,13 @@ const PageListCV = () => {
                                 Xin chào <strong>{user?.name}</strong>, hãy tạo CV chuyên nghiệp ngay hôm nay.
                             </p>
                             <h1 style={{ fontSize: 48, fontWeight: 800, marginBottom: 24 }}>
-                                Tạo CV <span style={{ color: '#1677ff' }}>Chuyên Nghiệp</span>
+                                Tạo CV <span style={{ color: '#00b14f' }}>Chuyên Nghiệp</span>
                             </h1>
                             <p style={{ fontSize: 18, color: '#666', marginBottom: 32 }}>
                                 Nhập liệu tự động từ Excel, lưu trữ PDF trên Cloud và quản lý hồ sơ dễ dàng.
                             </p>
                             <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-                                <Button type="primary" size="large" onClick={handleStart} icon={<EditOutlined />} style={{ height: 50, padding: '0 32px' }}>
+                                <Button type="primary" size="large" onClick={handleStart} icon={<EditOutlined />} style={{ height: 50, padding: '0 32px' ,backgroundColor:"#00b14f",borderColor:"#00b14f"}}>
                                     Tạo CV Ngay
                                 </Button>
                                 <Space.Compact>

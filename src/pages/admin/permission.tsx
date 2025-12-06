@@ -241,6 +241,7 @@ const PermissionPage = () => {
                             <Button
                                 icon={<PlusOutlined />}
                                 type="primary"
+                                style={{backgroundImage: ' linear-gradient(135deg, #36d1dc, #5b86e5)',color :"white" ,fontSize :"15px",fontFamily:"'Roboto', sans-serif"}}
                                 onClick={() => setOpenModal(true)}
                             >
                                 Thêm mới

@@ -175,6 +175,7 @@ const ClientCompanyDetailPage = (props: any) => {
                                                             <Button 
                                                                 type="primary" 
                                                                 className={styles["apply-button"]}
+                                                                style={{backgroundColor:"#00b14f",borderColor:"#00b14f"}}
                                                                 onClick={handleApply}
                                                             >
                                                                 Ứng tuyển

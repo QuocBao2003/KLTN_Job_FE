@@ -21,8 +21,10 @@ const ResumePage = () => {
     const tableRef = useRef<ActionType>();
 
     const isFetching = useAppSelector(state => state.resume.isFetching);
+   
     const meta = useAppSelector(state => state.resume.meta);
     const resumes = useAppSelector(state => state.resume.result);
+    console.log("resumes",resumes);
     const dispatch = useAppDispatch();
     const navigate = useNavigate();
     const [dataInit, setDataInit] = useState<IResume | null>(null);
@@ -203,9 +205,10 @@ const ResumePage = () => {
             const jobId = job?.id || jobFull?.id || null;
 
             // Lấy candidateId (userId)
-            const userId = typeof resume.userId === 'object' 
-                ? (resume.userId as any)?.id 
-                : resume.userId;
+            const userId = resume.user?.id;
+            console.log("userId",userId);
+            console.log("jobId",jobId);
+            console.log("resume",resume);
 
             if (!jobId) {
                 message.warning('Không tìm thấy thông tin công việc');
@@ -223,7 +226,7 @@ const ResumePage = () => {
             if (res && res.data) {
                 const room = res.data;
                 // Navigate đến trang messages với roomId
-                navigate(`/admin/messages?roomId=${room.id}`);
+                navigate(`/messages?roomId=${room.id}`);
             }
         } catch (error: any) {
             console.error('Error creating message room:', error);
@@ -253,22 +256,114 @@ const ResumePage = () => {
             title: 'Trạng Thái',
             dataIndex: 'status',
             sorter: true,
-            renderFormItem: (item, props, form) => (
+            render: (_, record) => {
+                const status = record.status;
+                let color = '#faad14';
+                if (status === 'APPROVED') color = '#52c41a';
+                if (status === 'REJECTED') color = '#ff4d4f';
+                if(status === "REVIEWING") color = '#1677ff';
+                return (
+                    <span
+                        style={{
+                            display: 'inline-block',
+                            padding: '2px 10px',
+                            borderRadius: 999,
+                            fontWeight: 600,
+                            backgroundColor: color,
+                            color: '#fff',
+                            minWidth: 90,
+                            textAlign: 'center'
+                        }}
+                    >
+                        {status}
+                    </span>
+                );
+            },
+            renderFormItem: () => (
                 <ProFormSelect
                     showSearch
                     mode="multiple"
                     allowClear
-                    valueEnum={{
-                        PENDING: 'PENDING',
-                        REVIEWING: 'REVIEWING',
-                        APPROVED: 'APPROVED',
-                        REJECTED: 'REJECTED',
-                    }}
-                    placeholder="Chọn level"
+                    placeholder="Chọn trạng thái"
+                    options={[
+                        {
+                            label: (
+                                <span
+                                    style={{
+                                        display: 'inline-block',
+                                        padding: '2px 8px',
+                                        borderRadius: 999,
+                                        backgroundColor: '#faad14',
+                                        color: '#fff',
+                                        fontWeight: 600
+                                    }}
+                                >
+                                    PENDING
+                                </span>
+                            ),
+                            value: 'PENDING'
+                        },
+                        {
+                            label: (
+                                <span
+                                    style={{
+                                        display: 'inline-block',
+                                        padding: '2px 8px',
+                                        borderRadius: 999,
+                                        backgroundColor: '#1677ff',
+                                        color: '#fff',
+                                        fontWeight: 600
+                                    }}
+                                >
+                                    REVIEWING
+                                </span>
+                            ),
+                            value: 'REVIEWING'
+                        },
+                        {
+                            label: (
+                                <span
+                                    style={{
+                                        display: 'inline-block',
+                                        padding: '2px 8px',
+                                        borderRadius: 999,
+                                        backgroundColor: '#52c41a',
+                                        color: '#fff',
+                                        fontWeight: 600
+                                    }}
+                                >
+                                    APPROVED
+                                </span>
+                            ),
+                            value: 'APPROVED'
+                        },
+                        {
+                            label: (
+                                <span
+                                    style={{
+                                        display: 'inline-block',
+                                        padding: '2px 8px',
+                                        borderRadius: 999,
+                                        backgroundColor: '#ff4d4f',
+                                        color: '#fff',
+                                        fontWeight: 600
+                                    }}
+                                >
+                                    REJECTED
+                                </span>
+                            ),
+                            value: 'REJECTED'
+                        }
+                    ]}
                 />
             ),
         },
-
+        {
+            title: 'Tên Ứng Viên',
+            dataIndex: ['user', 'name'],
+            hideInSearch: true,
+        },
+        
         {
             title: 'Tên Công việc',
             dataIndex: ["job", "name"],
@@ -375,7 +470,7 @@ const ResumePage = () => {
         if (sort && sort.status) {
             sortBy = sort.status === 'ascend' ? "sort=status,asc" : "sort=status,desc";
         }
-
+       
         if (sort && sort.createdAt) {
             sortBy = sort.createdAt === 'ascend' ? "sort=createdAt,asc" : "sort=createdAt,desc";
         }
@@ -428,6 +523,7 @@ const ResumePage = () => {
                             icon={<DownloadOutlined />}
                             onClick={exportExcel}
                             disabled={!resumes?.length}
+                            style={{ marginLeft: 8,backgroundImage: ' linear-gradient(135deg,rgb(62, 172, 99),rgb(39, 204, 174))' }}
                         >
                             Xuất Excel
                         </Button>

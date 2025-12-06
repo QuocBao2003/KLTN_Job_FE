@@ -221,6 +221,10 @@ export interface IResume {
     id?: string;
     email: string;
     userId: string;
+    user : string |{
+        id: string;
+        name : string;
+    }
     url: string;
     status: string;
     logo: string;

@@ -9,7 +9,7 @@ import dayjs from 'dayjs';
 import { callDeleteJobProfession } from "@/config/api";
 import queryString from 'query-string';
 import { sfLike } from "spring-filter-query-builder";
-import { fetchJobProfession } from "@/redux/slice/jobProfessionSlice";
+import { fetchAllJobProfession } from "@/redux/slice/jobProfessionSlice";
 import ModalJobProfession from "@/components/admin/job/job-profession.modal";
 
 const JobProfessionPage = () => {
@@ -184,7 +184,7 @@ const JobProfessionPage = () => {
                 dataSource={jobProfessions}
                 request={async (params, sort, filter): Promise<any> => {
                     const query = buildQuery(params, sort, filter);
-                    dispatch(fetchJobProfession({ query }))
+                    dispatch(fetchAllJobProfession({ query }))
                 }}
                 scroll={{ x: true }}
                 pagination={
@@ -202,6 +202,7 @@ const JobProfessionPage = () => {
                         <Button
                             icon={<PlusOutlined />}
                             type="primary"
+                            style={{backgroundImage: ' linear-gradient(135deg, #36d1dc, #5b86e5)',color :"white" ,fontSize :"15px",fontFamily:"'Roboto', sans-serif"}}
                             onClick={() => setOpenModal(true)}
                         >
                             Thêm mới

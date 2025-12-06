@@ -1,25 +1,31 @@
-import { Card, Col, Row, Statistic, Table, DatePicker, Space, Tag, Spin, Select, Radio, Button } from "antd";
+import { Card, Col, Row, Statistic, Table, DatePicker, Space, Tag, Spin, Select, Radio, Button, Tabs } from "antd";
 import { 
     CheckCircleOutlined, 
     CloseCircleOutlined, 
-    ClockCircleOutlined,
-    FileTextOutlined,
+    
     TrophyOutlined,
     ShopOutlined,
-    DownloadOutlined
+    DownloadOutlined,
+    ShoppingOutlined,
+    DollarOutlined
 } from '@ant-design/icons';
+import { IoIosCloseCircle } from "react-icons/io";
 import CountUp from 'react-countup';
 import { 
     BarChart, Bar, PieChart, Pie, LineChart, Line, AreaChart, Area,
     XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell
 } from 'recharts';
+import ReactApexChart from 'react-apexcharts';
+import type { ApexOptions } from 'apexcharts';
 import { useEffect, useState } from "react";
-import { getHRStatistics, getAdminStatistics, IStatisticsFilter } from "@/config/api";
-import { IHRStatistics, IAdminStatistics } from "@/types/backend";
+import { getHRStatistics, getAdminStatistics, IStatisticsFilter, getRevenueStatistics } from "@/config/api";
+import { IHRStatistics, IAdminStatistics, IPackageRevenueStatistics } from "@/types/backend";
 import { useAppSelector } from "@/redux/hooks";
 import dayjs, { Dayjs } from 'dayjs';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
+import { FaCheckCircle, FaClock, FaFileAlt } from "react-icons/fa";
+import TabPane from "antd/es/tabs/TabPane";
 
 const { RangePicker } = DatePicker;
 const { Option } = Select;
@@ -28,12 +34,14 @@ type TimeUnit = 'WEEK' | 'MONTH';
 
 const DashboardPage = () => {
     const user = useAppSelector(state => state.account.user);
-    console.log("user", user);
+  
     const isHR = user?.role?.name === 'HR';
     const isAdmin = user?.role?.name === 'SUPER_ADMIN';
 
     const [hrStats, setHrStats] = useState<IHRStatistics | null>(null);
     const [adminStats, setAdminStats] = useState<IAdminStatistics | null>(null);
+    const [revenueStats, setRevenueStats] = useState<IPackageRevenueStatistics | null>(null);
+
     const [loading, setLoading] = useState(true);
     const [dateRange, setDateRange] = useState<[Dayjs, Dayjs] | null>([
         dayjs().subtract(12, 'months'),
@@ -41,7 +49,7 @@ const DashboardPage = () => {
     ]);
     const [timeUnit, setTimeUnit] = useState<TimeUnit>('MONTH');
     const [topLimit, setTopLimit] = useState<number>(10);
-
+     const [activeTab, setActiveTab] = useState<string>('overview');
     useEffect(() => {
         fetchStatistics();
     }, [dateRange, timeUnit, topLimit]);
@@ -64,11 +72,22 @@ const DashboardPage = () => {
                     setHrStats(res as IHRStatistics);
                 }
             } else if (isAdmin) {
-                const res = await getAdminStatistics(filter) as any;
-                if (res && res.data) {
-                    setAdminStats(res.data);
-                } else if (res && !res.data) {
-                    setAdminStats(res as IAdminStatistics);
+                const [adminRes, revenueRes] = await Promise.all([
+                    getAdminStatistics(filter),
+                    getRevenueStatistics(filter)
+                ]);
+                
+                if (adminRes && (adminRes as any).data) {
+                    setAdminStats((adminRes as any).data);
+                } else if (adminRes) {
+                    setAdminStats(adminRes as any);
+                }
+
+                if (revenueRes && (revenueRes as any).data) {
+                   
+                    setRevenueStats((revenueRes as any).data);
+                } else if (revenueRes) {
+                    setRevenueStats(revenueRes as any);
                 }
             }
         } catch (error) {
@@ -77,7 +96,12 @@ const DashboardPage = () => {
             setLoading(false);
         }
     };
-
+    const formatCurrency = (value: number) => {
+        return new Intl.NumberFormat('vi-VN', {
+            style: 'currency',
+            currency: 'VND'
+        }).format(value);
+    };
     const formatPeriodLabel = (periodStart?: string, periodEnd?: string) => {
         if (!periodStart && !periodEnd) return 'N/A';
         const start = periodStart ? dayjs(periodStart).format('DD/MM/YYYY') : '';
@@ -91,131 +115,175 @@ const DashboardPage = () => {
     // Export Excel for HR
     const exportHRToExcel = () => {
         if (!hrStats) return;
+    
+        try {
+            const wb = XLSX.utils.book_new();
+    
+            /* ==========================
+             *  SHEET 1 – TỔNG QUAN (AN TOÀN)
+             * ========================== */
+            const dateRangeLabel = dateRange
+                ? `${dateRange[0].format('DD/MM/YYYY')} - ${dateRange[1].format('DD/MM/YYYY')}`
+                : 'N/A';
+    
+            const sheet1Data = [
+                ["BÁO CÁO THỐNG KÊ - HR"],
+                [],
+                ["Thời gian", dateRangeLabel],
+                ["Tên công ty", (user as any)?.company?.name || "N/A"],
+                [],
+                ["TỔNG QUAN"],
+                ["Tổng công việc được duyệt", hrStats.totalApprovedJobs],
+                ["Tổng công việc không được duyệt", hrStats.totalRejectedJobs],
+                ["Tổng công việc đang chờ duyệt", hrStats.totalPendingJobs],
+                ["Tổng số ứng tuyển", hrStats.totalResumes],
+            ];
+    
+            const ws1 = XLSX.utils.aoa_to_sheet(sheet1Data);
+            ws1["!cols"] = [{ wch: 35 }, { wch: 30 }];
+            XLSX.utils.book_append_sheet(wb, ws1, "Tong quan");
+    
+    
+            /* ==========================
+             *  SHEET 2 – DANH SÁCH CÔNG VIỆC (AN TOÀN)
+             * ========================== */
+            const activeJobs = Array.isArray(hrStats.activeJobsWithResumes)
+                ? hrStats.activeJobsWithResumes
+                : [];
+            console.log("activeJobs", activeJobs);
+            const sheet2Data = [
+                ["DANH SÁCH CÔNG VIỆC ỨNG TUYỂN", "", "", ""],
+                ["", "", "", ""],
+                ["Tên công việc", "Số đơn", "Ngày bắt đầu", "Ngày kết thúc"],
+            ];
+            
+            activeJobs.forEach(job => {
+                sheet2Data.push([
+                    job.jobName ?? "",
+                    String(job.resumeCount ?? 0),
+                    dayjs(job.startDate).format("DD/MM/YYYY"),
+                    dayjs(job.endDate).format("DD/MM/YYYY"),
+                ]);
+            });
+    
+            const ws2 = XLSX.utils.aoa_to_sheet(sheet2Data);
+            ws2["!cols"] = [
+                { wch: 40 },
+                { wch: 12 },
+                { wch: 15 },
+                { wch: 15 }
+            ];
+    
+            XLSX.utils.book_append_sheet(wb, ws2, "Sheet2");
+    
+    
+            /* ==========================
+             *  EXPORT FILE
+             * ========================== */
+            const fileName =
+                `HR_Statistics_${(user as any)?.company?.name || "Unknown"}_${dayjs().format("YYYYMMDD_HHmmss")}.xlsx`;
+    
+            XLSX.writeFile(wb, fileName);
+    
+        } catch (error) {
+            console.error("Excel Export Error:", error);
+            alert("Có lỗi khi xuất Excel: " + (error as Error).message);
+        }
+    };
+
+    // Export Excel for Admin
+    const exportRevenueToExcel = () => {
+        if (!revenueStats) return;
 
         const wb = XLSX.utils.book_new();
 
-        // Sheet 1: Tổng quan
-        const dateRangeLabel = dateRange
-            ? `${dateRange[0].format('DD/MM/YYYY')} - ${dateRange[1].format('DD/MM/YYYY')}`
-            : 'N/A';
+        // Sheet 1: Tổng quan doanh thu
         const overviewData = [
-            ['BÁO CÁO THỐNG KÊ - HR'],
-            ['Thời gian:', dateRangeLabel],
-            ['Tên công ty:', user?.company?.name || 'N/A'],
+            ['BÁO CÁO DOANH THU GÓI DỊCH VỤ'],
+            ['Thời gian:', `${dateRange?.[0].format('DD/MM/YYYY')} - ${dateRange?.[1].format('DD/MM/YYYY')}`],
             [],
             ['TỔNG QUAN'],
-            ['Tổng công việc được duyệt:', hrStats.totalApprovedJobs],
-            ['Tổng công việc không được duyệt:', hrStats.totalRejectedJobs],
-            ['Tổng công việc đang chờ duyệt:', hrStats.totalPendingJobs],
-            ['Tổng số ứng tuyển:', hrStats.totalResumes],
+            ['Tổng doanh thu:', formatCurrency(revenueStats.totalRevenue)],
+            ['Tổng số gói đã bán:', revenueStats.totalPackagesSold],
         ];
         const ws1 = XLSX.utils.aoa_to_sheet(overviewData);
         XLSX.utils.book_append_sheet(wb, ws1, 'Tổng quan');
 
-        // Sheet 2: Trạng thái công việc
-        const jobStatusData = [
-            ['TRẠNG THÁI CÔNG VIỆC'],
-            ['Trạng thái', 'Số lượng'],
-            ['Đã duyệt', hrStats.totalApprovedJobs],
-            ['Từ chối', hrStats.totalRejectedJobs],
-            ['Chờ duyệt', hrStats.totalPendingJobs],
+        // Sheet 2: Chi tiết theo loại gói
+        const packageHeaders = [
+            ['CHI TIẾT THEO LOẠI GÓI'],
+            ['Tên gói', 'Giá gói', 'Số lượng bán', 'Doanh thu', '% Tổng doanh thu']
         ];
-        const ws2 = XLSX.utils.aoa_to_sheet(jobStatusData);
-        XLSX.utils.book_append_sheet(wb, ws2, 'Trạng thái công việc');
-
-        // Sheet 3: Trạng thái đơn ứng tuyển
-        const resumeStatusHeaders = [['TRẠNG THÁI ĐỠN ỨNG TUYỂN'], ['Trạng thái', 'Số lượng']];
-        const resumeStatusRows = (hrStats.resumesByStatus ?? []).map(item => [item.status, item.count]);
-        const ws3 = XLSX.utils.aoa_to_sheet([...resumeStatusHeaders, ...resumeStatusRows]);
-        XLSX.utils.book_append_sheet(wb, ws3, 'Trạng thái đơn ứng tuyển');
-
-        // Sheet 4: Danh sách công việc ứng tuyển
-        const jobListHeaders = [
-            ['DANH SÁCH CÔNG VIỆC ỨNG TUYỂN'],
-            ['Tên công việc', 'Số đơn ứng tuyển', 'Ngày bắt đầu', 'Ngày kết thúc']
-        ];
-        const jobListRows = (hrStats.activeJobsWithResumes ?? []).map(job => [
-            job.jobName,
-            job.resumeCount,
-            dayjs(job.startDate).format('DD/MM/YYYY'),
-            dayjs(job.endDate).format('DD/MM/YYYY')
+        const packageRows = revenueStats.packageTypeStatistics.map(pkg => [
+            pkg.packageName,
+            formatCurrency(pkg.price),
+            pkg.quantitySold,
+            formatCurrency(pkg.totalRevenue),
+            `${pkg.percentageOfTotal}%`
         ]);
-        const ws4 = XLSX.utils.aoa_to_sheet([...jobListHeaders, ...jobListRows]);
-        XLSX.utils.book_append_sheet(wb, ws4, 'Danh sách công việc');
+        const ws2 = XLSX.utils.aoa_to_sheet([...packageHeaders, ...packageRows]);
+        XLSX.utils.book_append_sheet(wb, ws2, 'Chi tiết theo gói');
 
-        // Sheet 5: Biểu đồ theo thời gian - Jobs
-        const jobsTimeSeriesHeaders = [
-            [`CÔNG VIỆC TẠO THEO ${timeUnit === 'WEEK' ? 'TUẦN' : 'THÁNG'}`],
-            ['Thời gian', 'Số lượng']
+        // Sheet 3: Doanh thu theo thời gian
+        const timeSeriesHeaders = [
+            [`DOANH THU THEO ${timeUnit === 'WEEK' ? 'TUẦN' : 'THÁNG'}`],
+            ['Thời gian', 'Doanh thu', 'Số gói bán']
         ];
-        const jobsTimeSeriesRows = (hrStats.jobsTimeSeries ?? []).map(item => [
-            formatPeriodLabel(item.periodStart, item.periodEnd),
-            item.count
+        const timeSeriesRows = revenueStats.revenueTimeSeries.map(item => [
+            item.label,
+            formatCurrency(item.revenue),
+            item.packagesSold
         ]);
-        const ws5 = XLSX.utils.aoa_to_sheet([...jobsTimeSeriesHeaders, ...jobsTimeSeriesRows]);
-        XLSX.utils.book_append_sheet(wb, ws5, 'Công việc theo thời gian');
+        const ws3 = XLSX.utils.aoa_to_sheet([...timeSeriesHeaders, ...timeSeriesRows]);
+        XLSX.utils.book_append_sheet(wb, ws3, 'Doanh thu theo thời gian');
 
-        // Sheet 6: Biểu đồ theo thời gian - Resumes
-        const resumesTimeSeriesHeaders = [
-            [`ĐƠN ỨNG TUYỂN THEO ${timeUnit === 'WEEK' ? 'TUẦN' : 'THÁNG'}`],
-            ['Thời gian', 'Số lượng']
-        ];
-        const resumesTimeSeriesRows = (hrStats.resumesTimeSeries ?? []).map(item => [
-            formatPeriodLabel(item.periodStart, item.periodEnd),
-            item.count
-        ]);
-        const ws6 = XLSX.utils.aoa_to_sheet([...resumesTimeSeriesHeaders, ...resumesTimeSeriesRows]);
-        XLSX.utils.book_append_sheet(wb, ws6, 'Ứng tuyển theo thời gian');
-
-        // Xuất file
-        const fileName = `HR_Statistics_${user?.company?.name}_${dayjs().format('YYYYMMDD_HHmmss')}.xlsx`;
+        const fileName = `Revenue_Report_${dayjs().format('YYYYMMDD_HHmmss')}.xlsx`;
         XLSX.writeFile(wb, fileName);
     };
 
-    // Export Excel for Admin
-    const exportAdminToExcel = () => {
-        if (!adminStats) return;
+    // Export Excel for Admin (combined)
+    const exportAdminFullToExcel = () => {
+        if (!adminStats || !revenueStats) return;
 
         const wb = XLSX.utils.book_new();
 
-        // Sheet 1: Tổng quan
+        // Sheet 1: Tổng quan hệ thống
         const overviewData = [
-            ['BÁO CÁO THỐNG KÊ TOÀN HỆ THỐNG - ADMIN'],
+            ['BÁO CÁO THỐNG KÊ TOÀN HỆ THỐNG'],
             ['Thời gian:', `${dateRange?.[0].format('DD/MM/YYYY')} - ${dateRange?.[1].format('DD/MM/YYYY')}`],
             [],
-            ['TỔNG QUAN'],
+            ['CÔNG VIỆC & CÔNG TY'],
             ['Tổng công việc được duyệt:', adminStats.totalApprovedJobs],
             ['Tổng công việc không được duyệt:', adminStats.totalRejectedJobs],
             ['Tổng công việc đang chờ duyệt:', adminStats.totalPendingJobs],
             ['Tổng số công ty:', adminStats.totalCompanies],
             [],
-            ['CÔNG TY HÀNG ĐẦU'],
-            ['Tên công ty:', adminStats.topCompanyByResumes?.companyName || 'N/A'],
-            ['Tổng đơn ứng tuyển:', adminStats.topCompanyByResumes?.totalResumes || 0],
+            ['DOANH THU GÓI DỊCH VỤ'],
+            ['Tổng doanh thu:', formatCurrency(revenueStats.totalRevenue)],
+            ['Tổng số gói đã bán:', revenueStats.totalPackagesSold],
         ];
         const ws1 = XLSX.utils.aoa_to_sheet(overviewData);
         XLSX.utils.book_append_sheet(wb, ws1, 'Tổng quan');
 
-        // Sheet 2: Trạng thái công việc
-        const jobStatusData = [
-            ['TRẠNG THÁI CÔNG VIỆC'],
-            ['Trạng thái', 'Số lượng'],
-            ['Đã duyệt', adminStats.totalApprovedJobs],
-            ['Từ chối', adminStats.totalRejectedJobs],
-            ['Chờ duyệt', adminStats.totalPendingJobs],
+        // Sheet 2: Chi tiết doanh thu theo gói
+        const packageHeaders = [
+            ['CHI TIẾT DOANH THU THEO GÓI'],
+            ['Tên gói', 'Loại gói', 'Giá', 'Số lượng bán', 'Doanh thu', '% Tổng']
         ];
-        const ws2 = XLSX.utils.aoa_to_sheet(jobStatusData);
-        XLSX.utils.book_append_sheet(wb, ws2, 'Trạng thái công việc');
+        const packageRows = revenueStats.packageTypeStatistics.map(pkg => [
+            pkg.packageName,
+            pkg.packageType,
+            formatCurrency(pkg.price),
+            pkg.quantitySold,
+            formatCurrency(pkg.totalRevenue),
+            `${pkg.percentageOfTotal}%`
+        ]);
+        const ws2 = XLSX.utils.aoa_to_sheet([...packageHeaders, ...packageRows]);
+        XLSX.utils.book_append_sheet(wb, ws2, 'Doanh thu theo gói');
 
-        // Sheet 3: Trạng thái đơn ứng tuyển
-        const resumeStatusHeaders = [['TRẠNG THÁI ĐƠN ỨNG TUYỂN'], ['Trạng thái', 'Số lượng']];
-        const resumeStatusRows = adminStats.resumesByStatus.map(item => [item.status, item.count]);
-        const ws3 = XLSX.utils.aoa_to_sheet([...resumeStatusHeaders, ...resumeStatusRows]);
-        XLSX.utils.book_append_sheet(wb, ws3, 'Trạng thái đơn ứng tuyển');
-
-        // Sheet 4: Top công ty
+        // Sheet 3: Top công ty
         const companyHeaders = [
-            [`TOP ${topLimit} CÔNG TY THEO SỐ ĐƠN ỨNG TUYỂN`],
+            [`TOP ${topLimit} CÔNG TY`],
             ['Thứ hạng', 'Tên công ty', 'Tổng ứng tuyển', 'Đã duyệt', 'Chờ duyệt', 'Từ chối']
         ];
         const companyRows = adminStats.companyResumeStatistics.map((company, index) => [
@@ -226,42 +294,38 @@ const DashboardPage = () => {
             company.pendingResumes,
             company.rejectedResumes
         ]);
-        const ws4 = XLSX.utils.aoa_to_sheet([...companyHeaders, ...companyRows]);
-        XLSX.utils.book_append_sheet(wb, ws4, 'Top công ty');
+        const ws3 = XLSX.utils.aoa_to_sheet([...companyHeaders, ...companyRows]);
+        XLSX.utils.book_append_sheet(wb, ws3, 'Top công ty');
 
-        // Sheet 5: Biểu đồ theo thời gian - Jobs
-        const jobsTimeSeriesHeaders = [
-            [`CÔNG VIỆC TẠO THEO ${timeUnit === 'WEEK' ? 'TUẦN' : 'THÁNG'}`],
-            ['Thời gian', 'Số lượng']
+        // Sheet 4: Doanh thu theo thời gian
+        const revenueTimeHeaders = [
+            [`DOANH THU THEO ${timeUnit === 'WEEK' ? 'TUẦN' : 'THÁNG'}`],
+            ['Thời gian', 'Doanh thu', 'Số gói bán']
         ];
-        const jobsTimeSeriesRows = adminStats.jobsTimeSeries.map(item => [item.label, item.count]);
-        const ws5 = XLSX.utils.aoa_to_sheet([...jobsTimeSeriesHeaders, ...jobsTimeSeriesRows]);
-        XLSX.utils.book_append_sheet(wb, ws5, 'Công việc theo thời gian');
+        const revenueTimeRows = revenueStats.revenueTimeSeries.map(item => [
+            item.label,
+            formatCurrency(item.revenue),
+            item.packagesSold
+        ]);
+        const ws4 = XLSX.utils.aoa_to_sheet([...revenueTimeHeaders, ...revenueTimeRows]);
+        XLSX.utils.book_append_sheet(wb, ws4, 'Doanh thu theo thời gian');
 
-        // Sheet 6: Biểu đồ theo thời gian - Resumes
-        const resumesTimeSeriesHeaders = [
-            [`ĐƠN ỨNG TUYỂN THEO ${timeUnit === 'WEEK' ? 'TUẦN' : 'THÁNG'}`],
-            ['Thời gian', 'Số lượng']
-        ];
-        const resumesTimeSeriesRows = adminStats.resumesTimeSeries.map(item => [item.label, item.count]);
-        const ws6 = XLSX.utils.aoa_to_sheet([...resumesTimeSeriesHeaders, ...resumesTimeSeriesRows]);
-        XLSX.utils.book_append_sheet(wb, ws6, 'Ứng tuyển theo thời gian');
-
-        // Xuất file
-        const fileName = `Admin_Statistics_Full_Report_${dayjs().format('YYYYMMDD_HHmmss')}.xlsx`;
+        const fileName = `Full_Report_${dayjs().format('YYYYMMDD_HHmmss')}.xlsx`;
         XLSX.writeFile(wb, fileName);
     };
-
     const formatter = (value: number | string) => {
         return <CountUp end={Number(value)} separator="," />;
     };
-
+    const currencyFormatter = (value: number | string) => {
+        return <CountUp end={Number(value)} separator="," suffix=" VND" />;
+    };
     // Colors
     const COLORS = {
         approved: '#52c41a',
         rejected: '#ff4d4f',
         pending: '#faad14',
         primary: '#1890ff',
+        revenue: '#ff6b35',
     };
 
     if (loading) {
@@ -317,6 +381,87 @@ const DashboardPage = () => {
             count: item.count
         }));
 
+        // Gộp dữ liệu thời gian cho công việc và đơn ứng tuyển vào 1 dataset
+        const combinedTimeSeriesData = (() => {
+            const map = new Map<string, { label: string; jobs: number; resumes: number }>();
+            jobsTimeSeriesData.forEach(({ label, count }) => {
+                map.set(label, { label, jobs: count, resumes: map.get(label)?.resumes ?? 0 });
+            });
+            resumesTimeSeriesData.forEach(({ label, count }) => {
+                const existing = map.get(label) || { label, jobs: 0, resumes: 0 };
+                existing.resumes = count;
+                map.set(label, existing);
+            });
+            return Array.from(map.values());
+        })();
+
+        // ApexCharts cấu hình cho biểu đồ cột kết hợp Jobs/Applications
+        const columnSeries = [
+            { name: 'Jobs', data: combinedTimeSeriesData.map(item => item.jobs) },
+            { name: 'Applications', data: combinedTimeSeriesData.map(item => item.resumes) }
+        ];
+
+        const columnOptions: ApexOptions = {
+            chart: { type: 'bar', stacked: false, toolbar: { show: false } },
+            plotOptions: {
+                bar: {
+                    borderRadius: 6,
+                    columnWidth: '45%'
+                }
+            },
+            dataLabels: { enabled: false },
+            stroke: {
+                show: true,
+                width: 2,
+                colors: ['transparent']
+            },
+            grid: { strokeDashArray: 4 },
+            colors: [COLORS.primary, COLORS.approved],
+            xaxis: {
+                categories: combinedTimeSeriesData.map(item => item.label),
+                labels: { rotate: -45 }
+            },
+            yaxis: {
+                labels: {
+                    formatter: (val) => `${Math.round(val)}`
+                }
+            },
+            legend: { position: 'top' },
+            tooltip: {
+                shared: true,
+                intersect: false
+            }
+        };
+
+        // ApexCharts cho top job theo lượt ứng tuyển
+        const topJobs = hrStats.activeJobsWithResumes.slice(0, 10);
+        const topJobsSeries = [
+            { name: 'Số ứng tuyển', data: topJobs.map(item => item.resumeCount) }
+        ];
+        const topJobsOptions: ApexOptions = {
+            chart: { type: 'bar', stacked: false, toolbar: { show: false } },
+            plotOptions: {
+                bar: {
+                    borderRadius: 6,
+                    columnWidth: '45%'
+                }
+            },
+            dataLabels: { enabled: false },
+            grid: { strokeDashArray: 4 },
+            colors: [COLORS.approved],
+            xaxis: {
+                categories: topJobs.map(item => item.jobName),
+                labels: { rotate: -45, trim: true }
+            },
+            yaxis: {
+                labels: {
+                    formatter: (val: number) => `${Math.round(val)}`
+                }
+            },
+            legend: { show: false },
+            tooltip: { shared: true, intersect: false }
+        };
+
         return (
             <div>
                 {/* Filter Section */}
@@ -324,7 +469,7 @@ const DashboardPage = () => {
                     <Space wrap>
                         <span>Thời gian:</span>
                         <RangePicker 
-                            value={dateRange}
+                            value={dateRange as any}
                             onChange={(dates) => setDateRange(dates as [Dayjs, Dayjs] | null)}
                             format="DD/MM/YYYY"
                             allowClear={false}
@@ -338,7 +483,7 @@ const DashboardPage = () => {
                             type="primary" 
                             icon={<DownloadOutlined />}
                             onClick={exportHRToExcel}
-                            style={{ marginLeft: 8 }}
+                            style={{ marginLeft: 8,backgroundImage: ' linear-gradient(135deg,rgb(62, 172, 99),rgb(39, 204, 174))' }}
                         >
                             Xuất báo cáo Excel
                         </Button>
@@ -348,75 +493,72 @@ const DashboardPage = () => {
                 {/* Statistics Cards */}
                 <Row gutter={[20, 20]}>
                     <Col span={24} md={6}>
-                        <Card bordered={false}>
+                        <Card bordered={false} style={{  borderTop: "4px solid",
+            borderImage: "linear-gradient(to left, rgb(28, 231, 231), rgb(87, 51, 131)) 1",}}>
                             <Statistic
                                 title="Đã được duyệt"
                                 value={hrStats.totalApprovedJobs}
                                 formatter={formatter}
-                                prefix={<CheckCircleOutlined style={{ color: COLORS.approved }} />}
+                                prefix={<FaCheckCircle style={{ color: COLORS.approved,fontSize: "25px" }} />}
                                 valueStyle={{ color: COLORS.approved }}
+                                
                             />
                         </Card>
                     </Col>
                     <Col span={24} md={6}>
-                        <Card bordered={false}>
+                    <Card bordered={false} style={{  borderTop: "4px solid",
+                            borderImage: "linear-gradient(to left, rgb(28, 231, 231), rgb(87, 51, 131)) 1",
+                           
+                            }}>
                             <Statistic
                                 title="Công việc không được duyệt"
                                 value={hrStats.totalRejectedJobs}
                                 formatter={formatter}
-                                prefix={<CloseCircleOutlined style={{ color: COLORS.rejected }} />}
+                                prefix={<IoIosCloseCircle style={{ color: COLORS.rejected,fontSize: "29px" }} />}
                                 valueStyle={{ color: COLORS.rejected }}
                             />
                         </Card>
                     </Col>
                     <Col span={24} md={6}>
-                        <Card bordered={false}>
+                        <Card bordered={false} style={{  borderTop: "4px solid",
+                            borderImage: "linear-gradient(to left, rgb(28, 231, 231), rgb(87, 51, 131)) 1",
+                           
+                            }}>
                             <Statistic
                                 title="Công việc đang chờ duyệt"
                                 value={hrStats.totalPendingJobs}
                                 formatter={formatter}
-                                prefix={<ClockCircleOutlined style={{ color: COLORS.pending }} />}
+                                prefix={<FaClock style={{ color: COLORS.pending , fontSize: "25px"}} />}
                                 valueStyle={{ color: COLORS.pending }}
                             />
                         </Card>
                     </Col>
                     <Col span={24} md={6}>
-                        <Card bordered={false}>
+                        <Card bordered={false} style={{  borderTop: "4px solid",
+                            borderImage: "linear-gradient(to left, rgb(28, 231, 231), rgb(87, 51, 131)) 1",
+                           
+                            }}>
                             <Statistic
                                 title="Tổng số ứng tuyển"
                                 value={hrStats.totalResumes}
                                 formatter={formatter}
-                                prefix={<FileTextOutlined style={{ color: COLORS.primary }} />}
+                                prefix={<FaFileAlt style={{ color: COLORS.primary,fontSize: "25px" }} />}
                                 valueStyle={{ color: COLORS.primary }}
                             />
                         </Card>
                     </Col>
                 </Row>
 
-                {/* Charts Row 1: Pie Charts */}
+                {/* Charts Row 1: Pie + Column */}
                 <Row gutter={[20, 20]} style={{ marginTop: 20 }}>
                     <Col span={24} md={12}>
-                        <Card title="Trạng thái công việc" bordered={false}>
-                            <ResponsiveContainer width="100%" height={300}>
-                                <PieChart>
-                                    <Pie
-                                        data={jobStatusData}
-                                        cx="50%"
-                                        cy="50%"
-                                        labelLine={false}
-                                        label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                                        outerRadius={80}
-                                        fill="#8884d8"
-                                        dataKey="value"
-                                    >
-                                        {jobStatusData.map((entry, index) => (
-                                            <Cell key={`cell-${index}`} fill={entry.color} />
-                                        ))}
-                                    </Pie>
-                                    <Tooltip />
-                                    <Legend />
-                                </PieChart>
-                            </ResponsiveContainer>
+                        <Card title={`Công việc & đơn ứng tuyển theo ${timeUnit === 'WEEK' ? 'Tuần' : 'Tháng'}`} bordered={false}>
+                            <ReactApexChart
+                                options={columnOptions}
+                                series={columnSeries}
+                                type="bar"
+                                height={340}
+                            />
                         </Card>
                     </Col>
 
@@ -429,7 +571,7 @@ const DashboardPage = () => {
                                         cx="50%"
                                         cy="50%"
                                         labelLine={false}
-                                        label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                                        label={({ name, percent }) => `${name || ''}: ${((percent || 0) * 100).toFixed(0)}%`}
                                         outerRadius={80}
                                         fill="#8884d8"
                                         dataKey="value"
@@ -446,62 +588,19 @@ const DashboardPage = () => {
                     </Col>
                 </Row>
 
-                {/* Charts Row 2: Time Series */}
-                 {/* <Row gutter={[20, 20]} style={{ marginTop: 20 }}>
-                    <Col span={24} md={12}>
-                        <Card title={`Công việc được tạo theo ${timeUnit === 'WEEK' ? 'Tuần' : 'Tháng'}`} bordered={false}>
-                            <ResponsiveContainer width="100%" height={300}>
-                                <LineChart data={jobsTimeSeriesData}>
-                                    <CartesianGrid strokeDasharray="3 3" />
-                                    <XAxis dataKey="label" angle={-45} textAnchor="end" height={80} />
-                                    <YAxis />
-                                    <Tooltip />
-                                    <Legend />
-                                    <Line type="monotone" dataKey="count" stroke={COLORS.primary} name="Jobs" strokeWidth={2} />
-                                </LineChart>
-                            </ResponsiveContainer>
-                        </Card>
-                    </Col>
-
-                    <Col span={24} md={12}>
-                        <Card title={`Đơn ứng tuyển theo ${timeUnit === 'WEEK' ? 'Tuần' : 'Tháng'}`} bordered={false}>
-                            <ResponsiveContainer width="100%" height={300}>
-                                <AreaChart data={resumesTimeSeriesData}>
-                                    <CartesianGrid strokeDasharray="3 3" />
-                                    <XAxis dataKey="label" angle={-45} textAnchor="end" height={80} />
-                                    <YAxis />
-                                    <Tooltip />
-                                    <Legend />
-                                    <Area type="monotone" dataKey="count" stroke={COLORS.approved} fill={COLORS.approved} name="Applications" />
-                                </AreaChart>
-                            </ResponsiveContainer>
-                        </Card>
-                    </Col>
-                </Row> 
-
-                {/* Bar Chart: Top Jobs by Applications */}
-                {/* <Row gutter={[20, 20]} style={{ marginTop: 20 }}>
+                {/* Bar Chart: Top Jobs by Applications (ApexCharts) */}
+                <Row gutter={[20, 20]} style={{ marginTop: 20 }}>
                     <Col span={24}>
                         <Card title="Công việc có nhiều ứng tuyển nhất" bordered={false}>
-                            <ResponsiveContainer width="100%" height={400}>
-                                <BarChart data={hrStats.activeJobsWithResumes.slice(0, 10)}>
-                                    <CartesianGrid strokeDasharray="3 3" />
-                                    <XAxis 
-                                        dataKey="jobName" 
-                                        angle={-45} 
-                                        textAnchor="end" 
-                                        height={150}
-                                        tick={{ fontSize: 12 }}
-                                    />
-                                    <YAxis />
-                                    <Tooltip />
-                                    <Legend />
-                                    <Bar dataKey="resumeCount" fill={COLORS.approved} name="Số ứng tuyển" />
-                                </BarChart>
-                            </ResponsiveContainer>
+                            <ReactApexChart
+                                options={topJobsOptions}
+                                series={topJobsSeries}
+                                type="bar"
+                                height={400}
+                            />
                         </Card>
                     </Col>
-                </Row>  */}
+                </Row>  
 
                 {/* Active Jobs Table */}
                 <Row gutter={[20, 20]} style={{ marginTop: 20 }}>
@@ -583,83 +682,150 @@ const DashboardPage = () => {
             pending: company.pendingResumes
         }));
 
+        // ApexCharts cho top company (stacked column)
+        const topCompanySeries = [
+            { name: 'Approved', data: companyResumeData.map(item => item.approved) },
+            { name: 'Pending', data: companyResumeData.map(item => item.pending) },
+            { name: 'Rejected', data: companyResumeData.map(item => item.rejected) },
+        ];
+
+        const topCompanyOptions: ApexOptions = {
+            chart: { type: 'bar', stacked: true, toolbar: { show: false } },
+            plotOptions: {
+                bar: {
+                    borderRadius: 6,
+                    columnWidth: '45%'
+                }
+            },
+            dataLabels: { enabled: false },
+            grid: { strokeDashArray: 4 },
+            colors: [COLORS.approved, COLORS.pending, COLORS.rejected],
+            xaxis: {
+                categories: companyResumeData.map(item => item.name),
+                labels: { rotate: -45, trim: true }
+            },
+            yaxis: {
+                labels: {
+                    formatter: (val: number) => `${Math.round(val)}`
+                }
+            },
+            legend: { position: 'top' },
+            tooltip: { shared: true, intersect: false }
+        };
+
+        if (isAdmin && adminStats && revenueStats) {
         return (
             <div>
-                {/* Filter Section */}
+                    {/* ===== FILTER SECTION ===== */}
                 <Card bordered={false} style={{ marginBottom: 20 }}>
                     <Space wrap>
-                        <span>Time Period:</span>
+                            <span>Thời gian:</span>
                         <RangePicker 
-                            value={dateRange}
+                                value={dateRange as any}
                             onChange={(dates) => setDateRange(dates as [Dayjs, Dayjs] | null)}
                             format="DD/MM/YYYY"
                             allowClear={false}
                         />
-                        <span>View By:</span>
+        
+                            <span>Xem theo:</span>
                         <Radio.Group value={timeUnit} onChange={(e) => setTimeUnit(e.target.value)}>
-                            <Radio.Button value="WEEK">Week</Radio.Button>
-                            <Radio.Button value="MONTH">Month</Radio.Button>
+                                <Radio.Button value="WEEK">Tuần</Radio.Button>
+                                <Radio.Button value="MONTH">Tháng</Radio.Button>
                         </Radio.Group>
+        
                         <Button 
                             type="primary" 
                             icon={<DownloadOutlined />}
-                            onClick={exportAdminToExcel}
-                            style={{ marginLeft: 8 }}
-                        >
-                            Export Full Report
+                                onClick={exportAdminFullToExcel}
+                                style={{
+                                    marginLeft: 8,
+                                    backgroundImage: 'linear-gradient(135deg, rgb(62, 172, 99), rgb(39, 204, 174))'
+                                }}
+                            >
+                                Xuất báo cáo đầy đủ
                         </Button>
-                        <span>Top Companies:</span>
+        
+                            {/* Chỉ hiện khi tab Tổng Quan */}
+                            {activeTab === 'overview' && (
+                                <>
+                                    <span>Top công ty:</span>
                         <Select value={topLimit} onChange={setTopLimit} style={{ width: 100 }}>
                             <Option value={5}>Top 5</Option>
                             <Option value={10}>Top 10</Option>
                             <Option value={20}>Top 20</Option>
                             <Option value={50}>Top 50</Option>
                         </Select>
+                                </>
+                            )}
                     </Space>
                 </Card>
 
-                {/* Statistics Cards */}
+                    {/* ===== TABS ===== */}
+                    <Tabs activeKey={activeTab} onChange={setActiveTab}>
+                        {/* ------------------------------------------------------ */}
+                        {/* =====================  TAB TỔNG QUAN  ================= */}
+                        {/* ------------------------------------------------------ */}
+                        <TabPane tab="Tổng quan hệ thống" key="overview">
                 <Row gutter={[20, 20]}>
+                                {/* Approved Jobs */}
                     <Col span={24} md={6}>
-                        <Card bordered={false}>
+                                    <Card bordered={false} style={{
+                                        borderTop: "4px solid",
+                                        borderImage: "linear-gradient(to left, rgb(28, 231, 231), rgb(87, 51, 131)) 1"
+                                    }}>
                             <Statistic
-                                title="Approved Jobs"
+                                            title="Công việc đã duyệt"
                                 value={adminStats.totalApprovedJobs}
                                 formatter={formatter}
-                                prefix={<CheckCircleOutlined style={{ color: COLORS.approved }} />}
+                                            prefix={<FaCheckCircle style={{ color: COLORS.approved, fontSize: "25px" }} />}
                                 valueStyle={{ color: COLORS.approved }}
                             />
                         </Card>
                     </Col>
+        
+                                {/* Rejected Jobs */}
                     <Col span={24} md={6}>
-                        <Card bordered={false}>
+                                    <Card bordered={false} style={{
+                                        borderTop: "4px solid",
+                                        borderImage: "linear-gradient(to left, rgb(28, 231, 231), rgb(87, 51, 131)) 1"
+                                    }}>
                             <Statistic
-                                title="Rejected Jobs"
+                                            title="Công việc không được duyệt"
                                 value={adminStats.totalRejectedJobs}
                                 formatter={formatter}
-                                prefix={<CloseCircleOutlined style={{ color: COLORS.rejected }} />}
+                                            prefix={<IoIosCloseCircle style={{ color: COLORS.rejected, fontSize: "29px" }} />}
                                 valueStyle={{ color: COLORS.rejected }}
                             />
                         </Card>
                     </Col>
+        
+                                {/* Total Companies */}
                     <Col span={24} md={6}>
-                        <Card bordered={false}>
+                                    <Card bordered={false} style={{
+                                        borderTop: "4px solid",
+                                        borderImage: "linear-gradient(to left, rgb(28, 231, 231), rgb(87, 51, 131)) 1"
+                                    }}>
                             <Statistic
-                                title="Total Companies"
+                                            title="Tổng số công ty"
                                 value={adminStats.totalCompanies}
                                 formatter={formatter}
-                                prefix={<ShopOutlined style={{ color: COLORS.primary }} />}
+                                            prefix={<ShopOutlined style={{ color: COLORS.primary, fontSize: "25px" }} />}
                                 valueStyle={{ color: COLORS.primary }}
                             />
                         </Card>
                     </Col>
+        
+                                {/* Top Company */}
                     <Col span={24} md={6}>
-                        <Card bordered={false}>
+                                    <Card bordered={false} style={{
+                                        borderTop: "4px solid",
+                                        borderImage: "linear-gradient(to left, rgb(28, 231, 231), rgb(87, 51, 131)) 1"
+                                    }}>
                             <Statistic
-                                title="Top Company Applications"
+                                            title="Công ty hàng đầu"
                                 value={adminStats.topCompanyByResumes?.totalResumes || 0}
                                 formatter={formatter}
-                                prefix={<TrophyOutlined style={{ color: COLORS.pending }} />}
+                                            prefix={<TrophyOutlined style={{ color: COLORS.pending, fontSize: "25px" }} />}
                                 valueStyle={{ color: COLORS.pending }}
                             />
                             <div style={{ fontSize: 12, marginTop: 8, color: '#888' }}>
@@ -669,7 +835,7 @@ const DashboardPage = () => {
                     </Col>
                 </Row>
 
-                {/* Charts Row 1: Pie Charts */}
+                            {/* ====== PIE CHARTS ====== */}
                 <Row gutter={[20, 20]} style={{ marginTop: 20 }}>
                     <Col span={24} md={12}>
                         <Card title="Trạng thái công việc" bordered={false}>
@@ -680,13 +846,14 @@ const DashboardPage = () => {
                                         cx="50%"
                                         cy="50%"
                                         labelLine={false}
-                                        label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                                                    label={({ name, percent }) =>
+                                                        `${name || ''}: ${((percent || 0) * 100).toFixed(0)}%`
+                                                    }
                                         outerRadius={80}
-                                        fill="#8884d8"
                                         dataKey="value"
                                     >
-                                        {jobStatusData.map((entry, index) => (
-                                            <Cell key={`cell-${index}`} fill={entry.color} />
+                                                    {jobStatusData.map((entry, i) => (
+                                                        <Cell key={i} fill={entry.color} />
                                         ))}
                                     </Pie>
                                     <Tooltip />
@@ -704,14 +871,15 @@ const DashboardPage = () => {
                                         data={resumeStatusData}
                                         cx="50%"
                                         cy="50%"
-                                        labelLine={false}
-                                        label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
                                         outerRadius={80}
-                                        fill="#8884d8"
+                                                    labelLine={false}
+                                                    label={({ name, percent }) =>
+                                                        `${name || ''}: ${((percent || 0) * 100).toFixed(0)}%`
+                                                    }
                                         dataKey="value"
                                     >
-                                        {resumeStatusData.map((entry, index) => (
-                                            <Cell key={`cell-${index}`} fill={entry.color} />
+                                                    {resumeStatusData.map((entry, i) => (
+                                                        <Cell key={i} fill={entry.color} />
                                         ))}
                                     </Pie>
                                     <Tooltip />
@@ -722,61 +890,22 @@ const DashboardPage = () => {
                     </Col>
                 </Row>
 
-                {/* Charts Row 2: Time Series */}
-                {/* <Row gutter={[20, 20]} style={{ marginTop: 20 }}>
-                    <Col span={24} md={12}>
-                        <Card title={`Jobs Created by ${timeUnit === 'WEEK' ? 'Week' : 'Month'}`} bordered={false}>
-                            <ResponsiveContainer width="100%" height={300}>
-                                <LineChart data={jobsTimeSeriesData}>
-                                    <CartesianGrid strokeDasharray="3 3" />
-                                    <XAxis dataKey="label" angle={-45} textAnchor="end" height={80} />
-                                    <YAxis />
-                                    <Tooltip />
-                                    <Legend />
-                                    <Line type="monotone" dataKey="count" stroke={COLORS.primary} name="Jobs" strokeWidth={2} />
-                                </LineChart>
-                            </ResponsiveContainer>
-                        </Card>
-                    </Col>
-
-                    <Col span={24} md={12}>
-                        <Card title={`Applications Submitted by ${timeUnit === 'WEEK' ? 'Week' : 'Month'}`} bordered={false}>
-                            <ResponsiveContainer width="100%" height={300}>
-                                <AreaChart data={resumesTimeSeriesData}>
-                                    <CartesianGrid strokeDasharray="3 3" />
-                                    <XAxis dataKey="label" angle={-45} textAnchor="end" height={80} />
-                                    <YAxis />
-                                    <Tooltip />
-                                    <Legend />
-                                    <Area type="monotone" dataKey="count" stroke={COLORS.approved} fill={COLORS.approved} name="Applications" />
-                                </AreaChart>
-                            </ResponsiveContainer>
-                        </Card>
-                    </Col>
-                </Row> */}
-
-                {/* Bar Chart: Top Companies */}
-                <Row gutter={[20, 20]} style={{ marginTop: 20 }}>
+                            {/* ===== APEX BAR — TOP COMPANIES ===== */}
+                            <Row style={{ marginTop: 20 }}>
                     <Col span={24}>
                         <Card title={`Top ${topLimit} Công ty có nhiều ứng tuyển nhất`} bordered={false}>
-                            <ResponsiveContainer width="100%" height={400}>
-                                <BarChart data={companyResumeData}>
-                                    <CartesianGrid strokeDasharray="3 3" />
-                                    <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} />
-                                    <YAxis />
-                                    <Tooltip />
-                                    <Legend />
-                                    <Bar dataKey="approved" stackId="a" fill={COLORS.approved} name="Approved" />
-                                    <Bar dataKey="pending" stackId="a" fill={COLORS.pending} name="Pending" />
-                                    <Bar dataKey="rejected" stackId="a" fill={COLORS.rejected} name="Rejected" />
-                                </BarChart>
-                            </ResponsiveContainer>
+                                        <ReactApexChart
+                                            options={topCompanyOptions}
+                                            series={topCompanySeries}
+                                            type="bar"
+                                            height={400}
+                                        />
                         </Card>
                     </Col>
                 </Row>
 
-                {/* Company Table */}
-                <Row gutter={[20, 20]} style={{ marginTop: 20 }}>
+                            {/* ===== TABLE TOP COMPANIES ===== */}
+                            <Row style={{ marginTop: 20 }}>
                     <Col span={24}>
                         <Card title={`Top ${topLimit} Companies - Application Details`} bordered={false}>
                             <Table
@@ -785,66 +914,272 @@ const DashboardPage = () => {
                                 pagination={false}
                                 scroll={{ x: 800 }}
                                 columns={[
-                                    {
-                                        title: 'Rank',
-                                        key: 'rank',
-                                        width: 70,
-                                        render: (_, __, index) => index + 1
-                                    },
-                                    {
-                                        title: 'Company Name',
-                                        dataIndex: 'companyName',
-                                        key: 'companyName',
-                                        fixed: 'left',
-                                        width: 250,
-                                    },
+                                                { title: 'Rank', width: 70, render: (_, __, i) => i + 1 },
+                                                { title: 'Company Name', dataIndex: 'companyName', width: 250 },
                                     {
                                         title: 'Total',
                                         dataIndex: 'totalResumes',
-                                        key: 'totalResumes',
-                                        render: (count: number) => (
-                                            <Tag color="blue">{count}</Tag>
-                                        )
+                                                    render: (v) => <Tag color="blue">{v}</Tag>
                                     },
                                     {
                                         title: 'Approved',
                                         dataIndex: 'approvedResumes',
-                                        key: 'approvedResumes',
-                                        render: (count: number) => (
-                                            <Tag color="success">{count}</Tag>
-                                        )
+                                                    render: (v) => <Tag color="success">{v}</Tag>
                                     },
                                     {
                                         title: 'Pending',
                                         dataIndex: 'pendingResumes',
-                                        key: 'pendingResumes',
-                                        render: (count: number) => (
-                                            <Tag color="warning">{count}</Tag>
-                                        )
+                                                    render: (v) => <Tag color="warning">{v}</Tag>
                                     },
                                     {
                                         title: 'Rejected',
                                         dataIndex: 'rejectedResumes',
-                                        key: 'rejectedResumes',
-                                        render: (count: number) => (
-                                            <Tag color="error">{count}</Tag>
-                                        )
-                                    }
-                                ]}
+                                                    render: (v) => <Tag color="error">{v}</Tag>
+                                                }
+                                            ]}
+                                        />
+                                    </Card>
+                                </Col>
+                            </Row>
+                        </TabPane>
+        
+                        {/* ------------------------------------------------------ */}
+                        {/* ======================  TAB REVENUE  ================== */}
+                        {/* ------------------------------------------------------ */}
+                        <TabPane tab="Thống kê doanh thu" key="revenue">
+                            {/* ===== Revenue Cards ===== */}
+                            <Row gutter={[20, 20]}>
+                                <Col span={24} md={12}>
+                                    <Card bordered={false} style={{
+                                        borderTop: "4px solid",
+                                        borderImage: "linear-gradient(to left, rgb(255, 159, 64), rgb(255, 205, 86)) 1"
+                                    }}>
+                                        <Statistic
+                                            title="Tổng doanh thu"
+                                            value={revenueStats.totalRevenue}
+                                            formatter={currencyFormatter}
+                                            prefix={<DollarOutlined style={{ color: COLORS.revenue, fontSize: "30px" }} />}
+                                            valueStyle={{ color: COLORS.revenue, fontSize: "28px" }}
+                                        />
+                                    </Card>
+                                </Col>
+        
+                                <Col span={24} md={12}>
+                                    <Card bordered={false} style={{
+                                        borderTop: "4px solid",
+                                        borderImage: "linear-gradient(to left, rgb(75, 192, 192), rgb(54, 162, 235)) 1"
+                                    }}>
+                                        <Statistic
+                                            title="Tổng số gói đã bán"
+                                            value={revenueStats.totalPackagesSold}
+                                            formatter={formatter}
+                                            prefix={<ShoppingOutlined style={{ color: COLORS.primary, fontSize: "30px" }} />}
+                                            valueStyle={{ color: COLORS.primary, fontSize: "28px" }}
+                                        />
+                                    </Card>
+                                </Col>
+                            </Row>
+        
+                            {/* ===== Pie: Revenue by Package Type ===== */}
+                            <Row gutter={[20, 20]} style={{ marginTop: 20 }}>
+                                <Col span={24} md={12}>
+                                    <Card title="Doanh thu theo loại gói" bordered={false}>
+                                        <ResponsiveContainer width="100%" height={350}>
+                                            <PieChart>
+                                                <Pie
+                                                    data={revenueStats.packageTypeStatistics.map(pkg => ({
+                                                        name: pkg.packageName,
+                                                        value: pkg.totalRevenue
+                                                    }))}
+                                                    cx="50%"
+                                                    cy="50%"
+                                                    outerRadius={100}
+                                                    labelLine={false}
+                                                    label={({ name, percent }) =>
+                                                        `${(name || '').substring(0, 15)}...: ${((percent || 0) * 100).toFixed(1)}%`
+                                                    }
+                                                    dataKey="value"
+                                                >
+                                                    {revenueStats.packageTypeStatistics.map((_, index) => {
+                                                        const colors = ['#722ed1', '#1890ff', '#52c41a'];
+                                                        return <Cell key={index} fill={colors[index % colors.length]} />;
+                                                    })}
+                                                </Pie>
+                                                <Tooltip formatter={(value) => formatCurrency(Number(value))} />
+                                                <Legend />
+                                            </PieChart>
+                                        </ResponsiveContainer>
+                                    </Card>
+                                </Col>
+        
+                                {/* ===== Revenue Time Series Column Chart ===== */}
+                                <Col span={24} md={12}>
+                                    <Card title={`Doanh thu theo ${timeUnit === 'WEEK' ? 'tuần' : 'tháng'}`} bordered={false}>
+                                        <ReactApexChart
+                                            options={{
+                                                chart: {
+                                                    type: 'bar',
+                                                    height: 350,
+                                                    toolbar: { show: false },
+                                                },
+                                                plotOptions: {
+                                                    bar: {
+                                                        horizontal: false,
+                                                        columnWidth: '55%',
+                                                        borderRadius: 6,
+                                                    },
+                                                },
+                                                dataLabels: {
+                                                    enabled: false
+                                                },
+                                                stroke: {
+                                                    show: true,
+                                                    width: 2,
+                                                    colors: ['transparent']
+                                                },
+                                                xaxis: {
+                                                    categories: revenueStats.revenueTimeSeries.map(item => item.label),
+                                                    labels: {
+                                                        rotate: -45,
+                                                        rotateAlways: true,
+                                                        style: {
+                                                            fontSize: '12px'
+                                                        }
+                                                    }
+                                                },
+                                                yaxis: {
+                                                    labels: {
+                                                        formatter: (val: number) => `${(val / 1000000).toFixed(1)}M`
+                                                    },
+                                                    title: {
+                                                        text: 'Doanh thu (VND)'
+                                                    }
+                                                },
+                                                fill: {
+                                                    opacity: 1,
+                                                    colors: [COLORS.revenue]
+                                                },
+                                                tooltip: {
+                                                    y: {
+                                                        formatter: function (val: number) {
+                                                            return formatCurrency(val);
+                                                        }
+                                                    }
+                                                },
+                                                legend: {
+                                                    show: false
+                                                },
+                                                grid: {
+                                                    strokeDashArray: 4
+                                                }
+                                            }}
+                                            series={[{
+                                                name: 'Doanh thu',
+                                                data: revenueStats.revenueTimeSeries.map(item => item.revenue)
+                                            }]}
+                                            type="bar"
+                                            height={350}
+                                        />
+                                    </Card>
+                                </Col>
+                            </Row>
+        
+                            {/* ===== Revenue Time Series ===== */}
+                           
+        
+                            {/* ===== Revenue Table ===== */}
+                            <Row style={{ marginTop: 20 }}>
+                                <Col span={24}>
+                                    <Card
+                                        title="Chi tiết doanh thu theo gói"
+                                        bordered={false}
+                                        extra={
+                                            <Button icon={<DownloadOutlined />} onClick={exportRevenueToExcel}>
+                                                Xuất Excel
+                                            </Button>
+                                        }
+                                    >
+                                        <Table
+                                            dataSource={revenueStats.packageTypeStatistics}
+                                            rowKey="packageType"
+                                            pagination={false}
+                                            columns={[
+                                                {
+                                                    title: 'Tên gói',
+                                                    dataIndex: 'packageName',
+                                                    render: (t) => <strong>{t}</strong>
+                                                },
+                                                {
+                                                    title: 'Giá gói',
+                                                    dataIndex: 'price',
+                                                    render: (p) => (
+                                                        <span style={{ color: COLORS.primary }}>
+                                                            {formatCurrency(p)}
+                                                        </span>
+                                                    )
+                                                },
+                                                {
+                                                    title: 'Số lượng bán',
+                                                    dataIndex: 'quantitySold',
+                                                    sorter: (a, b) => a.quantitySold - b.quantitySold,
+                                                    render: (c) => <Tag color="blue">{c} gói</Tag>
+                                                },
+                                                {
+                                                    title: 'Doanh thu',
+                                                    dataIndex: 'totalRevenue',
+                                                    sorter: (a, b) => a.totalRevenue - b.totalRevenue,
+                                                    render: (r) => (
+                                                        <span style={{ color: COLORS.revenue, fontWeight: 'bold' }}>
+                                                            {formatCurrency(r)}
+                                                        </span>
+                                                    )
+                                                },
+                                                {
+                                                    title: '% Tổng doanh thu',
+                                                    dataIndex: 'percentageOfTotal',
+                                                    sorter: (a, b) => a.percentageOfTotal - b.percentageOfTotal,
+                                                    render: (p) => <Tag color="green">{p.toFixed(2)}%</Tag>
+                                                }
+                                            ]}
+                                            summary={(pageData) => {
+                                                const totalRevenue = pageData.reduce((s, r) => s + r.totalRevenue, 0);
+                                                const totalQuantity = pageData.reduce((s, r) => s + r.quantitySold, 0);
+        
+                                                return (
+                                                    <Table.Summary.Row style={{ background: "#fafafa", fontWeight: "bold" }}>
+                                                        <Table.Summary.Cell index={0}>TỔNG CỘNG</Table.Summary.Cell>
+                                                        <Table.Summary.Cell index={1}>-</Table.Summary.Cell>
+                                                        <Table.Summary.Cell index={2}>
+                                                            <Tag color="blue">{totalQuantity} gói</Tag>
+                                                        </Table.Summary.Cell>
+                                                        <Table.Summary.Cell index={3}>
+                                                            <span style={{ color: COLORS.revenue, fontSize: 16 }}>
+                                                                {formatCurrency(totalRevenue)}
+                                                            </span>
+                                                        </Table.Summary.Cell>
+                                                        <Table.Summary.Cell index={4}>
+                                                            <Tag color="green">100%</Tag>
+                                                        </Table.Summary.Cell>
+                                                    </Table.Summary.Row>
+                                                );
+                                            }}
                             />
                         </Card>
                     </Col>
                 </Row>
+                        </TabPane>
+                    </Tabs>
             </div>
         );
     }
 
     return (
         <div style={{ textAlign: 'center', padding: '100px' }}>
-            <h2>No statistics available</h2>
-            <p>Please log in as HR or Admin to view statistics</p>
+                <h2>Không có dữ liệu thống kê</h2>
+                <p>Vui lòng đăng nhập với quyền HR hoặc Admin để xem thống kê</p>
         </div>
     );
+    }
 };
 
 export default DashboardPage;

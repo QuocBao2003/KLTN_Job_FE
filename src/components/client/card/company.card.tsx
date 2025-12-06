@@ -117,9 +117,9 @@ const CompanyCard = (props: IProps) => {
                     <Row gutter={[20, 20]}>
                         <Col span={24}>
                             <div className={isMobile ? styles["dflex-mobile"] : styles["dflex-pc"]}>
-                                <span className={styles["title"]}>Nhà Tuyển Dụng Hàng Đầu</span>
+                                <span className={styles["title"]} style={{fontSize:"28px",fontWeight:"550",color:"#00b14f"}}>Nhà Tuyển Dụng Hàng Đầu</span>
                                 {!showPagination &&
-                                    <Link to="company">Xem tất cả</Link>
+                                    <Link to="company" style={{fontSize:"16px",fontWeight:"550"}}>Xem tất cả</Link>
                                 }
                             </div>
                         </Col>
@@ -162,7 +162,7 @@ const CompanyCard = (props: IProps) => {
                                                     </div>
                                                 )}
                                                 {item.id && jobCounts.has(item.id) && (
-                                                    <div className={styles["company-job-count"]}>
+                                                    <div className={styles["company-job-count"]} style={{color:"#00b14f"}}>
                                                         {jobCounts.get(item.id)} việc đang tuyển
                                                     </div>
                                                 )}

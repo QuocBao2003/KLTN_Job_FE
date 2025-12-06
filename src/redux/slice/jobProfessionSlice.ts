@@ -20,6 +20,13 @@ export const fetchJobProfession = createAsyncThunk(
         return response;
     }
 )
+export const fetchAllJobProfession = createAsyncThunk(
+    'jobProfession/fetchAllJobProfession',
+    async ({ query }: { query: string }) => {
+        const response = await callFetchAllJobProfessionAll(query);
+        return response;
+    }
+);
 
 const initialState: IState = {
     isFetching: true,
@@ -35,25 +42,38 @@ const initialState: IState = {
 export const jobProfessionSlice = createSlice({
     name: 'jobProfession',
     initialState,
-    reducers: {
-        // Có thể thêm reducers khác nếu cần
-    },
+    reducers: {},
     extraReducers: (builder) => {
-        builder.addCase(fetchJobProfession.pending, (state, action) => {
+        // ----- fetchJobProfession -----
+        builder.addCase(fetchJobProfession.pending, (state) => {
             state.isFetching = true;
         })
-
-        builder.addCase(fetchJobProfession.rejected, (state, action) => {
+        builder.addCase(fetchJobProfession.rejected, (state) => {
             state.isFetching = false;
         })
-
         builder.addCase(fetchJobProfession.fulfilled, (state, action) => {
-            if (action.payload && action.payload.data) {
+            if (action.payload?.data) {
                 state.isFetching = false;
                 state.meta = action.payload.data.meta;
                 state.result = action.payload.data.result;
             }
+        });
+
+        // ----- fetchAllJobProfession -----
+        builder.addCase(fetchAllJobProfession.pending, (state) => {
+            state.isFetching = true;
         })
+        builder.addCase(fetchAllJobProfession.rejected, (state) => {
+            state.isFetching = false;
+        })
+        builder.addCase(fetchAllJobProfession.fulfilled, (state, action) => {
+            if (action.payload?.data) {
+                state.isFetching = false;
+                // Trường hợp fetchAll thì meta có thể không có → tuỳ backend
+                state.meta = action.payload.data.meta ?? state.meta;
+                state.result = action.payload.data.result;
+            }
+        });
     },
 });
 

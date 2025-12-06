@@ -16,11 +16,7 @@ const JobTabs = () => {
             label: 'Manage Jobs',
             children: <JobPage />,
         },
-        {
-            key: '2',
-            label: 'Manage Skills',
-            children: <SkillPage />,
-        },
+       
 
     ];
     return (

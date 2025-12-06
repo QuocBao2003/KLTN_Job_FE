@@ -45,6 +45,7 @@ import MyPackages from "./pages/admin/myPackage";
 import PaymentReturn from "./pages/admin/payMentReturn";
 import ServicePackages from "./pages/admin/servicePackageHR";
 import PackageOrder from "./pages/admin/packageOrder";
+import ForgotPasswordPage from "./pages/auth/forgotPassword";
 
 
 const LayoutClient = () => {
@@ -102,6 +103,7 @@ export default function App() {
         { path: "authenticate", element: <Authenticate /> },
         { path: "savejob", element: <SaveJob /> },
         { path: "jobapply", element: <JobApply /> },
+       
         { 
           path: "messages", 
           element: <MessagesContainer /> 

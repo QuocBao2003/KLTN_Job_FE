@@ -7,13 +7,14 @@ import AIchatButton from '@/components/client/ai-chat-button';
 const HomePage = () => {
     return (
         <div className={`${styles["container"]} ${styles["home-section"]}`}>
-            <div className="search-content" style={{ marginTop: 20 }}>
+            <div className="search-content" style={{ marginTop: 0 }}>
                 <SearchClient />
             </div>
-          
-            <CompanyCard />
-            <div style={{ margin: 50 }}></div>
+            <div style={{ margin: 30 }}></div>
             <JobCard />
+            
+            <div style={{ margin: 30 }}></div>
+            <CompanyCard />
           
             <AIchatButton/>
         </div>

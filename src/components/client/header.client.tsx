@@ -19,8 +19,9 @@ import { Link } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import { callLogout, callFetchResumeByUser, callCountUnviewedNotifications, getUnreadRoomCount, resetAllUnreadCounts  } from "@/config/api";
 import { setLogoutAction } from "@/redux/slice/accountSlide";
-import images from "@/img/logo.jpeg";
+import images from "@/img/logo2.png";
 import NotificationDropdown from "./notification";
+import { LucideMessageCircleMore } from "lucide-react";
 
 const Header = (props: any) => {
   const navigate = useNavigate();
@@ -105,20 +106,24 @@ const Header = (props: any) => {
       label: <Link to={"/"}>Trang Chủ</Link>,
       key: "/",
       // icon: <TwitterOutlined />,
+      style:{fontSize : "16px",fontWeight :"550"}
     },
     {
       label: <Link to={"/job"}>Việc Làm </Link>,
       key: "/job",
       // icon: <CodeOutlined />,
+      style:{fontSize : "16px",fontWeight :"550"}
     },
     {
       label: <Link to={"/company"}>Top Công ty</Link>,
       key: "/company",
       // icon: <RiseOutlined />,
+      style:{fontSize : "16px",fontWeight :"550"}
     },
     {
       label: <Link to={"/listCV"}>Tạo CV</Link>,
       key: "/listCV",
+      style:{fontSize : "16px",fontWeight :"550"}
     }
     
     
@@ -224,9 +229,11 @@ const Header = (props: any) => {
                 <img
                   src={images}
                   style={{
-                    width: "100px",
-                    height: "50px",
+                    marginTop : "6px", 
+                    width: "120px",
+                    height: "45px",
                     objectFit: "contain",
+                    alignItems :"center"
                   }}
                   onClick={() => navigate("/")}
                 />
@@ -235,7 +242,7 @@ const Header = (props: any) => {
                 <ConfigProvider
                   theme={{
                     token: {
-                      colorPrimary: "#197bcd",
+                      colorPrimary: "#00b14f",
                       colorBgContainer: "#fff",
                       colorText: "#595959",
                     },
@@ -259,7 +266,8 @@ const Header = (props: any) => {
                     <Space size={16}>
                       {/* Icon Message */}
                       <Badge count={unreadMessagesCount} size="small">
-                        <MessageOutlined
+                       <div style={{height : "40px" ,width : "40px" ,backgroundColor:"#f2f4f5",borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                       <LucideMessageCircleMore
                           style={{
                             fontSize: 20,
                             cursor: "pointer",
@@ -267,12 +275,14 @@ const Header = (props: any) => {
                           }}
                           onClick={() => handleMessageClick()}
                         />
+                       </div>
                       </Badge>
 
                       {/* Icon Notification */}
                       <div style={{ position: "relative" }}>
                         <Badge count={unviewedCount} size="small">
-                          <BellOutlined
+                         <div style={{height : "40px" ,width : "40px" ,backgroundColor:"#f2f4f5",borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                         <BellOutlined
                             style={{
                               fontSize: 20,
                               cursor: "pointer",
@@ -280,6 +290,7 @@ const Header = (props: any) => {
                             }}
                             onClick={handleNotificationClick}
                           />
+                         </div>
                         </Badge>
 
                         {/* Notification Dropdown */}
@@ -297,7 +308,7 @@ const Header = (props: any) => {
                         trigger={["click"]}
                       >
                         <Space style={{ cursor: "pointer", color: "#595959" }}>
-                          <span style={{ color: "#595959" }}>Welcome {user?.name}</span>
+                          <span style={{ color: "#595959",fontSize:"16px" }}>Welcome {user?.name}</span>
                           <Avatar>
                             {user?.name?.substring(0, 2)?.toUpperCase()}
                           </Avatar>

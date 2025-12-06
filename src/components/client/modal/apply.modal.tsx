@@ -348,7 +348,7 @@ const ApplyModal = (props: IProps) => {
                         const updateRes = await callUpdateCv(existingCv.id.toString(), cvData);
                         createdCv = updateRes.data;
                         message.success('CV đã được cập nhật từ file Excel!');
-                    } else {
+                    } else { s
                         // Create new CV
                         console.log('📌 Creating new CV from Excel');
                         const createRes = await callCreateCv(cvData);

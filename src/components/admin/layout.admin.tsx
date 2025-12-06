@@ -22,6 +22,7 @@ import type { MenuProps } from 'antd';
 import { setLogoutAction } from '@/redux/slice/accountSlide';
 import { ALL_PERMISSIONS } from '@/config/permissions';
 import styles from '@/styles/admin.module.scss';
+import { backgroundImage } from 'html2canvas/dist/types/css/property-descriptors/background-image';
 
 const { Content, Sider } = Layout;
 
@@ -98,50 +99,50 @@ const LayoutAdmin = () => {
                 },
                 
                 ...(viewCompany || ACL_ENABLE === 'false' ? [{
-                    label: <Link to='/admin/company'>Company</Link>,
+                    label: <Link to='/admin/company'>Quản lý công ty</Link>,
                     key: '/admin/company',
                     icon: <BankOutlined />,
                 }] : []),
             
                 ...(viewUser || ACL_ENABLE === 'false' ? [{
-                    label: <Link to='/admin/user'>User</Link>,
+                    label: <Link to='/admin/user'>Quản lý User</Link>,
                     key: '/admin/user',
                     icon: <UserOutlined />
                 }] : []),
                 ...(viewJob || ACL_ENABLE === 'false' ? [{
-                    label: <Link to='/admin/job'>Job</Link>,
+                    label: <Link to='/admin/job'>Quản lý công việc</Link>,
                     key: '/admin/job',
                     icon: <ScheduleOutlined />
                 }] : []),
 
                 ...(viewResume || ACL_ENABLE === 'false' ? [{
-                    label: <Link to='/admin/resume'>Resume</Link>,
+                    label: <Link to='/admin/resume'>Quản lý ứng tuyển</Link>,
                     key: '/admin/resume',
                     icon: <AliwangwangOutlined />
                 }] : []),
                 ...(viewPermission || ACL_ENABLE === 'false' ? [{
-                    label: <Link to='/admin/permission'>Permission</Link>,
+                    label: <Link to='/admin/permission'>Quản lý phân quyền</Link>,
                     key: '/admin/permission',
                     icon: <ApiOutlined />
                 }] : []),
                 ...(viewRole || ACL_ENABLE === 'false' ? [{
-                    label: <Link to='/admin/role'>Role</Link>,
+                    label: <Link to='/admin/role'>Quản lý Role</Link>,
                     key: '/admin/role',
                     icon: <ExceptionOutlined />
                 }] : []),
                 ...(viewSkill || ACL_ENABLE === 'false' ? [{
-                    label: <Link to='/admin/skill'>Skill</Link>,
+                    label: <Link to='/admin/skill'>Quản lý kỹ năng</Link>,
                     key: '/admin/skill',
                     icon: <ExceptionOutlined />
                 }] : []),
                 
                 ...(viewJobProfession || ACL_ENABLE === 'false' ? [{
-                    label: <Link to='/admin/job-profession'>Job Profession</Link>,
+                    label: <Link to='/admin/job-profession'>Quản lý ngành nghề</Link>,
                     key: '/admin/job-profession',
                     icon: <ExceptionOutlined />
                 }] : []),
                 ...(viewServicePackagesAdmin || viewMyPackages || ACL_ENABLE === 'false' ? [{
-                    label: 'Packages',
+                    label: 'Quản lý gói dịch vụ',
                     key: '/admin/packages',
                     icon: <DollarOutlined />,
                     children: [
@@ -212,14 +213,27 @@ const LayoutAdmin = () => {
             >
                 {!isMobile ?
                     <Sider
-                        theme='light'
+                        theme='dark'
                         collapsible
                         collapsed={collapsed}
-                        onCollapse={(value) => setCollapsed(value)}>
-                        <div style={{ height: 32, margin: 16, textAlign: 'center' }}>
-                            <BugOutlined />  ADMIN
+                        onCollapse={(value) => setCollapsed(value)}
+                        trigger={null}
+                        width={240}
+                        collapsedWidth={80}
+                        style={{
+                            background: '  linear-gradient(to top, #30cfd0 0%, #330867 100%)',
+                            color: '#fff'
+                        }}>
+                        <div style={{ height: 32, margin: 16, textAlign: 'center', color: '#fff', fontSize: '18px', fontWeight: 'bold' }}>
+                            <BugOutlined style={{ fontSize: '20px' }} />  ADMIN
                         </div>
                         <Menu
+                            theme="light"
+                            style={{
+                                background: 'transparent',
+                                color: '#fff',
+                                fontSize: '16px'
+                            }}
                             selectedKeys={[activeMenu]}
                             mode="inline"
                             items={menuItems}
@@ -228,6 +242,11 @@ const LayoutAdmin = () => {
                     </Sider>
                     :
                     <Menu
+                        theme="light"
+                        style={{
+                            background: ' linear-gradient(to top, #30cfd0 0%, #330867 100%)',
+                            color: '#fff'
+                        }}
                         selectedKeys={[activeMenu]}
                         items={menuItems}
                         onClick={(e) => setActiveMenu(e.key)}
@@ -259,7 +278,7 @@ const LayoutAdmin = () => {
                         </div>
                     }
                     <Content style={{ padding: '15px' }}>
-                        <div className={styles['admin-content-card']}>
+                        <div className={styles['admin-content-card'] }>
                             <Outlet />
                         </div>
                     </Content>

@@ -57,7 +57,7 @@ const JobPage = () => {
             hideInSearch: true,
         },
         {
-            title: 'Tên Job',
+            title: 'Tên Công Việc',
             dataIndex: 'name',
             sorter: true,
         },
@@ -100,20 +100,31 @@ const JobPage = () => {
         },
         {
             title: 'Trạng thái',
-    dataIndex: 'status',
-    render(dom, entity) {
-        let color = "default";
-        if (entity.status === "APPROVED") color = "green";
-        if (entity.status === "PENDING") color = "orange";
-        if (entity.status === "REJECTED") color = "red";
+            dataIndex: 'status',
+            render: (_, entity) => {
+                const status = entity.status;
+                let color = '#faad14';
+                if (status === 'APPROVED') color = '#52c41a';
+                if (status === 'REJECTED') color = '#ff4d4f';
 
-        return (
-            <Tag color={color}>
-                {entity.status}
-            </Tag>
-        );
-    },
-    hideInSearch: true,
+                return (
+                    <span
+                        style={{
+                            display: 'inline-block',
+                            padding: '2px 10px',
+                            borderRadius: 999,
+                            fontWeight: 600,
+                            backgroundColor: color,
+                            color: '#fff',
+                            minWidth: 90,
+                            textAlign: 'center'
+                        }}
+                    >
+                        {status}
+                    </span>
+                );
+            },
+            hideInSearch: true,
         },
 
         {
@@ -267,6 +278,7 @@ const JobPage = () => {
                             <Button
                                 icon={<PlusOutlined />}
                                 type="primary"
+                                style={{backgroundImage: ' linear-gradient(135deg, #36d1dc, #5b86e5)',color :"white" ,fontSize :"15px",fontFamily:"'Roboto', sans-serif"}}
                                 onClick={() => navigate('upsert')}
                             >
                                 Thêm mới

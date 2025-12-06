@@ -5,8 +5,10 @@ import { ProFormItem } from '@ant-design/pro-components';
 import { callFetchAllJobProfession, callFetchAllJobProfessionSkillJob } from '@/config/api'; // Đảm bảo đường dẫn đúng
 import { debounce, uniqBy } from 'lodash'; // Cần cài: npm i lodash
 import { Form } from 'antd';
-import viVN from 'antd/es/locale/vi_VN';
+import { useSearchParams } from 'react-router-dom';
+import logoJob from '@/img/logoJob.jpeg';
 
+// --- JOB LEVELS ---
 export const JOB_LEVELS = [
     { id: 'INTERN', name: 'Intern / Thực tập sinh' },
     { id: 'FRESHER', name: 'Fresher' },
@@ -32,11 +34,13 @@ interface ISelectedTag {
 interface IProps {
     form: any;
     fieldName: string; // Tên trường trong form (lưu mảng ID hoặc Object tùy bạn xử lý)
+    mode?: 'modal' | 'inline';
 }
 
-const JobTypeSelector = ({ form, fieldName }: IProps) => {
+const JobTypeSelector = ({ form, fieldName, mode = 'modal' }: IProps) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [loading, setLoading] = useState(false);
+    const [searchParams] = useSearchParams();
 
     // --- Data States ---
     const [data, setData] = useState<IProfession[]>([]); // Full Data Tree
@@ -52,17 +56,42 @@ const JobTypeSelector = ({ form, fieldName }: IProps) => {
     // --- Selection States (Lưu giá trị người dùng TICK chọn) ---
     const [selectedProfessions, setSelectedProfessions] = useState<IProfession[]>([]);
     const [selectedSkills, setSelectedSkills] = useState<ISkill[]>([]);
-
     const [selectedLevels, setSelectedLevels] = useState<any[]>([]);
 
+    // Đọc từ URL params hoặc form value để highlight các item đã chọn
     useEffect(() => {
-        if (isModalOpen) {
-            const rawValue = form.getFieldValue(fieldName) || [];
+        const rawValue = form.getFieldValue(fieldName) || [];
+        const professionIds = searchParams.get('jobProfession')?.split(',').filter(Boolean) || [];
+        const skillIds = searchParams.get('skills')?.split(',').filter(Boolean) || [];
+        
+        // Nếu có URL params, dùng URL params để map với data thật
+        if (professionIds.length > 0 || skillIds.length > 0) {
+            const matchedProfs = data.filter(p => professionIds.includes(String(p.id)));
+            const allSkills: ISkill[] = [];
+            matchedProfs.forEach(prof => {
+                prof.jobs?.forEach(job => {
+                    job.skills?.forEach(skill => {
+                        if (!allSkills.find(s => s.id === skill.id)) {
+                            allSkills.push(skill);
+                        }
+                    });
+                });
+            });
+            const matchedSkills = allSkills.filter(s => skillIds.includes(String(s.id)));
+            
+            setSelectedProfessions(matchedProfs);
+            setSelectedSkills(matchedSkills);
+        } else if (rawValue.length > 0) {
+            // Nếu không có URL params, dùng form value
             setSelectedProfessions(rawValue.filter((i: any) => i.type === 'PROFESSION'));
             setSelectedSkills(rawValue.filter((i: any) => i.type === 'SKILL' || (!i.type && typeof i.id === 'number')));
             setSelectedLevels(rawValue.filter((i: any) => i.type === 'LEVEL'));
+        } else {
+            setSelectedProfessions([]);
+            setSelectedSkills([]);
+            setSelectedLevels([]);
         }
-    }, [isModalOpen]);
+    }, [isModalOpen, searchParams.toString(), data, form, fieldName]);
 
     // 1. Fetch Data
     const fetchData = async (keyword: string = "") => {
@@ -80,13 +109,6 @@ const JobTypeSelector = ({ form, fieldName }: IProps) => {
                 console.log("Data fetched:", professions); 
 
                 setData(professions as IProfession[]);
-
-                // Logic mặc định hover item đầu tiên
-                if (professions.length > 0 && !keyword) {
-                    const firstProf = professions[0];
-                    setHoveredProfession(firstProf);
-                    handleViewJobsByProfession(firstProf);
-                }
             }
         } catch (error) {
             console.error("Fetch error:", error);
@@ -156,17 +178,17 @@ const JobTypeSelector = ({ form, fieldName }: IProps) => {
     };
 
     // Kiểm tra xem có đang chọn không
-    const isProfSelected = (id: number) => selectedProfessions.some(p => p.id === id);
-    const isSkillSelected = (id: number) => selectedSkills.some(s => s.id === id);
+    const isProfSelected = (id: number | string) => selectedProfessions.some(p => p.id === id);
+    const isSkillSelected = (id: number | string) => selectedSkills.some(s => s.id === id);
     const isLevelSelected = (id: string) => selectedLevels.some(l => l.id === id);
 
 
-    // --- HANDLE CONFIRM ---
+    // --- HANDLE CONFIRM (cho mode modal) ---
     const handleConfirm = () => {
         const displayData: ISelectedTag[] = [
             ...selectedProfessions.map(p => ({ id: p.id, name: p.name, type: 'PROFESSION' } as ISelectedTag)),
             ...selectedSkills.map(s => ({ id: s.id, name: s.name, type: 'SKILL' } as ISelectedTag)),
-            ...selectedLevels.map(l => ({ id: l.id, name: l.name, type: 'LEVEL' } as ISelectedTag))
+            ...selectedLevels.map(l => ({ id: l.id, name: l.name, type: 'LEVEL' } as ISelectedTag)),
         ];
 
         form.setFieldValue(fieldName, displayData);
@@ -181,6 +203,157 @@ const JobTypeSelector = ({ form, fieldName }: IProps) => {
         ? rawData.filter((item: any) => (typeof item === 'object' && item !== null) || typeof item === 'number')
         : [];
 
+    // --- INLINE MODE: Hiển thị giống hình (trái: ngành, phải: kỹ năng) và click là tìm kiếm ---
+    const handleClickProfessionSearch = (prof: IProfession) => {
+        const displayData: ISelectedTag[] = [
+            { id: Number(prof.id), name: prof.name, type: 'PROFESSION' }
+        ];
+        form.setFieldValue(fieldName, displayData);
+        if (form.submit) form.submit();
+    };
+
+    const handleClickSkillSearch = (skill: ISkill) => {
+        // Khi chọn skill, cần thêm profession tương ứng vào form để checkbox được check đúng trong index.tsx
+        const displayData: ISelectedTag[] = [];
+        
+        // Thêm profession đang hover vào form
+        if (hoveredProfession) {
+            displayData.push({ 
+                id: Number(hoveredProfession.id), 
+                name: hoveredProfession.name, 
+                type: 'PROFESSION' 
+            });
+        }
+        
+        // Thêm skill được chọn
+        displayData.push({ 
+            id: Number(skill.id), 
+            name: skill.name, 
+            type: 'SKILL' 
+        });
+        
+        form.setFieldValue(fieldName, displayData);
+        if (form.submit) form.submit();
+    };
+
+    if (mode === 'inline') {
+        return (
+            <>
+                <Form.Item name={fieldName} hidden />
+                <div
+                    style={{
+                        display: 'flex',
+                      
+                        borderRadius: 16,
+                        overflow: 'hidden',
+                        boxShadow: '0 8px 24px rgba(0,0,0,0.18)',
+                        minHeight: 260,
+                        columnGap: 15,
+                        padding: 8,
+                    }}
+                    onMouseLeave={() => setHoveredProfession(null)}
+                >
+                    {/* Cột 1: Nhóm ngành */}
+                    <div
+                        style={{ width: '38%', background: '#fff', display: 'flex', flexDirection: 'column', borderRadius: 12 }}
+                    >
+                        <div style={{ padding: '12px 16px', fontWeight: 600, fontSize: 16, borderBottom: '1px solid #f0f0f0',textAlign:"center" ,color:"#00b14f"}}>
+                            CHỌN NHÓM NGÀNH
+                        </div>
+                        <div style={{ flex: 1, overflowY: 'auto' }}>
+                            <List
+                                dataSource={data}
+                                renderItem={(item) => {
+                                    const isHovered = hoveredProfession?.id === item.id;
+                                    const isSelected = selectedProfessions.some(p => p.id === item.id);
+                                    return (
+                                        <div
+                                            onMouseEnter={() => setHoveredProfession(item)}
+                                            onClick={() => handleClickProfessionSearch(item)}
+                                            style={{
+                                                padding: '10px 14px',
+                                                cursor: 'pointer',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'space-between',
+                                                backgroundColor: isSelected ? '#e6f7ff' : (isHovered ? '#f6ffed' : '#fff'),
+                                                borderBottom: '1px solid #f5f5f5',
+                                                borderLeft: isSelected ? '3px solid #00b14f' : 'none',
+                                                transition: 'all 0.2s',
+                                            }}
+                                        >
+                                            <span style={{ fontSize: 13, fontWeight: isSelected ? 600 : 400, color: isSelected ? '#00b14f' : 'inherit' }}>
+                                                {item.name}
+                                            </span>
+                                            {isSelected ? (
+                                                <CheckCircleFilled style={{ fontSize: 14, color: '#00b14f' }} />
+                                            ) : (
+                                                <RightOutlined style={{ fontSize: 10, color: '#ccc' }} />
+                                            )}
+                                        </div>
+                                    );
+                                }}
+                            />
+                        </div>
+                    </div>
+
+                    {/* Cột 2: Kỹ năng thuộc ngành đang hover */}
+                    <div style={{ flex: 1, background: '#fff', display: 'flex', flexDirection: 'column', borderRadius: 12 }}>
+                        <div style={{ padding: '12px 16px', fontWeight: 600, fontSize: 14, borderBottom: '1px solid #f0f0f0' }}>
+                            {hoveredProfession
+                                ? `Kỹ năng : ${hoveredProfession.name}`
+                                : ''}
+                        </div>
+                        <div style={{ flex: 1, overflowY: 'auto', padding: '4px 8px 8px 8px' }}>
+                            {!hoveredProfession ? (
+                                <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <img
+                                        src={logoJob}
+                                        alt="TOP Job"
+                                        style={{ maxWidth: '60%', maxHeight: '200px', objectFit: 'contain' }}
+                                    />
+                                </div>
+                            ) : (
+                                <List
+                                    dataSource={getUniqueSkillsFromProfession(hoveredProfession)}
+                                    renderItem={(skill) => {
+                                        const isSelected = selectedSkills.some(s => s.id === skill.id);
+                                        return (
+                                            <div
+                                                onClick={() => handleClickSkillSearch(skill)}
+                                                style={{
+                                                    padding: '8px 10px',
+                                                    cursor: 'pointer',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'space-between',
+                                                    borderRadius: 8,
+                                                    marginBottom: 4,
+                                                    background: isSelected ? '#e6f7ff' : '#f5f7fb',
+                                                    borderLeft: isSelected ? '3px solid #00b14f' : 'none',
+                                                }}
+                                            >
+                                                <span style={{ fontSize: 13, fontWeight: isSelected ? 600 : 400, color: isSelected ? '#00b14f' : 'inherit' }}>
+                                                    {skill.name}
+                                                </span>
+                                                {isSelected ? (
+                                                    <CheckCircleFilled style={{ fontSize: 14, color: '#00b14f' }} />
+                                                ) : (
+                                                    <RightOutlined style={{ fontSize: 10, color: '#00b14f' }} />
+                                                )}
+                                            </div>
+                                        );
+                                    }}
+                                />
+                            )}
+                        </div>
+                    </div>
+                </div>
+            </>
+        );
+    }
+
+    // --- MODE MODAL (mặc định, dùng cho chỗ khác) ---
     return (
         <>
             <Form.Item name={fieldName} hidden />
@@ -243,7 +416,8 @@ const JobTypeSelector = ({ form, fieldName }: IProps) => {
                         setSelectedLevels([]);
                     }}>Xóa chọn</Button>,
                     <Button key="submit" type="primary" onClick={handleConfirm} style={{ background: '#00b14f' }}>
-                        Áp dụng ({selectedProfessions.length + selectedSkills.length + selectedLevels.length})                    </Button>
+                        Áp dụng ({selectedProfessions.length + selectedSkills.length + selectedLevels.length})
+                    </Button>
                 ]}
                 bodyStyle={{ padding: 0, height: '550px', overflow: 'hidden' }}
                 destroyOnClose
@@ -264,10 +438,15 @@ const JobTypeSelector = ({ form, fieldName }: IProps) => {
                             <Spin tip="Đang tải..." />
                         </div>
                     ) : (
-                        <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+                        <div
+                            style={{ flex: 1, display: 'flex', overflow: 'hidden' }}
+                            onMouseLeave={() => setHoveredProfession(null)}
+                        >
 
                             {/* --- CỘT 1: NHÓM NGÀNH (PROFESSION) --- */}
-                            <div style={{ width: '33%', borderRight: '1px solid #f0f0f0', display: 'flex', flexDirection: 'column' }}>
+                            <div
+                                style={{ width: '33%', borderRight: '1px solid #f0f0f0', display: 'flex', flexDirection: 'column' }}
+                            >
                                 <div style={{ padding: '8px 12px', background: '#fafafa', fontWeight: 'bold', color: '#555', borderBottom: '1px solid #eee' }}>
                                     1. CHỌN NHÓM NGÀNH
                                 </div>
@@ -318,7 +497,13 @@ const JobTypeSelector = ({ form, fieldName }: IProps) => {
                                 </div>
                                 <div style={{ overflowY: 'auto', flex: 1 }}>
                                     {!hoveredProfession ? (
-                                        <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Rê chuột vào ngành để xem kỹ năng" />
+                                        <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                            <img
+                                                src={logoJob}
+                                                alt="TOP Job"
+                                                style={{ maxWidth: '60%', maxHeight: '60%', objectFit: 'contain', opacity: 0.9 }}
+                                            />
+                                        </div>
                                     ) : (
                                         <List
                                             dataSource={getUniqueSkillsFromProfession(hoveredProfession)}
@@ -354,7 +539,7 @@ const JobTypeSelector = ({ form, fieldName }: IProps) => {
                                 </div>
                             </div>
 
-                            {/* --- CỘT 3: LEVEL (33%) --- */}
+                            {/* --- CỘT 3: CẤP BẬC (LEVEL) --- */}
                             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: '#fff' }}>
                                 <div style={{ padding: '8px 12px', background: '#fafafa', fontWeight: 'bold', color: '#555', borderBottom: '1px solid #eee' }}>
                                     3. CHỌN CẤP BẬC
@@ -366,15 +551,19 @@ const JobTypeSelector = ({ form, fieldName }: IProps) => {
                                             <div
                                                 onClick={() => toggleLevelSelection(level, !isLevelSelected(level.id))}
                                                 style={{
-                                                    padding: '10px 12px', cursor: 'pointer',
-                                                    display: 'flex', alignItems: 'center', gap: '8px',
+                                                    padding: '10px 12px',
+                                                    cursor: 'pointer',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: '8px',
                                                     borderBottom: '1px solid #f5f5f5',
-                                                    backgroundColor: isLevelSelected(level.id) ? '#fff7e6' : '#fff' // Highlight nhẹ
+                                                    backgroundColor: isLevelSelected(level.id) ? '#fff7e6' : '#fff',
                                                 }}
                                             >
                                                 <Checkbox
                                                     checked={isLevelSelected(level.id)}
-                                                    onClick={(e) => { e.stopPropagation(); toggleLevelSelection(level, e.target.checked); }}
+                                                    onClick={(e) => e.stopPropagation()}
+                                                    onChange={(e) => toggleLevelSelection(level, e.target.checked)}
                                                 />
                                                 <div style={{ flex: 1 }}>{level.name}</div>
                                             </div>
@@ -382,6 +571,7 @@ const JobTypeSelector = ({ form, fieldName }: IProps) => {
                                     />
                                 </div>
                             </div>
+
                         </div>
                     )}
                 </div>

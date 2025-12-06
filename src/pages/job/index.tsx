@@ -48,9 +48,10 @@ const ClientJobPage = () => {
         const levels = searchParams.get('level')?.split(',').filter(Boolean) || [];
         const skills = searchParams.get('skills')?.split(',').filter(Boolean) || [];
 
-        setSelectedProfessions(professionIds);
-        setSelectedLevels(levels);
-        setSelectedSkills(skills);
+        // Đảm bảo giá trị là string array để match với Checkbox value
+        setSelectedProfessions(professionIds.map(id => String(id)));
+        setSelectedLevels(levels.map(id => String(id)));
+        setSelectedSkills(skills.map(id => String(id)));
 
         fetchJobs(searchParams);
     }, [searchParams.toString()]);
@@ -169,6 +170,7 @@ const ClientJobPage = () => {
 
     return (
         <div style={{ backgroundColor: '#f4f5f5', minHeight: '100vh', padding: '20px 0' }}>
+            
             <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 15px' }}>
                 <Row gutter={[24, 24]}>
                     <Col xs={24} md={6}>
@@ -185,11 +187,14 @@ const ClientJobPage = () => {
                                     value={selectedProfessions}
                                     onChange={(vals) => handleFilterChange('jobProfession', vals as string[])}
                                 >
-                                    {professions.slice(0, 10).map((p) => (
-                                        <Checkbox key={p.id} value={String(p.id)} style={{ marginLeft: 0 }}>
-                                            {p.name}
-                                        </Checkbox>
-                                    ))}
+                                    {professions.slice(0, 10).map((p) => {
+                                        const professionId = p.id ? String(p.id) : '';
+                                        return professionId ? (
+                                            <Checkbox key={p.id} value={professionId} style={{ marginLeft: 0 }}>
+                                                {p.name}
+                                            </Checkbox>
+                                        ) : null;
+                                    })}
                                 </Checkbox.Group>
                                 {professions.length > 10 && <div style={{ color: '#00b14f', cursor: 'pointer', marginTop: 8, fontSize: 13 }}>Xem thêm</div>}
                             </div>
@@ -204,11 +209,14 @@ const ClientJobPage = () => {
                                                 value={selectedSkills}
                                                 onChange={(vals) => handleFilterChange('skills', vals as string[])}
                                             >
-                                                {availableSkills.map((s) => (
-                                                    <Checkbox key={s.id} value={String(s.id)} style={{ marginLeft: 0 }}>
-                                                        {s.name}
-                                                    </Checkbox>
-                                                ))}
+                                                {availableSkills.map((s) => {
+                                                    const skillId = s.id ? String(s.id) : '';
+                                                    return skillId ? (
+                                                        <Checkbox key={s.id} value={skillId} style={{ marginLeft: 0 }}>
+                                                            {s.name}
+                                                        </Checkbox>
+                                                    ) : null;
+                                                })}
                                             </Checkbox.Group>
                                         </div>
                                     </div>
@@ -241,11 +249,26 @@ const ClientJobPage = () => {
                             <Input.Search
                                 placeholder="Tìm kiếm công việc"
                                 allowClear
-                                enterButton="Tìm kiếm"
+                                enterButton={  <button
+                                    style={{
+                                        backgroundColor: "#00b14f",
+                                        color: "#fff",
+                                        border: "none",
+                                        padding: "0 20px",
+                                        height: "37px",
+                                        borderRadius: "5px",
+                                        fontWeight: 600,
+                                        cursor: "pointer"
+                                    }}
+                                >
+                                    Tìm kiếm
+                                </button>}
                                 size="large"
                                 defaultValue={currentKeyword}
                                 onSearch={onSearch}
                                 style={{ width: '100%' }}
+                                
+                                
                             />
                         </div>
 

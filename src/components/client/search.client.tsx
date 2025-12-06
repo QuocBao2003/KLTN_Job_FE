@@ -5,6 +5,7 @@ import { ProForm, ProFormText, ProFormSelect } from '@ant-design/pro-components'
 import { useEffect } from 'react';
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import JobTypeSelector from '@/pages/job/jobTypeSelector';
+import banner1 from '@/img/banner1.png';
 
 const SearchClient = () => {
     const navigate = useNavigate();
@@ -28,7 +29,7 @@ const SearchClient = () => {
             if (queryLocation) form.setFieldValue("location", queryLocation.split(","));
 
             // --- TÁI TẠO DỮ LIỆU CHO JOB TYPE SELECTOR ---
-            const mixedData = [];
+            const mixedData: { id: number | string; type: 'PROFESSION' | 'SKILL' | 'LEVEL'; name: string }[] = [];
 
             if (queryProfession) {
                 // Lưu ý: Cần name để hiển thị tag, nhưng URL chỉ có ID.
@@ -77,8 +78,8 @@ const SearchClient = () => {
                 else if (typeof item === 'number') skillIds.push(item);
             });
 
-            if (professionIds.length) params.append('jobProfession', professionIds.join(','));
-            if (skillIds.length) params.append('skills', skillIds.join(','));
+            if (professionIds.length) params.append('jobProfession', professionIds.map(String).join(','));
+            if (skillIds.length) params.append('skills', skillIds.map(String).join(','));
             if (levels.length) params.append('level', levels.join(','));
         }
         
@@ -86,60 +87,85 @@ const SearchClient = () => {
     }
 
     return (
-        <ProForm
-            form={form}
-            onFinish={onFinish}
-            submitter={{ render: () => <></> }}
-            style={{ padding: '20px', background: '#fff', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}
+        <div
+            style={{
+                width: '100vw',
+                marginLeft: '50%',
+                marginTop: 0,
+                height : "460px",
+                transform: 'translateX(-50%)',
+                backgroundImage: `url(${banner1})`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                backgroundRepeat: 'no-repeat',
+                padding :"20px"
+            }}
         >
-            <Row gutter={[16, 16]}>
-                <Col span={24}><h2 style={{ color: '#00b14f' }}>Tìm Việc Làm IT</h2></Col>
+            <h1 style={{textAlign:"center",fontSize:"27px",fontWeight:"bold",color:"#00ab4c"}}>Việc làm mới nhất mỗi ngày – Ứng tuyển nhanh chỉ trong 24h!</h1>
+            <ProForm
+                form={form}
+                onFinish={onFinish}
+                submitter={{ render: () => <></> }}
+                style={{
+                    maxWidth: 1200,
+                    margin: '0 auto',
+                    paddingTop: '30px',
+                }}
+            >
+                <Row gutter={[16, 16]} style={{backgroundColor:"#f3f5f7",padding:"5px",borderRadius:"25px",height : "55px"}}>
+                    {/* 1. Keyword */}
+                    
+                    <Col span={24} md={10}>
+                        <ProFormText
+                            name="name"
+                            placeholder="Nhập tên công việc, vị trí..."
+                            fieldProps={{
+                                prefix: <SearchOutlined style={{ color: '#ccc' }} />,
+                                size: 'large',
+                            }}
+                        />
+                    </Col>
 
-                {/* 1. Keyword */}
-                <Col span={24} md={10}>
-                    <ProFormText
-                        name="name"
-                        placeholder="Nhập tên công việc, vị trí..."
-                        fieldProps={{
-                            prefix: <SearchOutlined style={{ color: '#ccc' }} />,
-                            size: 'large'
-                        }}
-                    />
-                </Col>
+                    {/* 2. Location */}
+                    <Col span={24} md={6}>
+                        <ProFormSelect
+                            name="location"
+                            mode="multiple"
+                            placeholder="Địa điểm"
+                            options={LOCATION_LIST}
+                            fieldProps={{
+                                suffixIcon: <EnvironmentOutlined />,
+                                size: 'large',
+                                maxTagCount: 'responsive',
+                            }}
+                        />
+                    </Col>
 
-                {/* 2. Location */}
-                <Col span={24} md={6}>
-                    <ProFormSelect
-                        name="location"
-                        mode="multiple"
-                        placeholder="Địa điểm"
-                        options={LOCATION_LIST}
-                        fieldProps={{
-                            suffixIcon: <EnvironmentOutlined />,
-                            size: 'large',
-                            maxTagCount: 'responsive'
-                        }}
-                    />
+                    {/* 3. Search Button */}
+                    <Col span={24} md={8}>
+                        <Button
+                            type="primary"
+                            onClick={() => form.submit()}
+                            size="large"
+                            style={{
+                                width: '100%',
+                                background: '#00b14f',
+                                borderColor: '#00b14f',
+                                fontWeight: 'bold',
+                            }}
+                        >
+                            TÌM KIẾM
+                        </Button>
+                    </Col>
+                </Row>
+                
+                <Col span={24} style={{ marginTop: 16 }}>
+                    <JobTypeSelector form={form} fieldName="skills" mode="inline" />
                 </Col>
-
-                {/* 3. Search Button */}
-                <Col span={24} md={8}>
-                    <Button
-                        type='primary'
-                        onClick={() => form.submit()}
-                        size='large'
-                        style={{ width: '100%', background: '#00b14f', borderColor: '#00b14f', fontWeight: 'bold' }}
-                    >
-                        TÌM KIẾM
-                    </Button>
-                </Col>
-
-                {/* 4. Job Type Selector (GỘP CHUNG 3 LOẠI) */}
-                <Col span={24}>
-                    <JobTypeSelector form={form} fieldName="skills" />
-                </Col>
-            </Row>
-        </ProForm>
+               
+            </ProForm>
+            
+        </div>
     )
 }
 export default SearchClient;
