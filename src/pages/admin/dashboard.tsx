@@ -117,15 +117,11 @@ const DashboardPage = () => {
         if (!hrStats) return;
     
         try {
-            const wb = XLSX.utils.book_new();
-    
-            /* ==========================
-             *  SHEET 1 – TỔNG QUAN (AN TOÀN)
-             * ========================== */
             const dateRangeLabel = dateRange
                 ? `${dateRange[0].format('DD/MM/YYYY')} - ${dateRange[1].format('DD/MM/YYYY')}`
                 : 'N/A';
     
+            /* SHEET 1 - TỔNG QUAN */
             const sheet1Data = [
                 ["BÁO CÁO THỐNG KÊ - HR"],
                 [],
@@ -141,17 +137,13 @@ const DashboardPage = () => {
     
             const ws1 = XLSX.utils.aoa_to_sheet(sheet1Data);
             ws1["!cols"] = [{ wch: 35 }, { wch: 30 }];
-            XLSX.utils.book_append_sheet(wb, ws1, "Tong quan");
     
-    
-            /* ==========================
-             *  SHEET 2 – DANH SÁCH CÔNG VIỆC (AN TOÀN)
-             * ========================== */
+            /* SHEET 2 - DANH SÁCH CÔNG VIỆC */
             const activeJobs = Array.isArray(hrStats.activeJobsWithResumes)
                 ? hrStats.activeJobsWithResumes
                 : [];
-            console.log("activeJobs", activeJobs);
-            const sheet2Data = [
+            
+            const sheet2Data: any[][] = [
                 ["DANH SÁCH CÔNG VIỆC ỨNG TUYỂN", "", "", ""],
                 ["", "", "", ""],
                 ["Tên công việc", "Số đơn", "Ngày bắt đầu", "Ngày kết thúc"],
@@ -159,47 +151,73 @@ const DashboardPage = () => {
             
             activeJobs.forEach(job => {
                 sheet2Data.push([
-                    job.jobName ?? "",
-                    String(job.resumeCount ?? 0),
-                    dayjs(job.startDate).format("DD/MM/YYYY"),
-                    dayjs(job.endDate).format("DD/MM/YYYY"),
+                    job.jobName || "",
+                    job.resumeCount || 0,
+                    job.startDate ? dayjs(job.startDate).format("DD/MM/YYYY") : "",
+                    job.endDate ? dayjs(job.endDate).format("DD/MM/YYYY") : "",
                 ]);
             });
-    
+            
             const ws2 = XLSX.utils.aoa_to_sheet(sheet2Data);
-            ws2["!cols"] = [
-                { wch: 40 },
-                { wch: 12 },
-                { wch: 15 },
-                { wch: 15 }
-            ];
+            ws2["!cols"] = [{ wch: 40 }, { wch: 12 }, { wch: 15 }, { wch: 15 }];
     
-            XLSX.utils.book_append_sheet(wb, ws2, "Sheet2");
+            /* ✅ TẠO WORKBOOK THỦ CÔNG */
+            const wb = {
+                SheetNames: ["Tổng quan", "Danh sách công việc"],
+                Sheets: {
+                    "Tổng quan": ws1,
+                    "Danh sách công việc": ws2
+                }
+            };
     
+           
+
     
-            /* ==========================
-             *  EXPORT FILE
-             * ========================== */
-            const fileName =
-                `HR_Statistics_${(user as any)?.company?.name || "Unknown"}_${dayjs().format("YYYYMMDD_HHmmss")}.xlsx`;
-    
-            XLSX.writeFile(wb, fileName);
+            /* ✅ EXPORT BẰNG WRITE + BLOB */
+            const fileName = `HR_Statistics_${(user as any)?.company?.name || "Unknown"}_${dayjs().format("YYYYMMDD_HHmmss")}.xlsx`;
+            
+            // Tạo buffer
+            const wbout = XLSX.write(wb, { 
+                bookType: 'xlsx', 
+                type: 'array'
+            });
+            
+            // Tạo Blob và download
+            const blob = new Blob([wbout], { 
+                type: 'application/octet-stream'
+            });
+            
+            // FileSaver style download
+            const link = document.createElement('a');
+            if (link.download !== undefined) {
+                const url = URL.createObjectURL(blob);
+                link.setAttribute('href', url);
+                link.setAttribute('download', fileName);
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+            }
+            
+          
+            alert(`Đã xuất file thành công!\n\nFile: ${fileName}\n\nVui lòng kiểm tra 2 sheets: "Tổng quan" và "Danh sách công việc"`);
     
         } catch (error) {
-            console.error("Excel Export Error:", error);
+            console.error("❌ Export Error:", error);
             alert("Có lỗi khi xuất Excel: " + (error as Error).message);
         }
     };
-
     // Export Excel for Admin
     const exportRevenueToExcel = () => {
         if (!revenueStats) return;
-
+    
         const wb = XLSX.utils.book_new();
-
+    
         // Sheet 1: Tổng quan doanh thu
         const overviewData = [
             ['BÁO CÁO DOANH THU GÓI DỊCH VỤ'],
+            [],
             ['Thời gian:', `${dateRange?.[0].format('DD/MM/YYYY')} - ${dateRange?.[1].format('DD/MM/YYYY')}`],
             [],
             ['TỔNG QUAN'],
@@ -207,11 +225,16 @@ const DashboardPage = () => {
             ['Tổng số gói đã bán:', revenueStats.totalPackagesSold],
         ];
         const ws1 = XLSX.utils.aoa_to_sheet(overviewData);
+        ws1['!cols'] = [
+            { wch: 25 },  // Cột A - Labels
+            { wch: 30 }   // Cột B - Values
+        ];
         XLSX.utils.book_append_sheet(wb, ws1, 'Tổng quan');
-
+    
         // Sheet 2: Chi tiết theo loại gói
         const packageHeaders = [
             ['CHI TIẾT THEO LOẠI GÓI'],
+            [],
             ['Tên gói', 'Giá gói', 'Số lượng bán', 'Doanh thu', '% Tổng doanh thu']
         ];
         const packageRows = revenueStats.packageTypeStatistics.map(pkg => [
@@ -222,11 +245,19 @@ const DashboardPage = () => {
             `${pkg.percentageOfTotal}%`
         ]);
         const ws2 = XLSX.utils.aoa_to_sheet([...packageHeaders, ...packageRows]);
+        ws2['!cols'] = [
+            { wch: 30 },  // Tên gói
+            { wch: 18 },  // Giá gói
+            { wch: 18 },  // Số lượng bán
+            { wch: 18 },  // Doanh thu
+            { wch: 20 }   // % Tổng doanh thu
+        ];
         XLSX.utils.book_append_sheet(wb, ws2, 'Chi tiết theo gói');
-
+    
         // Sheet 3: Doanh thu theo thời gian
         const timeSeriesHeaders = [
             [`DOANH THU THEO ${timeUnit === 'WEEK' ? 'TUẦN' : 'THÁNG'}`],
+            [],
             ['Thời gian', 'Doanh thu', 'Số gói bán']
         ];
         const timeSeriesRows = revenueStats.revenueTimeSeries.map(item => [
@@ -235,21 +266,27 @@ const DashboardPage = () => {
             item.packagesSold
         ]);
         const ws3 = XLSX.utils.aoa_to_sheet([...timeSeriesHeaders, ...timeSeriesRows]);
+        ws3['!cols'] = [
+            { wch: 20 },  // Thời gian
+            { wch: 20 },  // Doanh thu
+            { wch: 15 }   // Số gói bán
+        ];
         XLSX.utils.book_append_sheet(wb, ws3, 'Doanh thu theo thời gian');
-
+    
         const fileName = `Revenue_Report_${dayjs().format('YYYYMMDD_HHmmss')}.xlsx`;
         XLSX.writeFile(wb, fileName);
     };
-
+    
     // Export Excel for Admin (combined)
     const exportAdminFullToExcel = () => {
         if (!adminStats || !revenueStats) return;
-
+    
         const wb = XLSX.utils.book_new();
-
+    
         // Sheet 1: Tổng quan hệ thống
         const overviewData = [
             ['BÁO CÁO THỐNG KÊ TOÀN HỆ THỐNG'],
+            [],
             ['Thời gian:', `${dateRange?.[0].format('DD/MM/YYYY')} - ${dateRange?.[1].format('DD/MM/YYYY')}`],
             [],
             ['CÔNG VIỆC & CÔNG TY'],
@@ -263,11 +300,16 @@ const DashboardPage = () => {
             ['Tổng số gói đã bán:', revenueStats.totalPackagesSold],
         ];
         const ws1 = XLSX.utils.aoa_to_sheet(overviewData);
+        ws1['!cols'] = [
+            { wch: 35 },  // Cột A - Labels
+            { wch: 25 }   // Cột B - Values
+        ];
         XLSX.utils.book_append_sheet(wb, ws1, 'Tổng quan');
-
+    
         // Sheet 2: Chi tiết doanh thu theo gói
         const packageHeaders = [
             ['CHI TIẾT DOANH THU THEO GÓI'],
+            [],
             ['Tên gói', 'Loại gói', 'Giá', 'Số lượng bán', 'Doanh thu', '% Tổng']
         ];
         const packageRows = revenueStats.packageTypeStatistics.map(pkg => [
@@ -279,11 +321,20 @@ const DashboardPage = () => {
             `${pkg.percentageOfTotal}%`
         ]);
         const ws2 = XLSX.utils.aoa_to_sheet([...packageHeaders, ...packageRows]);
+        ws2['!cols'] = [
+            { wch: 25 },  // Tên gói
+            { wch: 15 },  // Loại gói
+            { wch: 18 },  // Giá
+            { wch: 18 },  // Số lượng bán
+            { wch: 18 },  // Doanh thu
+            { wch: 15 }   // % Tổng
+        ];
         XLSX.utils.book_append_sheet(wb, ws2, 'Doanh thu theo gói');
-
+    
         // Sheet 3: Top công ty
         const companyHeaders = [
             [`TOP ${topLimit} CÔNG TY`],
+            [],
             ['Thứ hạng', 'Tên công ty', 'Tổng ứng tuyển', 'Đã duyệt', 'Chờ duyệt', 'Từ chối']
         ];
         const companyRows = adminStats.companyResumeStatistics.map((company, index) => [
@@ -295,11 +346,20 @@ const DashboardPage = () => {
             company.rejectedResumes
         ]);
         const ws3 = XLSX.utils.aoa_to_sheet([...companyHeaders, ...companyRows]);
+        ws3['!cols'] = [
+            { wch: 12 },  // Thứ hạng
+            { wch: 35 },  // Tên công ty
+            { wch: 18 },  // Tổng ứng tuyển
+            { wch: 15 },  // Đã duyệt
+            { wch: 15 },  // Chờ duyệt
+            { wch: 12 }   // Từ chối
+        ];
         XLSX.utils.book_append_sheet(wb, ws3, 'Top công ty');
-
+    
         // Sheet 4: Doanh thu theo thời gian
         const revenueTimeHeaders = [
             [`DOANH THU THEO ${timeUnit === 'WEEK' ? 'TUẦN' : 'THÁNG'}`],
+            [],
             ['Thời gian', 'Doanh thu', 'Số gói bán']
         ];
         const revenueTimeRows = revenueStats.revenueTimeSeries.map(item => [
@@ -308,8 +368,13 @@ const DashboardPage = () => {
             item.packagesSold
         ]);
         const ws4 = XLSX.utils.aoa_to_sheet([...revenueTimeHeaders, ...revenueTimeRows]);
+        ws4['!cols'] = [
+            { wch: 20 },  // Thời gian
+            { wch: 20 },  // Doanh thu
+            { wch: 15 }   // Số gói bán
+        ];
         XLSX.utils.book_append_sheet(wb, ws4, 'Doanh thu theo thời gian');
-
+    
         const fileName = `Full_Report_${dayjs().format('YYYYMMDD_HHmmss')}.xlsx`;
         XLSX.writeFile(wb, fileName);
     };

@@ -65,10 +65,13 @@ const ViewDetailResume = (props: IProps) => {
                         size="middle"
                         labelStyle={{ fontWeight: 600 }}
                     >
-                        <Descriptions.Item label="Email">
+                        <Descriptions.Item label="Email"  labelStyle={{ color: "#3bb16e" }}>
                             {dataInit?.email}
                         </Descriptions.Item>
-                        <Descriptions.Item label="Trạng thái">
+                        <Descriptions.Item label="Tên Ứng Viên"  labelStyle={{ color: "#3bb16e" }}>
+                            {dataInit?.user?.name}
+                        </Descriptions.Item>
+                        <Descriptions.Item label="Trạng thái"  labelStyle={{ color: "#3bb16e" }}>
                             {dataInit?.status && (
                                 <span
                                     style={{
@@ -91,13 +94,11 @@ const ViewDetailResume = (props: IProps) => {
                                 </span>
                             )}
                         </Descriptions.Item>
-                        <Descriptions.Item label="Tên Job">
+                        <Descriptions.Item label="Tên Công Việc"  labelStyle={{ color: "#3bb16e" }}>
                             {dataInit?.job?.name || "Công việc chưa xác định"}
                         </Descriptions.Item>
-                        <Descriptions.Item label="Tên Công Ty">
-                            {dataInit?.companyName || "Công ty chưa xác định"}
-                        </Descriptions.Item>
-                        <Descriptions.Item label="Thời gian apply">
+                        
+                        <Descriptions.Item label="Thời gian apply"  labelStyle={{ color: "#3bb16e" }}>
                             {dataInit?.createdAt
                                 ? dayjs(dataInit.createdAt).format("DD-MM-YYYY HH:mm:ss")
                                 : ""}
