@@ -2,7 +2,7 @@ import DataTable from "@/components/client/data-table";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import { IJob } from "@/types/backend";
 import { DeleteOutlined, EditOutlined, PlusOutlined } from "@ant-design/icons";
-import { ActionType, ProColumns, ProFormSelect } from '@ant-design/pro-components';
+import { ActionType, ProColumns, ProFormSelect, ProFormText } from '@ant-design/pro-components';
 import { Button, Popconfirm, Space, Tag, message, notification } from "antd";
 import { useRef } from 'react';
 import dayjs from 'dayjs';
@@ -31,8 +31,8 @@ const JobPage = () => {
                 reloadTable();
             } else {
                 notification.error({
-                    message: 'Có lỗi xảy ra',
-                    description: res.message
+                    message: 'Không thể xóa công việc vì một vài lý do'
+                    
                 });
             }
         }
@@ -58,8 +58,20 @@ const JobPage = () => {
         },
         {
             title: 'Tên Công Việc',
+           
             dataIndex: 'name',
             sorter: true,
+            renderFormItem: () => (
+                <ProFormText
+                   
+                    name="name"
+                    placeholder="Nhập tên công việc"
+                    allowClear
+                    fieldProps={{
+                        style: { width: "100%" ,marginLeft : "15px" }
+                    }}
+                />
+            ),
         },
         {
             title: 'Công ty',
@@ -70,7 +82,8 @@ const JobPage = () => {
         {
             title: 'Mức lương',
             dataIndex: 'salary',
-            sorter: true,
+            hideInSearch: true,
+          
             render(dom, entity, index, action, schema) {
                 const str = "" + entity.minSalary + " - " + entity.maxSalary;
                 if(entity.salaryType === "NEGOTIABLE") {

@@ -33,8 +33,8 @@ const CompanyPage = () => {
                 reloadTable();
             } else {
                 notification.error({
-                    message: 'Có lỗi xảy ra',
-                    description: res.message
+                    message: 'Không thể xóa được vì đã tồn tại công việc liên quan',
+                   
                 });
             }
         }

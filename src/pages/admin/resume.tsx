@@ -1,7 +1,7 @@
 import DataTable from "@/components/client/data-table";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import { IResume } from "@/types/backend";
-import { ActionType, ProColumns, ProFormSelect } from '@ant-design/pro-components';
+import { ActionType, ProColumns, ProFormSelect, ProFormText } from '@ant-design/pro-components';
 import { Button, Popconfirm, Space, message, notification } from "antd";
 import { useState, useRef } from 'react';
 import dayjs from 'dayjs';
@@ -11,7 +11,7 @@ import { fetchResume } from "@/redux/slice/resumeSlide";
 import ViewDetailResume from "@/components/admin/resume/view.resume";
 import { ALL_PERMISSIONS } from "@/config/permissions";
 import Access from "@/components/share/access";
-import { sfIn } from "spring-filter-query-builder";
+import { sfAnd, sfIn, sfLike } from "spring-filter-query-builder";
 import { DeleteOutlined, DownloadOutlined, EditOutlined, MessageOutlined } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import * as XLSX from 'xlsx-js-style';
@@ -33,7 +33,7 @@ const ResumePage = () => {
     const handleDeleteResume = async (id: string | undefined) => {
         if (id) {
             const res = await callDeleteResume(id);
-            if (res && res.data) {
+            if (res && res.statusCode === 200) {
                 message.success('Xóa Resume thành công');
                 reloadTable();
             } else {
@@ -200,13 +200,20 @@ const ResumePage = () => {
     const handleMessage = async (resume: IResume) => {
         try {
             // Lấy jobId từ resume
-            const job = typeof resume.jobId === 'object' ? resume.jobId : null;
+            const job =
+                typeof resume.jobId === 'object' && resume.jobId !== null
+                    ? (resume.jobId as { id: string })
+                    : null;
             const jobFull = (resume as any)?.job || null;
             const jobId = job?.id || jobFull?.id || null;
 
             // Lấy candidateId (userId)
-            const userId = resume.user?.id;
-            console.log("userId",userId);
+            const user =
+                typeof resume.user === 'object' && resume.user !== null
+                    ? (resume.user as { id?: string })
+                    : null;
+            const userId = user?.id;
+            console.log("userId", userId);
             console.log("jobId",jobId);
             console.log("resume",resume);
 
@@ -250,6 +257,22 @@ const ResumePage = () => {
                     </>)
             },
             hideInSearch: true,
+        },
+
+       
+        {
+            title:'Tên công việc' ,
+            dataIndex: 'jobName',
+            hideInTable: true,
+            renderFormItem: () => (
+                <ProFormText
+                    allowClear
+                    placeholder="Nhập tên công việc"
+                    fieldProps={{
+                        style: { width: "100%" ,marginLeft : "15px" }
+                    }}
+                />
+            ),
         },
         
         {
@@ -453,9 +476,21 @@ const ResumePage = () => {
     const buildQuery = (params: any, sort: any, filter: any) => {
         const clone = { ...params };
 
+        const filters: any[] = [];
+
         if (clone?.status?.length) {
-            clone.filter = sfIn("status", clone.status).toString();
+            filters.push(sfIn("status", clone.status));
             delete clone.status;
+        }
+
+        if (clone?.jobName) {
+            // Tìm theo tên công việc thông qua quan hệ job
+            filters.push(sfLike("job.name", clone.jobName));
+            delete clone.jobName;
+        }
+
+        if (filters.length) {
+            clone.filter = filters.length === 1 ? filters[0].toString() : sfAnd(filters).toString();
         }
 
         clone.page = clone.current;
