@@ -24,7 +24,7 @@ const Authenticate: React.FC = () => {
     console.log("Auth code:", authCode);
 
     fetch(
-      `http://api.topjjobapi.click:9095/api/v1/auth/outbound/authentication?code=${authCode}`,
+      `https://api.topjjobapi.click/api/v1/auth/outbound/authentication?code=${authCode}`,
       {
         method: "POST",
         credentials: "include", // để gửi cookie refresh_token

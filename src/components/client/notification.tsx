@@ -12,8 +12,9 @@ import styles from '@/styles/notificationDropdown.module.scss';
 import type { Notification as AppNotification } from '@/types/backend';
 
 // WebSocket endpoint (SockJS)
+const backendUrl = (import.meta as any).env?.VITE_BACKEND_URL ?? '';
 const WS_URL = (import.meta as any).env?.VITE_WS_URL 
-  || `${(import.meta as any).env?.VITE_BACKEND_URL ?? ''}/ws`;
+    || backendUrl.replace(/^http/, 'ws') + '/ws';
 
 interface NotificationDropdownProps {
   onClose: () => void;

@@ -150,8 +150,10 @@ const MessagesPageHR = () => {
                 return;
             }
 
-            const wsUrl = `${import.meta.env.VITE_BACKEND_URL}/ws`;
-            const socket = new SockJS(wsUrl);
+            const backendUrl = import.meta.env.VITE_BACKEND_URL ?? '';
+                // Chuyển http -> ws, https -> wss
+                const wsUrl = backendUrl.replace(/^http/, 'ws') + '/ws';
+                const socket = new SockJS(wsUrl);
 
             const stompClient = new Client({
                 webSocketFactory: () => socket,
