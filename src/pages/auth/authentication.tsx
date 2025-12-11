@@ -30,7 +30,7 @@ const Authenticate: React.FC = () => {
             // 2. Gọi Backend API
             console.log("📡 Calling backend API...");
             const response = await fetch(
-                `https://api.topjjobapi.click/api/v1/auth/outbound/authentication?code=${authCode}`,
+                `https://api.topjjobapi.click:9095/api/v1/auth/outbound/authentication?code=${authCode}`,
                 {
                     method: "POST",
                     credentials: "include",
