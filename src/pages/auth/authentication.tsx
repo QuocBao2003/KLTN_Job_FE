@@ -28,9 +28,10 @@ const Authenticate: React.FC = () => {
             console.log("📝 Auth code:", authCode);
 
             // 2. Gọi Backend API
+            const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'https://api.topjjobapi.click';
             console.log("📡 Calling backend API...");
             const response = await fetch(
-                `https://api.topjjobapi.click:9095/api/v1/auth/outbound/authentication?code=${authCode}`,
+                `${BACKEND_URL}/api/v1/auth/outbound/authentication?code=${authCode}`,
                 {
                     method: "POST",
                     credentials: "include",

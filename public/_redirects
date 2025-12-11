@@ -1,0 +1,23 @@
+# =========================
+# React Router fallback
+# =========================
+/*    /index.html   200
+
+# =========================
+# Optional: redirect root domain to home page (nếu cần)
+/index   /index.html  200
+
+# =========================
+# Optional: redirect OAuth callback explicitly (không bắt buộc)
+/authenticate    /index.html  200
+
+# =========================
+# Optional: cache static assets (JS/CSS/images)
+# 1 year cache for static files
+/static/*   /static/:splat   200
+/*.js       /:splat.js       200
+/*.css      /:splat.css      200
+/*.png      /:splat.png      200
+/*.jpg      /:splat.jpg      200
+/*.svg      /:splat.svg      200
+/*.ico      /:splat.ico      200
