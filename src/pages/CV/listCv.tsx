@@ -421,7 +421,7 @@ const PageListCV = () => {
             const uploadRes = await callUploadSingleFile(pdfFile, 'resume');
 
             // ... (Phần xử lý lưu API giữ nguyên như cũ) ...
-            const uploadedPdfUrl = uploadRes.data?.fileName || uploadRes.data?.url || uploadRes.data;
+            const uploadedPdfUrl = uploadRes.data?.fileName  || uploadRes.data;
 
             const dataToSave = {
                 url: uploadedPdfUrl,

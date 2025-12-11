@@ -347,7 +347,7 @@ const CvManagement: React.FC = () => {
     const handleEditCv = async (cv: ICv) => {
         setLoading(true);
         try {
-            const res = await callFetchCvById(cv.id); // Fetch detail to get latest data
+            const res = await callFetchCvById(cv.id.toString()); // Fetch detail to get latest data
             setSelectedCv(res?.data || cv);
             setIsEditMode(true);
             setIsModalOpen(true);
@@ -367,7 +367,7 @@ const CvManagement: React.FC = () => {
             cancelText: 'Hủy',
             onOk: async () => {
                 try {
-                    await callDeleteCv(id);
+                    await callDeleteCv(id.toString());
                     message.success('Đã xóa CV');
                     fetchCvList();
                 } catch (e) {
@@ -381,7 +381,7 @@ const CvManagement: React.FC = () => {
         if (!selectedCv) return;
         setProcessing(true);
         try {
-            await callUpdateCv(selectedCv.id, selectedCv);
+            await callUpdateCv(selectedCv.id.toString(), selectedCv);
             message.success('Cập nhật CV thành công');
             fetchCvList();
             setIsEditMode(false); // Switch to view mode

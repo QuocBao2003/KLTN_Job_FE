@@ -50,7 +50,8 @@ const ModalSkill = (props: IProps) => {
         
         if (dataInit?.id) {
             //update - chỉ update name
-            const res = await callUpdateSkill(dataInit.id, name);
+        
+            const res = await callUpdateSkill(dataInit.id.toString(), name);
             if (res.data) {
                 message.success("Cập nhật skill thành công");
                 handleReset();

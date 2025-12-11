@@ -17,7 +17,7 @@ import {
 } from 'recharts';
 import ReactApexChart from 'react-apexcharts';
 import type { ApexOptions } from 'apexcharts';
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactElement } from "react";
 import { getHRStatistics, getAdminStatistics, IStatisticsFilter, getRevenueStatistics } from "@/config/api";
 import { IHRStatistics, IAdminStatistics, IPackageRevenueStatistics } from "@/types/backend";
 import { useAppSelector } from "@/redux/hooks";
@@ -32,7 +32,7 @@ const { Option } = Select;
 
 type TimeUnit = 'WEEK' | 'MONTH';
 
-const DashboardPage = () => {
+const DashboardPage = (): ReactElement => {
     const user = useAppSelector(state => state.account.user);
   
     const isHR = user?.role?.name === 'HR';
@@ -312,7 +312,7 @@ const DashboardPage = () => {
             [],
             ['Tên gói', 'Loại gói', 'Giá', 'Số lượng bán', 'Doanh thu', '% Tổng']
         ];
-        const packageRows = revenueStats.packageTypeStatistics.map(pkg => [
+        const packageRows = revenueStats.packageTypeStatistics.map((pkg) => [
             pkg.packageName,
             pkg.packageType,
             formatCurrency(pkg.price),
@@ -713,9 +713,10 @@ const DashboardPage = () => {
             </div>
         );
     }
+    
 
     // Admin Dashboard
-    if (isAdmin && adminStats) {
+    if (isAdmin && adminStats && revenueStats) {
         const jobStatusData = [
             { name: 'Approved', value: adminStats.totalApprovedJobs, color: COLORS.approved },
             { name: 'Rejected', value: adminStats.totalRejectedJobs, color: COLORS.rejected },
@@ -725,8 +726,7 @@ const DashboardPage = () => {
         const resumeStatusData = adminStats.resumesByStatus.map(item => ({
             name: item.status,
             value: item.count,
-            color: item.status === 'APPROVED' ? COLORS.approved : 
-                   item.status === 'REJECTED' ? COLORS.rejected : COLORS.pending
+            color: item.status === 'APPROVED' ? COLORS.approved : item.status === 'REJECTED' ? COLORS.rejected : COLORS.pending
         }));
 
         const jobsTimeSeriesData = adminStats.jobsTimeSeries.map(item => ({
@@ -747,7 +747,6 @@ const DashboardPage = () => {
             pending: company.pendingResumes
         }));
 
-        // ApexCharts cho top company (stacked column)
         const topCompanySeries = [
             { name: 'Approved', data: companyResumeData.map(item => item.approved) },
             { name: 'Pending', data: companyResumeData.map(item => item.pending) },
@@ -756,484 +755,345 @@ const DashboardPage = () => {
 
         const topCompanyOptions: ApexOptions = {
             chart: { type: 'bar', stacked: true, toolbar: { show: false } },
-            plotOptions: {
-                bar: {
-                    borderRadius: 6,
-                    columnWidth: '45%'
-                }
-            },
+            plotOptions: { bar: { borderRadius: 6, columnWidth: '45%' } },
             dataLabels: { enabled: false },
             grid: { strokeDashArray: 4 },
             colors: [COLORS.approved, COLORS.pending, COLORS.rejected],
-            xaxis: {
-                categories: companyResumeData.map(item => item.name),
-                labels: { rotate: -45, trim: true }
-            },
-            yaxis: {
-                labels: {
-                    formatter: (val: number) => `${Math.round(val)}`
-                }
-            },
+            xaxis: { categories: companyResumeData.map(item => item.name), labels: { rotate: -45, trim: true } },
+            yaxis: { labels: { formatter: (val: number) => `${Math.round(val)}` } },
             legend: { position: 'top' },
             tooltip: { shared: true, intersect: false }
         };
 
-        if (isAdmin && adminStats && revenueStats) {
         return (
             <div>
-                    {/* ===== FILTER SECTION ===== */}
                 <Card bordered={false} style={{ marginBottom: 20 }}>
                     <Space wrap>
-                            <span>Thời gian:</span>
-                        <RangePicker 
-                                value={dateRange as any}
+                        <span>Thời gian:</span>
+                        <RangePicker
+                            value={dateRange as any}
                             onChange={(dates) => setDateRange(dates as [Dayjs, Dayjs] | null)}
                             format="DD/MM/YYYY"
                             allowClear={false}
                         />
-        
-                            <span>Xem theo:</span>
+
+                        <span>Xem theo:</span>
                         <Radio.Group value={timeUnit} onChange={(e) => setTimeUnit(e.target.value)}>
-                                <Radio.Button value="WEEK">Tuần</Radio.Button>
-                                <Radio.Button value="MONTH">Tháng</Radio.Button>
+                            <Radio.Button value="WEEK">Tuần</Radio.Button>
+                            <Radio.Button value="MONTH">Tháng</Radio.Button>
                         </Radio.Group>
-        
-                        <Button 
-                            type="primary" 
+
+                        <Button
+                            type="primary"
                             icon={<DownloadOutlined />}
-                                onClick={exportAdminFullToExcel}
-                                style={{
-                                    marginLeft: 8,
-                                    backgroundImage: 'linear-gradient(135deg, rgb(62, 172, 99), rgb(39, 204, 174))'
-                                }}
-                            >
-                                Xuất báo cáo đầy đủ
+                            onClick={exportAdminFullToExcel}
+                            style={{
+                                marginLeft: 8,
+                                backgroundImage: 'linear-gradient(135deg, rgb(62, 172, 99), rgb(39, 204, 174))'
+                            }}
+                        >
+                            Xuất báo cáo đầy đủ
                         </Button>
-        
-                            {/* Chỉ hiện khi tab Tổng Quan */}
-                            {activeTab === 'overview' && (
-                                <>
-                                    <span>Top công ty:</span>
-                        <Select value={topLimit} onChange={setTopLimit} style={{ width: 100 }}>
-                            <Option value={5}>Top 5</Option>
-                            <Option value={10}>Top 10</Option>
-                            <Option value={20}>Top 20</Option>
-                            <Option value={50}>Top 50</Option>
-                        </Select>
-                                </>
-                            )}
+
+                        {activeTab === 'overview' && (
+                            <>
+                                <span>Top công ty:</span>
+                                <Select value={topLimit} onChange={setTopLimit} style={{ width: 100 }}>
+                                    <Option value={5}>Top 5</Option>
+                                    <Option value={10}>Top 10</Option>
+                                    <Option value={20}>Top 20</Option>
+                                    <Option value={50}>Top 50</Option>
+                                </Select>
+                            </>
+                        )}
                     </Space>
+                    <div style={{ marginTop: 10 }}>
+                        <Radio.Group value={activeTab} onChange={(e) => setActiveTab(e.target.value)}>
+                            <Radio.Button value="overview">Tổng quan</Radio.Button>
+                            <Radio.Button value="revenue">Doanh thu</Radio.Button>
+                        </Radio.Group>
+                    </div>
                 </Card>
 
-                    {/* ===== TABS ===== */}
-                    <Tabs activeKey={activeTab} onChange={setActiveTab}>
-                        {/* ------------------------------------------------------ */}
-                        {/* =====================  TAB TỔNG QUAN  ================= */}
-                        {/* ------------------------------------------------------ */}
-                        <TabPane tab="Tổng quan hệ thống" key="overview">
-                <Row gutter={[20, 20]}>
-                                {/* Approved Jobs */}
-                    <Col span={24} md={6}>
-                                    <Card bordered={false} style={{
-                                        borderTop: "4px solid",
-                                        borderImage: "linear-gradient(to left, rgb(28, 231, 231), rgb(87, 51, 131)) 1"
-                                    }}>
-                            <Statistic
-                                            title="Công việc đã duyệt"
-                                value={adminStats.totalApprovedJobs}
-                                formatter={formatter}
-                                            prefix={<FaCheckCircle style={{ color: COLORS.approved, fontSize: "25px" }} />}
-                                valueStyle={{ color: COLORS.approved }}
-                            />
-                        </Card>
-                    </Col>
-        
-                                {/* Rejected Jobs */}
-                    <Col span={24} md={6}>
-                                    <Card bordered={false} style={{
-                                        borderTop: "4px solid",
-                                        borderImage: "linear-gradient(to left, rgb(28, 231, 231), rgb(87, 51, 131)) 1"
-                                    }}>
-                            <Statistic
-                                            title="Công việc không được duyệt"
-                                value={adminStats.totalRejectedJobs}
-                                formatter={formatter}
-                                            prefix={<IoIosCloseCircle style={{ color: COLORS.rejected, fontSize: "29px" }} />}
-                                valueStyle={{ color: COLORS.rejected }}
-                            />
-                        </Card>
-                    </Col>
-        
-                                {/* Total Companies */}
-                    <Col span={24} md={6}>
-                                    <Card bordered={false} style={{
-                                        borderTop: "4px solid",
-                                        borderImage: "linear-gradient(to left, rgb(28, 231, 231), rgb(87, 51, 131)) 1"
-                                    }}>
-                            <Statistic
-                                            title="Tổng số công ty"
-                                value={adminStats.totalCompanies}
-                                formatter={formatter}
-                                            prefix={<ShopOutlined style={{ color: COLORS.primary, fontSize: "25px" }} />}
-                                valueStyle={{ color: COLORS.primary }}
-                            />
-                        </Card>
-                    </Col>
-        
-                                {/* Top Company */}
-                    <Col span={24} md={6}>
-                                    <Card bordered={false} style={{
-                                        borderTop: "4px solid",
-                                        borderImage: "linear-gradient(to left, rgb(28, 231, 231), rgb(87, 51, 131)) 1"
-                                    }}>
-                            <Statistic
-                                            title="Công ty hàng đầu"
-                                value={adminStats.topCompanyByResumes?.totalResumes || 0}
-                                formatter={formatter}
-                                            prefix={<TrophyOutlined style={{ color: COLORS.pending, fontSize: "25px" }} />}
-                                valueStyle={{ color: COLORS.pending }}
-                            />
-                            <div style={{ fontSize: 12, marginTop: 8, color: '#888' }}>
-                                {adminStats.topCompanyByResumes?.companyName || 'N/A'}
-                            </div>
-                        </Card>
-                    </Col>
-                </Row>
+                <Tabs activeKey={activeTab} onChange={setActiveTab}>
+                    <TabPane tab="Tổng quan hệ thống" key="overview">
+                        <Row gutter={[20, 20]}>
+                            <Col span={24} md={6}>
+                                <Card bordered={false} style={{ borderTop: "4px solid", borderImage: "linear-gradient(to left, rgb(28, 231, 231), rgb(87, 51, 131)) 1" }}>
+                                    <Statistic
+                                        title="Công việc đã duyệt"
+                                        value={adminStats.totalApprovedJobs}
+                                        formatter={formatter}
+                                        prefix={<FaCheckCircle style={{ color: COLORS.approved, fontSize: "25px" }} />}
+                                        valueStyle={{ color: COLORS.approved }}
+                                    />
+                                </Card>
+                            </Col>
+                            <Col span={24} md={6}>
+                                <Card bordered={false} style={{ borderTop: "4px solid", borderImage: "linear-gradient(to left, rgb(28, 231, 231), rgb(87, 51, 131)) 1" }}>
+                                    <Statistic
+                                        title="Công việc không được duyệt"
+                                        value={adminStats.totalRejectedJobs}
+                                        formatter={formatter}
+                                        prefix={<IoIosCloseCircle style={{ color: COLORS.rejected, fontSize: "29px" }} />}
+                                        valueStyle={{ color: COLORS.rejected }}
+                                    />
+                                </Card>
+                            </Col>
+                            <Col span={24} md={6}>
+                                <Card bordered={false} style={{ borderTop: "4px solid", borderImage: "linear-gradient(to left, rgb(28, 231, 231), rgb(87, 51, 131)) 1" }}>
+                                    <Statistic
+                                        title="Tổng số công ty"
+                                        value={adminStats.totalCompanies}
+                                        formatter={formatter}
+                                        prefix={<ShopOutlined style={{ color: COLORS.primary, fontSize: "25px" }} />}
+                                        valueStyle={{ color: COLORS.primary }}
+                                    />
+                                </Card>
+                            </Col>
+                            <Col span={24} md={6}>
+                                <Card bordered={false} style={{ borderTop: "4px solid", borderImage: "linear-gradient(to left, rgb(28, 231, 231), rgb(87, 51, 131)) 1" }}>
+                                    <Statistic
+                                        title="Công ty hàng đầu"
+                                        value={adminStats.topCompanyByResumes?.totalResumes || 0}
+                                        formatter={formatter}
+                                        prefix={<TrophyOutlined style={{ color: COLORS.pending, fontSize: "25px" }} />}
+                                        valueStyle={{ color: COLORS.pending }}
+                                    />
+                                    <div style={{ fontSize: 12, marginTop: 8, color: '#888' }}>
+                                        {adminStats.topCompanyByResumes?.companyName || 'N/A'}
+                                    </div>
+                                </Card>
+                            </Col>
+                        </Row>
 
-                            {/* ====== PIE CHARTS ====== */}
-                <Row gutter={[20, 20]} style={{ marginTop: 20 }}>
-                    <Col span={24} md={12}>
-                        <Card title="Trạng thái công việc" bordered={false}>
-                            <ResponsiveContainer width="100%" height={300}>
-                                <PieChart>
-                                    <Pie
-                                        data={jobStatusData}
-                                        cx="50%"
-                                        cy="50%"
-                                        labelLine={false}
-                                                    label={({ name, percent }) =>
-                                                        `${name || ''}: ${((percent || 0) * 100).toFixed(0)}%`
-                                                    }
-                                        outerRadius={80}
-                                        dataKey="value"
-                                    >
-                                                    {jobStatusData.map((entry, i) => (
-                                                        <Cell key={i} fill={entry.color} />
-                                        ))}
-                                    </Pie>
-                                    <Tooltip />
-                                    <Legend />
-                                </PieChart>
-                            </ResponsiveContainer>
-                        </Card>
-                    </Col>
+                        <Row gutter={[20, 20]} style={{ marginTop: 20 }}>
+                            <Col span={24} md={12}>
+                                <Card title="Trạng thái công việc" bordered={false}>
+                                    <ResponsiveContainer width="100%" height={300}>
+                                        <PieChart>
+                                            <Pie
+                                                data={jobStatusData}
+                                                cx="50%"
+                                                cy="50%"
+                                                labelLine={false}
+                                                label={({ name, percent }) => `${name || ''}: ${((percent || 0) * 100).toFixed(0)}%`}
+                                                outerRadius={80}
+                                                dataKey="value"
+                                            >
+                                                {jobStatusData.map((entry, i) => (
+                                                    <Cell key={i} fill={entry.color} />
+                                                ))}
+                                            </Pie>
+                                            <Tooltip />
+                                            <Legend />
+                                        </PieChart>
+                                    </ResponsiveContainer>
+                                </Card>
+                            </Col>
 
-                    <Col span={24} md={12}>
-                        <Card title="Trạng thái đơn ứng tuyển" bordered={false}>
-                            <ResponsiveContainer width="100%" height={300}>
-                                <PieChart>
-                                    <Pie
-                                        data={resumeStatusData}
-                                        cx="50%"
-                                        cy="50%"
-                                        outerRadius={80}
-                                                    labelLine={false}
-                                                    label={({ name, percent }) =>
-                                                        `${name || ''}: ${((percent || 0) * 100).toFixed(0)}%`
-                                                    }
-                                        dataKey="value"
-                                    >
-                                                    {resumeStatusData.map((entry, i) => (
-                                                        <Cell key={i} fill={entry.color} />
-                                        ))}
-                                    </Pie>
-                                    <Tooltip />
-                                    <Legend />
-                                </PieChart>
-                            </ResponsiveContainer>
-                        </Card>
-                    </Col>
-                </Row>
+                            <Col span={24} md={12}>
+                                <Card title="Trạng thái đơn ứng tuyển" bordered={false}>
+                                    <ResponsiveContainer width="100%" height={300}>
+                                        <PieChart>
+                                            <Pie
+                                                data={resumeStatusData}
+                                                cx="50%"
+                                                cy="50%"
+                                                outerRadius={80}
+                                                labelLine={false}
+                                                label={({ name, percent }) => `${name || ''}: ${((percent || 0) * 100).toFixed(0)}%`}
+                                                dataKey="value"
+                                            >
+                                                {resumeStatusData.map((entry, i) => (
+                                                    <Cell key={i} fill={entry.color} />
+                                                ))}
+                                            </Pie>
+                                            <Tooltip />
+                                            <Legend />
+                                        </PieChart>
+                                    </ResponsiveContainer>
+                                </Card>
+                            </Col>
+                        </Row>
 
-                            {/* ===== APEX BAR — TOP COMPANIES ===== */}
-                            <Row style={{ marginTop: 20 }}>
-                    <Col span={24}>
-                        <Card title={`Top ${topLimit} Công ty có nhiều ứng tuyển nhất`} bordered={false}>
-                                        <ReactApexChart
-                                            options={topCompanyOptions}
-                                            series={topCompanySeries}
-                                            type="bar"
-                                            height={400}
-                                        />
-                        </Card>
-                    </Col>
-                </Row>
+                        <Row style={{ marginTop: 20 }}>
+                            <Col span={24}>
+                                <Card title={`Top ${topLimit} Công ty có nhiều ứng tuyển nhất`} bordered={false}>
+                                    <ReactApexChart options={topCompanyOptions} series={topCompanySeries} type="bar" height={400} />
+                                </Card>
+                            </Col>
+                        </Row>
 
-                            {/* ===== TABLE TOP COMPANIES ===== */}
-                            <Row style={{ marginTop: 20 }}>
-                    <Col span={24}>
-                        <Card title={`Top ${topLimit} Companies - Application Details`} bordered={false}>
-                            <Table
-                                dataSource={adminStats.companyResumeStatistics}
-                                rowKey="companyId"
-                                pagination={false}
-                                scroll={{ x: 800 }}
-                                columns={[
-                                                { title: 'Rank', width: 70, render: (_, __, i) => i + 1 },
-                                                { title: 'Company Name', dataIndex: 'companyName', width: 250 },
-                                    {
-                                        title: 'Total',
-                                        dataIndex: 'totalResumes',
-                                                    render: (v) => <Tag color="blue">{v}</Tag>
-                                    },
-                                    {
-                                        title: 'Approved',
-                                        dataIndex: 'approvedResumes',
-                                                    render: (v) => <Tag color="success">{v}</Tag>
-                                    },
-                                    {
-                                        title: 'Pending',
-                                        dataIndex: 'pendingResumes',
-                                                    render: (v) => <Tag color="warning">{v}</Tag>
-                                    },
-                                    {
-                                        title: 'Rejected',
-                                        dataIndex: 'rejectedResumes',
-                                                    render: (v) => <Tag color="error">{v}</Tag>
-                                                }
-                                            ]}
-                                        />
-                                    </Card>
-                                </Col>
-                            </Row>
-                        </TabPane>
-        
-                        {/* ------------------------------------------------------ */}
-                        {/* ======================  TAB REVENUE  ================== */}
-                        {/* ------------------------------------------------------ */}
-                        <TabPane tab="Thống kê doanh thu" key="revenue">
-                            {/* ===== Revenue Cards ===== */}
-                            <Row gutter={[20, 20]}>
-                                <Col span={24} md={12}>
-                                    <Card bordered={false} style={{
-                                        borderTop: "4px solid",
-                                        borderImage: "linear-gradient(to left, rgb(255, 159, 64), rgb(255, 205, 86)) 1"
-                                    }}>
-                                        <Statistic
-                                            title="Tổng doanh thu"
-                                            value={revenueStats.totalRevenue}
-                                            formatter={currencyFormatter}
-                                            prefix={<DollarOutlined style={{ color: COLORS.revenue, fontSize: "30px" }} />}
-                                            valueStyle={{ color: COLORS.revenue, fontSize: "28px" }}
-                                        />
-                                    </Card>
-                                </Col>
-        
-                                <Col span={24} md={12}>
-                                    <Card bordered={false} style={{
-                                        borderTop: "4px solid",
-                                        borderImage: "linear-gradient(to left, rgb(75, 192, 192), rgb(54, 162, 235)) 1"
-                                    }}>
-                                        <Statistic
-                                            title="Tổng số gói đã bán"
-                                            value={revenueStats.totalPackagesSold}
-                                            formatter={formatter}
-                                            prefix={<ShoppingOutlined style={{ color: COLORS.primary, fontSize: "30px" }} />}
-                                            valueStyle={{ color: COLORS.primary, fontSize: "28px" }}
-                                        />
-                                    </Card>
-                                </Col>
-                            </Row>
-        
-                            {/* ===== Pie: Revenue by Package Type ===== */}
-                            <Row gutter={[20, 20]} style={{ marginTop: 20 }}>
-                                <Col span={24} md={12}>
-                                    <Card title="Doanh thu theo loại gói" bordered={false}>
-                                        <ResponsiveContainer width="100%" height={350}>
-                                            <PieChart>
-                                                <Pie
-                                                    data={revenueStats.packageTypeStatistics.map(pkg => ({
-                                                        name: pkg.packageName,
-                                                        value: pkg.totalRevenue
-                                                    }))}
-                                                    cx="50%"
-                                                    cy="50%"
-                                                    outerRadius={100}
-                                                    labelLine={false}
-                                                    label={({ name, percent }) =>
-                                                        `${(name || '').substring(0, 15)}...: ${((percent || 0) * 100).toFixed(1)}%`
-                                                    }
-                                                    dataKey="value"
-                                                >
-                                                    {revenueStats.packageTypeStatistics.map((_, index) => {
-                                                        const colors = ['#722ed1', '#1890ff', '#52c41a'];
-                                                        return <Cell key={index} fill={colors[index % colors.length]} />;
-                                                    })}
-                                                </Pie>
-                                                <Tooltip formatter={(value) => formatCurrency(Number(value))} />
-                                                <Legend />
-                                            </PieChart>
-                                        </ResponsiveContainer>
-                                    </Card>
-                                </Col>
-        
-                                {/* ===== Revenue Time Series Column Chart ===== */}
-                                <Col span={24} md={12}>
-                                    <Card title={`Doanh thu theo ${timeUnit === 'WEEK' ? 'tuần' : 'tháng'}`} bordered={false}>
-                                        <ReactApexChart
-                                            options={{
-                                                chart: {
-                                                    type: 'bar',
-                                                    height: 350,
-                                                    toolbar: { show: false },
-                                                },
-                                                plotOptions: {
-                                                    bar: {
-                                                        horizontal: false,
-                                                        columnWidth: '55%',
-                                                        borderRadius: 6,
-                                                    },
-                                                },
-                                                dataLabels: {
-                                                    enabled: false
-                                                },
-                                                stroke: {
-                                                    show: true,
-                                                    width: 2,
-                                                    colors: ['transparent']
-                                                },
-                                                xaxis: {
-                                                    categories: revenueStats.revenueTimeSeries.map(item => item.label),
-                                                    labels: {
-                                                        rotate: -45,
-                                                        rotateAlways: true,
-                                                        style: {
-                                                            fontSize: '12px'
-                                                        }
-                                                    }
-                                                },
-                                                yaxis: {
-                                                    labels: {
-                                                        formatter: (val: number) => `${(val / 1000000).toFixed(1)}M`
-                                                    },
-                                                    title: {
-                                                        text: 'Doanh thu (VND)'
-                                                    }
-                                                },
-                                                fill: {
-                                                    opacity: 1,
-                                                    colors: [COLORS.revenue]
-                                                },
-                                                tooltip: {
-                                                    y: {
-                                                        formatter: function (val: number) {
-                                                            return formatCurrency(val);
-                                                        }
-                                                    }
-                                                },
-                                                legend: {
-                                                    show: false
-                                                },
-                                                grid: {
-                                                    strokeDashArray: 4
-                                                }
-                                            }}
-                                            series={[{
-                                                name: 'Doanh thu',
-                                                data: revenueStats.revenueTimeSeries.map(item => item.revenue)
-                                            }]}
-                                            type="bar"
-                                            height={350}
-                                        />
-                                    </Card>
-                                </Col>
-                            </Row>
-        
-                            {/* ===== Revenue Time Series ===== */}
-                           
-        
-                            {/* ===== Revenue Table ===== */}
-                            <Row style={{ marginTop: 20 }}>
-                                <Col span={24}>
-                                    <Card
-                                        title="Chi tiết doanh thu theo gói"
-                                        bordered={false}
-                                        extra={
-                                            <Button icon={<DownloadOutlined />} onClick={exportRevenueToExcel}>
-                                                Xuất Excel
-                                            </Button>
-                                        }
-                                    >
-                                        <Table
-                                            dataSource={revenueStats.packageTypeStatistics}
-                                            rowKey="packageType"
-                                            pagination={false}
-                                            columns={[
-                                                {
-                                                    title: 'Tên gói',
-                                                    dataIndex: 'packageName',
-                                                    render: (t) => <strong>{t}</strong>
-                                                },
-                                                {
-                                                    title: 'Giá gói',
-                                                    dataIndex: 'price',
-                                                    render: (p) => (
-                                                        <span style={{ color: COLORS.primary }}>
-                                                            {formatCurrency(p)}
+                        <Row style={{ marginTop: 20 }}>
+                            <Col span={24}>
+                                <Card title={`Top ${topLimit} Companies - Application Details`} bordered={false}>
+                                    <Table
+                                        dataSource={adminStats.companyResumeStatistics}
+                                        rowKey="companyId"
+                                        pagination={false}
+                                        scroll={{ x: 800 }}
+                                        columns={[
+                                            { title: 'Rank', width: 70, render: (_, __, i) => i + 1 },
+                                            { title: 'Company Name', dataIndex: 'companyName', width: 250 },
+                                            { title: 'Total', dataIndex: 'totalResumes', render: (v) => <Tag color="blue">{v}</Tag> },
+                                            { title: 'Approved', dataIndex: 'approvedResumes', render: (v) => <Tag color="success">{v}</Tag> },
+                                            { title: 'Pending', dataIndex: 'pendingResumes', render: (v) => <Tag color="warning">{v}</Tag> },
+                                            { title: 'Rejected', dataIndex: 'rejectedResumes', render: (v) => <Tag color="error">{v}</Tag> }
+                                        ]}
+                                    />
+                                </Card>
+                            </Col>
+                        </Row>
+                    </TabPane>
+
+                    <TabPane tab="Thống kê doanh thu" key="revenue">
+                        <Row gutter={[20, 20]}>
+                            <Col span={24} md={12}>
+                                <Card bordered={false} style={{ borderTop: "4px solid", borderImage: "linear-gradient(to left, rgb(255, 159, 64), rgb(255, 205, 86)) 1" }}>
+                                    <Statistic
+                                        title="Tổng doanh thu"
+                                        value={revenueStats.totalRevenue}
+                                        formatter={currencyFormatter}
+                                        prefix={<DollarOutlined style={{ color: COLORS.revenue, fontSize: "30px" }} />}
+                                        valueStyle={{ color: COLORS.revenue, fontSize: "28px" }}
+                                    />
+                                </Card>
+                            </Col>
+
+                            <Col span={24} md={12}>
+                                <Card bordered={false} style={{ borderTop: "4px solid", borderImage: "linear-gradient(to left, rgb(75, 192, 192), rgb(54, 162, 235)) 1" }}>
+                                    <Statistic
+                                        title="Tổng số gói đã bán"
+                                        value={revenueStats.totalPackagesSold}
+                                        formatter={formatter}
+                                        prefix={<ShoppingOutlined style={{ color: COLORS.primary, fontSize: "30px" }} />}
+                                        valueStyle={{ color: COLORS.primary, fontSize: "28px" }}
+                                    />
+                                </Card>
+                            </Col>
+                        </Row>
+
+                        <Row gutter={[20, 20]} style={{ marginTop: 20 }}>
+                            <Col span={24} md={12}>
+                                <Card title="Doanh thu theo loại gói" bordered={false}>
+                                    <ResponsiveContainer width="100%" height={350}>
+                                        <PieChart>
+                                            <Pie
+                                                data={revenueStats.packageTypeStatistics.map(pkg => ({ name: pkg.packageName, value: pkg.totalRevenue }))}
+                                                cx="50%"
+                                                cy="50%"
+                                                outerRadius={100}
+                                                labelLine={false}
+                                                label={({ name, percent }) => `${(name || '').substring(0, 15)}...: ${((percent || 0) * 100).toFixed(1)}%`}
+                                                dataKey="value"
+                                            >
+                                                {revenueStats.packageTypeStatistics.map((_, index) => {
+                                                    const colors = ['#722ed1', '#1890ff', '#52c41a'];
+                                                    return <Cell key={index} fill={colors[index % colors.length]} />;
+                                                })}
+                                            </Pie>
+                                            <Tooltip formatter={(value) => formatCurrency(Number(value))} />
+                                            <Legend />
+                                        </PieChart>
+                                    </ResponsiveContainer>
+                                </Card>
+                            </Col>
+
+                            <Col span={24} md={12}>
+                                <Card title={`Doanh thu theo ${timeUnit === 'WEEK' ? 'tuần' : 'tháng'}`} bordered={false}>
+                                    <ReactApexChart
+                                        options={{
+                                            chart: { type: 'bar', height: 350, toolbar: { show: false } },
+                                            plotOptions: { bar: { horizontal: false, columnWidth: '55%', borderRadius: 6 } },
+                                            dataLabels: { enabled: false },
+                                            stroke: { show: true, width: 2, colors: ['transparent'] },
+                                            xaxis: {
+                                                categories: revenueStats.revenueTimeSeries.map(item => item.label),
+                                                labels: { rotate: -45, rotateAlways: true, style: { fontSize: '12px' } }
+                                            },
+                                            yaxis: {
+                                                labels: { formatter: (val: number) => `${(val / 1000000).toFixed(1)}M` },
+                                                title: { text: 'Doanh thu (VND)' }
+                                            },
+                                            fill: { opacity: 1, colors: [COLORS.revenue] },
+                                            tooltip: { y: { formatter: (val: number) => formatCurrency(val) } },
+                                            legend: { show: false },
+                                            grid: { strokeDashArray: 4 }
+                                        }}
+                                        series={[{ name: 'Doanh thu', data: revenueStats.revenueTimeSeries.map(item => item.revenue) }]}
+                                        type="bar"
+                                        height={350}
+                                    />
+                                </Card>
+                            </Col>
+                        </Row>
+
+                        <Row style={{ marginTop: 20 }}>
+                            <Col span={24}>
+                                <Card
+                                    title="Chi tiết doanh thu theo gói"
+                                    bordered={false}
+                                    extra={<Button icon={<DownloadOutlined />} onClick={exportRevenueToExcel}>Xuất Excel</Button>}
+                                >
+                                    <Table
+                                        dataSource={revenueStats.packageTypeStatistics}
+                                        rowKey="packageType"
+                                        pagination={false}
+                                        columns={[
+                                            { title: 'Tên gói', dataIndex: 'packageName', render: (t) => <strong>{t}</strong> },
+                                            {
+                                                title: 'Giá gói',
+                                                dataIndex: 'price',
+                                                render: (p) => <span style={{ color: COLORS.primary }}>{formatCurrency(p)}</span>
+                                            },
+                                            {
+                                                title: 'Số lượng bán',
+                                                dataIndex: 'quantitySold',
+                                                sorter: (a, b) => a.quantitySold - b.quantitySold,
+                                                render: (c) => <Tag color="blue">{c} gói</Tag>
+                                            },
+                                            {
+                                                title: 'Doanh thu',
+                                                dataIndex: 'totalRevenue',
+                                                sorter: (a, b) => a.totalRevenue - b.totalRevenue,
+                                                render: (r) => <span style={{ color: COLORS.revenue, fontWeight: 'bold' }}>{formatCurrency(r)}</span>
+                                            },
+                                            {
+                                                title: '% Tổng doanh thu',
+                                                dataIndex: 'percentageOfTotal',
+                                                sorter: (a, b) => a.percentageOfTotal - b.percentageOfTotal,
+                                                render: (p) => <Tag color="green">{p.toFixed(2)}%</Tag>
+                                            }
+                                        ]}
+                                        summary={(pageData) => {
+                                            const totalRevenue = pageData.reduce((s, r) => s + r.totalRevenue, 0);
+                                            const totalQuantity = pageData.reduce((s, r) => s + r.quantitySold, 0);
+
+                                            return (
+                                                <Table.Summary.Row style={{ background: "#fafafa", fontWeight: "bold" }}>
+                                                    <Table.Summary.Cell index={0}>TỔNG CỘNG</Table.Summary.Cell>
+                                                    <Table.Summary.Cell index={1}>-</Table.Summary.Cell>
+                                                    <Table.Summary.Cell index={2}>
+                                                        <Tag color="blue">{totalQuantity} gói</Tag>
+                                                    </Table.Summary.Cell>
+                                                    <Table.Summary.Cell index={3}>
+                                                        <span style={{ color: COLORS.revenue, fontSize: 16 }}>
+                                                            {formatCurrency(totalRevenue)}
                                                         </span>
-                                                    )
-                                                },
-                                                {
-                                                    title: 'Số lượng bán',
-                                                    dataIndex: 'quantitySold',
-                                                    sorter: (a, b) => a.quantitySold - b.quantitySold,
-                                                    render: (c) => <Tag color="blue">{c} gói</Tag>
-                                                },
-                                                {
-                                                    title: 'Doanh thu',
-                                                    dataIndex: 'totalRevenue',
-                                                    sorter: (a, b) => a.totalRevenue - b.totalRevenue,
-                                                    render: (r) => (
-                                                        <span style={{ color: COLORS.revenue, fontWeight: 'bold' }}>
-                                                            {formatCurrency(r)}
-                                                        </span>
-                                                    )
-                                                },
-                                                {
-                                                    title: '% Tổng doanh thu',
-                                                    dataIndex: 'percentageOfTotal',
-                                                    sorter: (a, b) => a.percentageOfTotal - b.percentageOfTotal,
-                                                    render: (p) => <Tag color="green">{p.toFixed(2)}%</Tag>
-                                                }
-                                            ]}
-                                            summary={(pageData) => {
-                                                const totalRevenue = pageData.reduce((s, r) => s + r.totalRevenue, 0);
-                                                const totalQuantity = pageData.reduce((s, r) => s + r.quantitySold, 0);
-        
-                                                return (
-                                                    <Table.Summary.Row style={{ background: "#fafafa", fontWeight: "bold" }}>
-                                                        <Table.Summary.Cell index={0}>TỔNG CỘNG</Table.Summary.Cell>
-                                                        <Table.Summary.Cell index={1}>-</Table.Summary.Cell>
-                                                        <Table.Summary.Cell index={2}>
-                                                            <Tag color="blue">{totalQuantity} gói</Tag>
-                                                        </Table.Summary.Cell>
-                                                        <Table.Summary.Cell index={3}>
-                                                            <span style={{ color: COLORS.revenue, fontSize: 16 }}>
-                                                                {formatCurrency(totalRevenue)}
-                                                            </span>
-                                                        </Table.Summary.Cell>
-                                                        <Table.Summary.Cell index={4}>
-                                                            <Tag color="green">100%</Tag>
-                                                        </Table.Summary.Cell>
-                                                    </Table.Summary.Row>
-                                                );
-                                            }}
-                            />
-                        </Card>
-                    </Col>
-                </Row>
-                        </TabPane>
-                    </Tabs>
+                                                    </Table.Summary.Cell>
+                                                    <Table.Summary.Cell index={4}>
+                                                        <Tag color="green">100%</Tag>
+                                                    </Table.Summary.Cell>
+                                                </Table.Summary.Row>
+                                            );
+                                        }}
+                                    />
+                                </Card>
+                            </Col>
+                        </Row>
+                    </TabPane>
+                </Tabs>
             </div>
         );
     }
@@ -1244,7 +1104,7 @@ const DashboardPage = () => {
                 <p>Vui lòng đăng nhập với quyền HR hoặc Admin để xem thống kê</p>
         </div>
     );
-    }
-};
+    };
+
 
 export default DashboardPage;

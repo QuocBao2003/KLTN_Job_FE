@@ -393,6 +393,34 @@ export interface ICv {
     updatedAt?: string;
     url?: string;
 }
+
+export interface IPackageTypeStatistic {
+    packageType: 'PRIORITY_DISPLAY' | 'PRIORITY_BOLD_TITLE' | 'FEATURED_JOB';
+    packageName: string;
+    price: number;
+    quantitySold: number;
+    totalRevenue: number;
+    percentageOfTotal: number;
+}
+
+export interface IRevenueTimeSeriesStatistic {
+    label: string; // "Week 1-2025" hoặc "01/2025"
+    revenue: number;
+    packagesSold: number;
+    periodStart: string;
+    periodEnd: string;
+}
+
+export interface IPackageRevenueStatistics {
+    totalRevenue: number;
+    totalPackagesSold: number;
+    packageTypeStatistics: IPackageTypeStatistic[];
+    revenueTimeSeries: IRevenueTimeSeriesStatistic[];
+    statisticsTime: string;
+    filterStartDate: string;
+    filterEndDate: string;
+    timeUnit: string; // "WEEK" or "MONTH"
+}
 export interface IServicePackage {
     id: number;
     name: string;

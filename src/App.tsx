@@ -16,7 +16,7 @@ import Header from "components/client/header.client";
 import Footer from "components/client/footer.client";
 import HomePage from "pages/home";
 import styles from "styles/app.module.scss";
-import DashboardPage from "./pages/admin/dashboard";
+
 import CompanyPage from "./pages/admin/company";
 import PermissionPage from "./pages/admin/permission";
 import ResumePage from "./pages/admin/resume";
@@ -45,9 +45,7 @@ import MyPackages from "./pages/admin/myPackage";
 import PaymentReturn from "./pages/admin/payMentReturn";
 import ServicePackages from "./pages/admin/servicePackageHR";
 import PackageOrder from "./pages/admin/packageOrder";
-import ForgotPasswordPage from "./pages/auth/forgotPassword";
-
-
+import DashboardPage from "./pages/admin/dashboard";
 const LayoutClient = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const location = useLocation();

@@ -136,8 +136,12 @@ const ServicePackageModal = ({ visible, editingPackage, onClose, onSuccess }: IP
                 >
                     <InputNumber
                         style={{ width: '100%' }}
-                        formatter={value => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                        parser={value => value!.replace(/\$\s?|(,*)/g, '')}
+                        formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                        parser={(value) => {
+                            const cleaned = (value ?? '').replace(/\$\s?|(,*)/g, '');
+                            const num = Number(cleaned);
+                            return (Number.isNaN(num) ? 0 : num) as any;
+                        }}
                         placeholder="500000"
                         min={0}
                     />

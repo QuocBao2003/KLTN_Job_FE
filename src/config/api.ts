@@ -356,7 +356,7 @@ export const callFetchSubscriberById = (id: string) => {
 }
 
 export const callAskAI = (message: string) => {
-    return axios.post<IChatResponse>(`/api/v1/messageAi`, { message });
+    return axios.post<IBackendRes<IChatResponse>>(`/api/v1/messageAi`, { message });
 };
 export const callAskAIWithFile = (file: File, message?: string) => {
     const formData = new FormData();
@@ -365,7 +365,7 @@ export const callAskAIWithFile = (file: File, message?: string) => {
         formData.append('message', message);
     }
     
-    return axios.post<IChatResponse>(`/api/v1/fileAi`, formData, {
+    return axios.post<IBackendRes<IChatResponse>>(`/api/v1/fileAi`, formData, {
         headers: {
             'Content-Type': 'multipart/form-data',
         },

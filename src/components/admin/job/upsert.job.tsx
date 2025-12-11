@@ -161,9 +161,9 @@ const ViewUpsertJob = (props: any) => {
     useEffect(() => {
         if (skillsByProfession && skillsByProfession.length > 0) {
             const temp = skillsByProfession.map(item => ({
-                label: item.name as string,
-                value: item.id as string,
-                key: item.id
+                label: item?.name ?? "",
+                value: String(item?.id),
+                key: String(item?.id)
             }));
             setSkills(temp);
         }

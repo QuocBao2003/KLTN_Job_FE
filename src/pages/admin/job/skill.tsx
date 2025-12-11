@@ -133,7 +133,7 @@ const SkillPage = () => {
                         placement="leftTop"
                         title={"Xác nhận xóa skill"}
                         description={"Bạn có chắc chắn muốn xóa skill này ?"}
-                        onConfirm={() => handleDeleteSkill(entity.id)}
+                        onConfirm={() => handleDeleteSkill(entity.id?.toString())}
                         okText="Xác nhận"
                         cancelText="Hủy"
                     >

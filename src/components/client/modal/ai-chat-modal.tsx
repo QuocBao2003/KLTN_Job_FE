@@ -79,7 +79,7 @@ const AIChatModal = (props : IAIChatProps) => {
             
             // Axios interceptor đã trả về res.data, nên res là IChatResponse trực tiếp
             if(res?.data && res.data.message){
-                const responseData: IChatResponse = res.data;
+                const responseData: IChatResponse = res?.data;
                 const assistantMessage: IChatMessage = {
                     role : 'assistant', 
                     content : responseData.message || '',
