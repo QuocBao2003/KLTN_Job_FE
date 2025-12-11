@@ -12,70 +12,79 @@ const Authenticate: React.FC = () => {
     (state) => state.account.isAuthenticated
   );
   useEffect(() => {
-    const authCodeRegex = /code=([^&]+)/;
-    const match = window.location.href.match(authCodeRegex);
+    const handleOAuthCallback = async () => {
+        try {
+            // 1. Lấy code từ URL
+            const authCodeRegex = /code=([^&]+)/;
+            const match = window.location.href.match(authCodeRegex);
 
-    if (!match) {
-      console.error("No authorization code found in URL");
-      return;
-    }
+            if (!match) {
+                console.error("❌ No authorization code found");
+                navigate("/login", { replace: true });
+                return;
+            }
 
-    const authCode = match[1];
-    console.log("Auth code:", authCode);
+            const authCode = match[1];
+            console.log("📝 Auth code:", authCode);
 
-    fetch(
-      `https://api.topjjobapi.click:9095/api/v1/auth/outbound/authentication?code=${authCode}`,
-      {
-        method: "POST",
-        credentials: "include", // để gửi cookie refresh_token
-      }
-    )
-      .then(async (response) => {
-        if (!response.ok) {
-          const text = await response.text();
-          throw new Error(`HTTP ${response.status}: ${text}`);
-        }
-        return response.json();
-      })
-      .then((response) => {
-        console.log("🔍 API Response:", response);
-        // ✅ Lấy dữ liệu chính xác theo format BE trả
-        const data = response?.data; // Lấy data từ response
-        const token = data?.access_token ?? data?.accessToken;
-        const user = data?.user;
+            // 2. Gọi Backend API
+            console.log("📡 Calling backend API...");
+            const response = await fetch(
+                `https://api.topjjobapi.click/api/v1/auth/outbound/authentication?code=${authCode}`,
+                {
+                    method: "POST",
+                    credentials: "include",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Accept": "application/json"
+                    }
+                }
+            );
 
-        console.log("🔍 Data from response:", data);
-        console.log("🔍 Token:", token);
-        console.log("🔍 User:", user);
+            console.log("📊 Response status:", response.status);
 
-        if (token) {
-          localStorage.setItem("access_token", token);
-          console.log("✅ Token saved to localStorage");
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error("❌ Backend error:", errorText);
+                throw new Error(`Backend returned ${response.status}`);
+            }
 
-          if (user) {
-            console.log("🚀 Dispatching setUserLoginInfo with user:", user);
+            // 3. Parse response
+            const data = await response.json();
+            console.log("✅ API Response:", data);
+
+            const token = data?.accessToken;
+            const user = data?.user;
+
+            console.log("🔍 Token:", token);
+            console.log("🔍 User:", user);
+
+            // 4. Validate
+            if (!token || !user) {
+                throw new Error("Invalid response format");
+            }
+
+            // 5. Lưu token
+            localStorage.setItem("access_token", token);
+            console.log("💾 Token saved");
+
+            // 6. Dispatch user
             dispatch(setUserLoginInfo(user));
-            console.log("✅ setUserLoginInfo dispatched");
-          } else {
-            console.error("❌ No user data in response");
-          }
-        } else {
-          console.error("❌ No access token in response:", data);
-        }
-      })
-      .catch((error) => {
-        console.error("Authentication failed:", error);
-      });
-  }, [dispatch]);
+            console.log("👤 User dispatched:", user);
 
-  // Khi login thành công => chuyển hướng
-  useEffect(() => {
-    console.log("🔍 isAuthenticated changed:", isAuthenticated);
-    if (isAuthenticated) {
-      console.log("✅ User authenticated → redirecting...");
-      navigate("/", { replace: true });
-    }
-  }, [isAuthenticated, navigate]);
+            // 7. Redirect ngay
+            console.log("🔄 Redirecting to home...");
+            navigate("/", { replace: true });
+
+        } catch (error: any) {
+            console.error("💥 OAuth failed:", error);
+            alert(`Đăng nhập thất bại: ${error.message}`);
+            navigate("/login", { replace: true });
+        }
+    };
+
+    handleOAuthCallback();
+}, [dispatch, navigate]);
   return (
     <Box
       sx={{
