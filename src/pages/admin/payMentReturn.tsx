@@ -11,16 +11,34 @@ const PaymentReturn = () => {
     const [message, setMessage] = useState<string>('');
 
     useEffect(() => {
-        const status = searchParams.get('status'); // FE nhận từ backend redirect
-    const orderId = searchParams.get('orderId');
-    const paymentMessage = searchParams.get('message');
+        const resultCode = searchParams.get('resultCode');
+        const orderId = searchParams.get('orderId');
+        const paymentMessage = searchParams.get('message');
 
-    if (orderId) setOrderCode(orderId);
-    if (paymentMessage) setMessage(decodeURIComponent(paymentMessage));
+        console.log('Payment Return - Params:', { 
+            resultCode, 
+            orderId, 
+            paymentMessage,
+            allParams: Object.fromEntries(searchParams.entries())
+        });
 
-    if (status === 'success') setPaymentStatus('success');
-    else if (status === 'failed') setPaymentStatus('failed');
-    else setPaymentStatus('failed'); // fallback
+        if (orderId) {
+            setOrderCode(orderId);
+        }
+
+        if (paymentMessage) {
+            setMessage(decodeURIComponent(paymentMessage));
+        }
+
+        // Set status based on resultCode
+        if (resultCode === '0') {
+            setPaymentStatus('success');
+        } else if (resultCode) {
+            setPaymentStatus('failed');
+        } else {
+            // Nếu không có resultCode, có thể là URL không hợp lệ
+            setTimeout(() => setPaymentStatus('failed'), 1000);
+        }
     }, [searchParams]);
 
     if (paymentStatus === 'loading') {

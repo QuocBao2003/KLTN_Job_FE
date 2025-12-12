@@ -4,6 +4,12 @@
 /*    /index.html   200
 
 # =========================
+# Explicit fallback for MoMo Payment Return
+# (Prevent 404 Page Not Found)
+# =========================
+/admin/payment/return   /index.html   200
+
+# =========================
 # Optional: redirect root domain to home page (nếu cần)
 /index   /index.html  200
 
