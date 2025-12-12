@@ -74,6 +74,7 @@ const Authenticate: React.FC = () => {
             console.log("👤 User dispatched:", user);
 
             // 7. Redirect ngay
+            await new Promise(resolve => setTimeout(resolve, 1000));
             console.log("🔄 Redirecting to home...");
             navigate("/", { replace: true });
 
