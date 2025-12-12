@@ -54,8 +54,8 @@ const Authenticate: React.FC = () => {
             const data = await response.json();
             console.log("✅ API Response:", data);
 
-            const token = data?.accessToken;
-            const user = data?.user;
+            const token = data?.data?.access_token;
+            const user = data?.data?.user;
 
             console.log("🔍 Token:", token);
             console.log("🔍 User:", user);
