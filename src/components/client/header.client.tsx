@@ -169,6 +169,11 @@ const Header = (props: any) => {
           icon: <FireOutlined />,
         },
         {
+          label: <Link to={"/profile"}>Cập nhật thông tin</Link>,
+          key: "/profile",
+          icon: <ContactsOutlined />,
+        },
+        {
           label: (
             <label style={{ cursor: "pointer" }} onClick={() => handleLogout()}>
               Đăng xuất
