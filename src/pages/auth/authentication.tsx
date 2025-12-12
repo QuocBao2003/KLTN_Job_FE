@@ -11,10 +11,12 @@ const Authenticate: React.FC = () => {
   const isAuthenticated = useAppSelector(
     (state) => state.account.isAuthenticated
   );
+  const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "https://api.topjjobapi.click";
+
   useEffect(() => {
     const handleOAuthCallback = async () => {
       try {
-        // 1. Lấy code từ URL
+        // 1️⃣ Lấy code từ URL
         const authCodeRegex = /code=([^&]+)/;
         const match = window.location.href.match(authCodeRegex);
 
@@ -27,49 +29,53 @@ const Authenticate: React.FC = () => {
         const authCode = match[1];
         console.log("📝 Auth code:", authCode);
 
-        // 2. Gọi Backend API
-        const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'https://api.topjjobapi.click';
-        const response = await fetch(
-          `${BACKEND_URL}/api/v1/auth/outbound/authentication?code=${authCode}`,
-          {
-            method: "POST",
-            credentials: "include",
-            headers: {
-              "Content-Type": "application/json",
-              "Accept": "application/json"
-            }
-          }
-        );
+        // 2️⃣ Gọi backend để lấy token
+        const res = await fetch(`${BACKEND_URL}/api/v1/auth/outbound/authentication?code=${authCode}`, {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json", Accept: "application/json" },
+        });
 
-        console.log("📊 Response status:", response.status);
+        console.log("📊 Response status:", res.status);
 
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error("❌ Backend error:", errorText);
-          throw new Error(`Backend returned ${response.status}`);
+        if (!res.ok) {
+          const text = await res.text();
+          console.error("❌ Backend error:", text);
+          throw new Error(`Backend returned ${res.status}`);
         }
 
-        // 3. Parse response
-        const data = await response.json();
-        console.log("✅ API Response:", data);
+        const json = await res.json();
+        const token = json?.data?.access_token;
+        const user = json?.data?.user;
 
-        const token = data?.data?.access_token;
-        const user = data?.data?.user;
+        if (!token) throw new Error("❌ No access token in response");
 
-        if (!token) {
-          throw new Error("❌ No access token in response");
-        }
-
-        // 4. Lưu token
+        // 3️⃣ Lưu token vào localStorage
         localStorage.setItem("access_token", token);
         console.log("✅ Token saved to localStorage");
 
-        // 5. Dispatch user nếu có
+        // 4️⃣ Dispatch user lên Redux
         if (user) {
           dispatch(setUserLoginInfo(user));
           console.log("✅ User info dispatched");
         } else {
           console.warn("⚠️ No user data returned from backend");
+        }
+
+        // 5️⃣ Xóa code OAuth khỏi URL để tránh fetch lại khi reload
+        window.history.replaceState({}, document.title, "/");
+
+        // 6️⃣ Verify backend token trước khi redirect
+        const verify = await fetch(`${BACKEND_URL}/api/v1/auth/account`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        if (verify.ok) {
+          console.log("✅ Token verified → redirecting to home");
+          navigate("/", { replace: true });
+        } else {
+          console.warn("⚠️ Token invalid → redirecting to login");
+          navigate("/login", { replace: true });
         }
 
       } catch (error: any) {
@@ -79,15 +85,16 @@ const Authenticate: React.FC = () => {
     };
 
     handleOAuthCallback();
-  }, [dispatch, navigate]);
+  }, [dispatch, navigate, BACKEND_URL]);
 
-  // Khi isAuthenticated thay đổi → redirect
+  // 7️⃣ Fallback: nếu isAuthenticated thay đổi (Redux) nhưng chưa redirect
   useEffect(() => {
     if (isAuthenticated) {
-      console.log("✅ User authenticated → redirecting...");
+      console.log("🔄 Redux says authenticated → redirecting home");
       navigate("/", { replace: true });
     }
   }, [isAuthenticated, navigate]);
+
   return (
     <Box
       sx={{
