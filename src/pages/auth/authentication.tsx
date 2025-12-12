@@ -29,32 +29,41 @@ const Authenticate: React.FC = () => {
         const authCode = match[1];
         console.log("📝 Auth code:", authCode);
 
-        // 2️⃣ Gọi backend để lấy token
-        const res = await fetch(`${BACKEND_URL}/api/v1/auth/outbound/authentication?code=${authCode}`, {
-          method: "POST",
-          credentials: "include",
-          headers: { "Content-Type": "application/json", Accept: "application/json" },
-        });
+        // 2️⃣ Gọi backend để lấy token + user
+        const response = await fetch(
+          `${BACKEND_URL}/api/v1/auth/outbound/authentication?code=${authCode}`,
+          {
+            method: "POST",
+            credentials: "include",
+            headers: {
+              "Content-Type": "application/json",
+              Accept: "application/json",
+            },
+          }
+        );
 
-        console.log("📊 Response status:", res.status);
+        console.log("📊 Response status:", response.status);
 
-        if (!res.ok) {
-          const text = await res.text();
-          console.error("❌ Backend error:", text);
-          throw new Error(`Backend returned ${res.status}`);
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error("❌ Backend error:", errorText);
+          throw new Error(`Backend returned ${response.status}`);
         }
 
-        const json = await res.json();
-        const token = json?.data?.access_token;
-        const user = json?.data?.user;
+        // 3️⃣ Parse response
+        const data = await response.json();
+        console.log("✅ API Response:", data);
+
+        const token = data?.data?.access_token;
+        const user = data?.data?.user;
 
         if (!token) throw new Error("❌ No access token in response");
 
-        // 3️⃣ Lưu token vào localStorage
+        // 4️⃣ Lưu token
         localStorage.setItem("access_token", token);
         console.log("✅ Token saved to localStorage");
 
-        // 4️⃣ Dispatch user lên Redux
+        // 5️⃣ Dispatch user nếu có
         if (user) {
           dispatch(setUserLoginInfo(user));
           console.log("✅ User info dispatched");
@@ -62,21 +71,8 @@ const Authenticate: React.FC = () => {
           console.warn("⚠️ No user data returned from backend");
         }
 
-        // 5️⃣ Xóa code OAuth khỏi URL để tránh fetch lại khi reload
+        // 6️⃣ Xóa code khỏi URL để tránh fetch lại khi reload
         window.history.replaceState({}, document.title, "/");
-
-        // 6️⃣ Verify backend token trước khi redirect
-        const verify = await fetch(`${BACKEND_URL}/api/v1/auth/account`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-
-        if (verify.ok) {
-          console.log("✅ Token verified → redirecting to home");
-          navigate("/", { replace: true });
-        } else {
-          console.warn("⚠️ Token invalid → redirecting to login");
-          navigate("/login", { replace: true });
-        }
 
       } catch (error: any) {
         console.error("💥 Authentication failed:", error);
@@ -87,10 +83,10 @@ const Authenticate: React.FC = () => {
     handleOAuthCallback();
   }, [dispatch, navigate, BACKEND_URL]);
 
-  // 7️⃣ Fallback: nếu isAuthenticated thay đổi (Redux) nhưng chưa redirect
+  // Khi isAuthenticated thay đổi → redirect về home
   useEffect(() => {
     if (isAuthenticated) {
-      console.log("🔄 Redux says authenticated → redirecting home");
+      console.log("✅ User authenticated → redirecting...");
       navigate("/", { replace: true });
     }
   }, [isAuthenticated, navigate]);
