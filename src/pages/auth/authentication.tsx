@@ -80,7 +80,6 @@ const Authenticate: React.FC = () => {
 
         } catch (error: any) {
             console.error("💥 OAuth failed:", error);
-            alert(`Đăng nhập thất bại: ${error.message}`);
             navigate("/login", { replace: true });
         }
     };
