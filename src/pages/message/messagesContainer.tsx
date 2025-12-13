@@ -9,13 +9,13 @@ import MessagesPageHR from './MessagesPageHR'; // HR version
 const MessagesContainer = () => {
     const user = useAppSelector((state: any) => state.account.user);
     
-    // Kiểm tra role của user - HR hoặc USER sẽ dùng MessagesPageHR
+    
     const isHR = user?.role?.name === 'HR' || user?.role?.name === 'USER';
     
     console.log('🔍 MessagesContainer - User role:', user?.role?.name);
     console.log('🔍 MessagesContainer - isHR:', isHR);
     
-    // Render component tương ứng
+    
     return isHR ? <MessagesPageHR /> : <MessagesPage />;
 };
 

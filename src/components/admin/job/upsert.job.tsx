@@ -807,15 +807,7 @@ const ViewUpsertJob = (props: any) => {
                                             placeholder="dd/mm/yyyy"
                                         />
                                     </Col>
-                                    <Col span={24}>
-                                        <ProFormSwitch
-                                            label="Trạng thái"
-                                            name="active"
-                                            checkedChildren="Hoạt động"
-                                            unCheckedChildren="Ẩn"
-                                            initialValue={true}
-                                        />
-                                    </Col>
+                                    
                                     </Row>
                                     <Divider />
                                     <Form.Item
